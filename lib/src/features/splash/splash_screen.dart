@@ -60,26 +60,26 @@ class _SplashScreenState extends State<SplashScreen>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Container(
-                    width: 94,
-                    height: 94,
+                    width: 76,
+                    height: 76,
                     decoration: BoxDecoration(
                       color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
+                      borderRadius: BorderRadius.circular(22),
                       boxShadow: [
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 36,
-                          offset: const Offset(0, 18),
+                          blurRadius: 28,
+                          offset: const Offset(0, 14),
                         ),
                       ],
                     ),
                     child: const Icon(
                       Icons.point_of_sale,
                       color: PosColors.primary,
-                      size: 46,
+                      size: 38,
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  const SizedBox(height: 18),
                   Text(
                     'Local POS',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(

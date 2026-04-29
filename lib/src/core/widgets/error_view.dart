@@ -12,12 +12,12 @@ class ErrorView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Icon(Icons.error_outline, color: PosColors.danger),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -30,7 +30,7 @@ class ErrorView extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(message, style: Theme.of(context).textTheme.bodyMedium),
                   if (onRetry != null) ...[
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 10),
                     OutlinedButton.icon(
                       onPressed: onRetry,
                       icon: const Icon(Icons.refresh),

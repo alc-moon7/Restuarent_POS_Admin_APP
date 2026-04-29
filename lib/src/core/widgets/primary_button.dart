@@ -26,8 +26,8 @@ class PrimaryButton extends StatelessWidget {
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icon, size: 19),
-              const SizedBox(width: 8),
+              Icon(icon, size: 18),
+              const SizedBox(width: 7),
               Flexible(child: Text(label, overflow: TextOverflow.ellipsis)),
             ],
           );

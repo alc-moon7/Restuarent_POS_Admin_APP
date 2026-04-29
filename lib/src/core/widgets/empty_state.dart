@@ -20,20 +20,20 @@ class EmptyState extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 34),
+        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 68,
-              height: 68,
+              width: 54,
+              height: 54,
               decoration: BoxDecoration(
                 color: PosColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(22),
+                borderRadius: BorderRadius.circular(16),
               ),
-              child: Icon(icon, color: PosColors.primary, size: 32),
+              child: Icon(icon, color: PosColors.primary, size: 26),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(
@@ -41,7 +41,7 @@ class EmptyState extends StatelessWidget {
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            if (action != null) ...[const SizedBox(height: 18), action!],
+            if (action != null) ...[const SizedBox(height: 14), action!],
           ],
         ),
       ),

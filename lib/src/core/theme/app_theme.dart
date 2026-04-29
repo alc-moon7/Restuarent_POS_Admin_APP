@@ -32,34 +32,34 @@ class AppTheme {
       fontFamily: 'Roboto',
       textTheme: const TextTheme(
         displaySmall: TextStyle(
-          fontSize: 34,
-          fontWeight: FontWeight.w800,
-          color: PosColors.slate,
-        ),
-        headlineMedium: TextStyle(
           fontSize: 28,
           fontWeight: FontWeight.w800,
           color: PosColors.slate,
         ),
+        headlineMedium: TextStyle(
+          fontSize: 22,
+          fontWeight: FontWeight.w800,
+          color: PosColors.slate,
+        ),
         titleLarge: TextStyle(
-          fontSize: 20,
+          fontSize: 18,
           fontWeight: FontWeight.w800,
           color: PosColors.slate,
         ),
         titleMedium: TextStyle(
-          fontSize: 16,
+          fontSize: 14.5,
           fontWeight: FontWeight.w700,
           color: PosColors.slate,
         ),
         bodyLarge: TextStyle(
-          fontSize: 16,
+          fontSize: 14.5,
           color: PosColors.slate,
-          height: 1.35,
+          height: 1.3,
         ),
         bodyMedium: TextStyle(
-          fontSize: 14,
+          fontSize: 12.5,
           color: PosColors.muted,
-          height: 1.35,
+          height: 1.3,
         ),
       ),
       appBarTheme: const AppBarTheme(
@@ -73,7 +73,7 @@ class AppTheme {
         color: PosColors.surface,
         margin: EdgeInsets.zero,
         shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           side: const BorderSide(color: PosColors.line),
         ),
       ),
@@ -81,49 +81,76 @@ class AppTheme {
         filled: true,
         fillColor: Colors.white,
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: PosColors.line),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: PosColors.line),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: PosColors.primary, width: 1.4),
         ),
         contentPadding: const EdgeInsets.symmetric(
-          horizontal: 16,
-          vertical: 14,
+          horizontal: 12,
+          vertical: 11,
         ),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: const Size(44, 42),
           elevation: 0,
           backgroundColor: PosColors.primary,
           foregroundColor: Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          textStyle: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          minimumSize: const Size(48, 48),
+          minimumSize: const Size(44, 42),
           foregroundColor: PosColors.primary,
           side: const BorderSide(color: PosColors.line),
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
           ),
-          textStyle: const TextStyle(fontWeight: FontWeight.w800),
+          textStyle: const TextStyle(
+            fontSize: 13.5,
+            fontWeight: FontWeight.w800,
+          ),
         ),
+      ),
+      navigationBarTheme: NavigationBarThemeData(
+        height: 66,
+        indicatorShape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(18),
+        ),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return TextStyle(
+            fontSize: 12,
+            fontWeight: selected ? FontWeight.w800 : FontWeight.w600,
+            color: PosColors.slate,
+          );
+        }),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          final selected = states.contains(WidgetState.selected);
+          return IconThemeData(
+            size: selected ? 24 : 23,
+            color: selected ? PosColors.primary : PosColors.slate,
+          );
+        }),
       ),
       snackBarTheme: SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
         backgroundColor: PosColors.slate,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }

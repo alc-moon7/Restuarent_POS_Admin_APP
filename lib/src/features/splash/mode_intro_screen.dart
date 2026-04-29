@@ -16,7 +16,7 @@ class ModeIntroScreen extends StatelessWidget {
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 920),
             child: Padding(
-              padding: const EdgeInsets.all(24),
+              padding: const EdgeInsets.all(16),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= 760;
@@ -24,13 +24,13 @@ class ModeIntroScreen extends StatelessWidget {
                   final cards = _CapabilityCards(wide: wide);
                   if (!wide) {
                     return ListView(
-                      children: [hero, const SizedBox(height: 18), cards],
+                      children: [hero, const SizedBox(height: 12), cards],
                     );
                   }
                   return Row(
                     children: [
                       Expanded(flex: 5, child: hero),
-                      const SizedBox(width: 20),
+                      const SizedBox(width: 14),
                       Expanded(flex: 4, child: cards),
                     ],
                   );
@@ -53,37 +53,37 @@ class _HeroPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(28),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 64,
-              height: 64,
+              width: 52,
+              height: 52,
               decoration: BoxDecoration(
                 color: PosColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(20),
+                borderRadius: BorderRadius.circular(16),
               ),
               child: const Icon(
                 Icons.admin_panel_settings_outlined,
                 color: PosColors.primary,
-                size: 32,
+                size: 28,
               ),
             ),
-            const SizedBox(height: 22),
+            const SizedBox(height: 16),
             Text(
               'Run your restaurant from one admin device',
               style: Theme.of(context).textTheme.displaySmall,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Text(
               'Start in Admin/Server mode, manage menu and orders locally, then let customer apps connect over the same WiFi without internet.',
               style: Theme.of(
                 context,
               ).textTheme.bodyLarge?.copyWith(color: PosColors.muted),
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 16),
             PrimaryButton(
               label: 'Set up Admin Server',
               icon: Icons.arrow_forward,
@@ -128,10 +128,8 @@ class _CapabilityCards extends StatelessWidget {
       mainAxisSize: wide ? MainAxisSize.min : MainAxisSize.max,
       children: cards
           .map(
-            (card) => Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: card,
-            ),
+            (card) =>
+                Padding(padding: const EdgeInsets.only(bottom: 8), child: card),
           )
           .toList(growable: false),
     );
@@ -153,19 +151,19 @@ class _Capability extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Row(
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: PosColors.accent.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Icon(icon, color: PosColors.accent),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

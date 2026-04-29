@@ -58,16 +58,16 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
             busy: app.busy,
             onStart: _startServer,
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (state.localIp == null)
             const _WarningCard(
               message:
                   'No WiFi/local IP was found. The server can run, but customer devices need the correct LAN IP after connecting to the same WiFi.',
             ),
-          if (state.localIp == null) const SizedBox(height: 16),
+          if (state.localIp == null) const SizedBox(height: 12),
           if (app.lastError != null)
             _WarningCard(message: app.lastError!, isError: true),
-          if (app.lastError != null) const SizedBox(height: 16),
+          if (app.lastError != null) const SizedBox(height: 12),
           _ServerStatusCard(
             state: state,
             connectedClients: app.connectedClients,
@@ -83,9 +83,9 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                     _showSnack(context, 'API URL copied');
                   },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _EndpointCard(baseUrl: state.apiUrl, wsUrl: state.wsUrl),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           _ActivityLogCard(logs: app.apiLogs),
         ],
       ),
@@ -149,7 +149,7 @@ class _SetupCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Form(
           key: formKey,
           child: Column(
@@ -158,18 +158,18 @@ class _SetupCard extends StatelessWidget {
               Row(
                 children: [
                   Container(
-                    width: 48,
-                    height: 48,
+                    width: 40,
+                    height: 40,
                     decoration: BoxDecoration(
                       color: PosColors.primary.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(12),
                     ),
                     child: const Icon(
                       Icons.router_outlined,
                       color: PosColors.primary,
                     ),
                   ),
-                  const SizedBox(width: 12),
+                  const SizedBox(width: 10),
                   Expanded(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,7 +188,7 @@ class _SetupCard extends StatelessWidget {
                   ),
                 ],
               ),
-              const SizedBox(height: 18),
+              const SizedBox(height: 14),
               LayoutBuilder(
                 builder: (context, constraints) {
                   final compact = constraints.maxWidth < 640;
@@ -224,7 +224,7 @@ class _SetupCard extends StatelessWidget {
                   );
                   if (compact) {
                     return Column(
-                      children: [restaurant, const SizedBox(height: 12), port],
+                      children: [restaurant, const SizedBox(height: 10), port],
                     );
                   }
                   return Row(
@@ -236,7 +236,7 @@ class _SetupCard extends StatelessWidget {
                   );
                 },
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 12),
               PrimaryButton(
                 label: 'Create & Start Server',
                 icon: Icons.play_arrow,
@@ -274,7 +274,7 @@ class _ServerStatusCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -289,7 +289,7 @@ class _ServerStatusCard extends StatelessWidget {
                 StatusBadge.server(isRunning: state.isRunning),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             _InfoGrid(
               values: [
                 _InfoValue('Local IP', state.localIp ?? 'Not found'),
@@ -305,7 +305,7 @@ class _ServerStatusCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
             Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -368,7 +368,7 @@ class _EndpointCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -378,10 +378,10 @@ class _EndpointCard extends StatelessWidget {
               'CORS is enabled for browser and React clients. All responses are JSON.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             ...endpoints.map(
               (endpoint) => Padding(
-                padding: const EdgeInsets.only(bottom: 10),
+                padding: const EdgeInsets.only(bottom: 8),
                 child: _EndpointRow(
                   endpoint: endpoint,
                   baseUrl: endpoint.method == 'WS' ? wsUrl : baseUrl,
@@ -404,7 +404,7 @@ class _ActivityLogCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -412,7 +412,7 @@ class _ActivityLogCard extends StatelessWidget {
               'Last API activity',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             if (logs.isEmpty)
               const _InlineEmpty(
                 icon: Icons.monitor_heart_outlined,
@@ -430,7 +430,7 @@ class _ActivityLogCard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Container(
-                        width: 74,
+                        width: 68,
                         padding: const EdgeInsets.symmetric(
                           horizontal: 8,
                           vertical: 6,
@@ -447,11 +447,11 @@ class _ActivityLogCard extends StatelessWidget {
                           style: TextStyle(
                             color: ok ? PosColors.success : PosColors.danger,
                             fontWeight: FontWeight.w900,
-                            fontSize: 12,
+                            fontSize: 11,
                           ),
                         ),
                       ),
-                      const SizedBox(width: 10),
+                      const SizedBox(width: 8),
                       Expanded(
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
@@ -477,7 +477,7 @@ class _ActivityLogCard extends StatelessWidget {
                     ],
                   );
                 },
-                separatorBuilder: (context, index) => const Divider(height: 20),
+                separatorBuilder: (context, index) => const Divider(height: 16),
                 itemCount: logs.length,
               ),
           ],
@@ -502,16 +502,16 @@ class _InlineEmpty extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: PosColors.background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: PosColors.line),
       ),
       child: Column(
         children: [
           Icon(icon, color: PosColors.primary, size: 30),
-          const SizedBox(height: 10),
+          const SizedBox(height: 8),
           Text(title, style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 4),
           Text(
@@ -536,7 +536,7 @@ class _WarningCard extends StatelessWidget {
     final color = isError ? PosColors.danger : PosColors.warning;
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -544,7 +544,7 @@ class _WarningCard extends StatelessWidget {
               isError ? Icons.error_outline : Icons.warning_amber_outlined,
               color: color,
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 8),
             Expanded(
               child: Text(
                 message,
@@ -574,46 +574,57 @@ class _InfoGrid extends StatelessWidget {
             : constraints.maxWidth >= 560
             ? 2
             : 1;
-        return GridView.builder(
-          shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
-          itemCount: values.length,
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: columns,
-            crossAxisSpacing: 10,
-            mainAxisSpacing: 10,
-            childAspectRatio: columns == 1 ? 4.6 : 3.1,
-          ),
-          itemBuilder: (context, index) {
-            final value = values[index];
-            return Container(
-              padding: const EdgeInsets.all(12),
-              decoration: BoxDecoration(
-                color: PosColors.background,
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(color: PosColors.line),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    value.label,
-                    style: Theme.of(context).textTheme.bodyMedium,
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value.value,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ],
-              ),
-            );
-          },
+        const spacing = 10.0;
+        final tileWidth =
+            (constraints.maxWidth - (spacing * (columns - 1))) / columns;
+
+        return Wrap(
+          spacing: spacing,
+          runSpacing: spacing,
+          children: values
+              .map((value) {
+                return SizedBox(
+                  width: tileWidth,
+                  child: _InfoTile(value: value),
+                );
+              })
+              .toList(growable: false),
         );
       },
+    );
+  }
+}
+
+class _InfoTile extends StatelessWidget {
+  const _InfoTile({required this.value});
+
+  final _InfoValue value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      constraints: const BoxConstraints(minHeight: 72),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 11),
+      decoration: BoxDecoration(
+        color: PosColors.background,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(value.label, style: Theme.of(context).textTheme.bodyMedium),
+          const SizedBox(height: 4),
+          Text(
+            value.value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+        ],
+      ),
     );
   }
 }
@@ -630,16 +641,16 @@ class _EndpointRow extends StatelessWidget {
         ? (baseUrl ?? 'ws://ADMIN_LOCAL_IP:8080/ws')
         : '${baseUrl ?? 'http://ADMIN_LOCAL_IP:8080'}${endpoint.path}';
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: PosColors.background,
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(12),
         border: Border.all(color: PosColors.line),
       ),
       child: Row(
         children: [
           Container(
-            width: 58,
+            width: 52,
             padding: const EdgeInsets.symmetric(vertical: 6),
             alignment: Alignment.center,
             decoration: BoxDecoration(
@@ -651,11 +662,11 @@ class _EndpointRow extends StatelessWidget {
               style: const TextStyle(
                 color: PosColors.primary,
                 fontWeight: FontWeight.w900,
-                fontSize: 12,
+                fontSize: 11,
               ),
             ),
           ),
-          const SizedBox(width: 12),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

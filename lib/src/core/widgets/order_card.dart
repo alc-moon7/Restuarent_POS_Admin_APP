@@ -25,7 +25,7 @@ class OrderCard extends StatelessWidget {
 
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -48,34 +48,34 @@ class OrderCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 StatusBadge.order(order.status),
               ],
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             DecoratedBox(
               decoration: BoxDecoration(
                 color: PosColors.background,
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: Padding(
-                padding: const EdgeInsets.all(12),
+                padding: const EdgeInsets.all(10),
                 child: Column(
                   children: order.items
                       .map((item) {
                         return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 5),
+                          padding: const EdgeInsets.symmetric(vertical: 4),
                           child: Row(
                             children: [
                               Container(
-                                width: 32,
-                                height: 32,
+                                width: 28,
+                                height: 28,
                                 alignment: Alignment.center,
                                 decoration: BoxDecoration(
                                   color: PosColors.primary.withValues(
                                     alpha: 0.1,
                                   ),
-                                  borderRadius: BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(8),
                                 ),
                                 child: Text(
                                   '${item.qty}x',
@@ -85,7 +85,7 @@ class OrderCard extends StatelessWidget {
                                   ),
                                 ),
                               ),
-                              const SizedBox(width: 10),
+                              const SizedBox(width: 8),
                               Expanded(
                                 child: Text(
                                   item.name,
@@ -104,7 +104,7 @@ class OrderCard extends StatelessWidget {
               ),
             ),
             if (order.note != null) ...[
-              const SizedBox(height: 10),
+              const SizedBox(height: 8),
               Row(
                 children: [
                   const Icon(Icons.sticky_note_2_outlined, size: 17),
@@ -113,7 +113,7 @@ class OrderCard extends StatelessWidget {
                 ],
               ),
             ],
-            const SizedBox(height: 14),
+            const SizedBox(height: 12),
             LayoutBuilder(
               builder: (context, constraints) {
                 final compact = constraints.maxWidth < 520;
@@ -140,7 +140,7 @@ class OrderCard extends StatelessWidget {
                     DropdownButtonHideUnderline(
                       child: DropdownButton<OrderStatus>(
                         value: order.status,
-                        borderRadius: BorderRadius.circular(16),
+                        borderRadius: BorderRadius.circular(12),
                         items: OrderStatus.values
                             .map((status) {
                               return DropdownMenuItem(

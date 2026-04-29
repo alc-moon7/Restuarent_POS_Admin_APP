@@ -68,7 +68,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               setState(() => _selectedCategory = value);
             },
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (app.menuItems.isEmpty)
             EmptyState(
               title: 'No menu items yet',
@@ -179,7 +179,7 @@ class _MenuToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 620;
@@ -212,7 +212,7 @@ class _MenuToolbar extends StatelessWidget {
             );
             if (compact) {
               return Column(
-                children: [search, const SizedBox(height: 12), category],
+                children: [search, const SizedBox(height: 10), category],
               );
             }
             return Row(
@@ -257,9 +257,9 @@ class _MenuGrid extends StatelessWidget {
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
-            crossAxisSpacing: 14,
-            mainAxisSpacing: 14,
-            childAspectRatio: columns == 1 ? 0.86 : 0.78,
+            crossAxisSpacing: 10,
+            mainAxisSpacing: 10,
+            childAspectRatio: columns == 1 ? 0.96 : 0.9,
           ),
           itemBuilder: (context, index) {
             final item = items[index];
@@ -335,7 +335,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 24),
+          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
           child: Form(
             key: _formKey,
             child: Column(
@@ -358,7 +358,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                const SizedBox(height: 12),
                 TextFormField(
                   controller: _nameController,
                   textInputAction: TextInputAction.next,
@@ -370,7 +370,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 3,
@@ -382,7 +382,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final compact = constraints.maxWidth < 560;
@@ -417,7 +417,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     );
                     if (compact) {
                       return Column(
-                        children: [category, const SizedBox(height: 12), price],
+                        children: [category, const SizedBox(height: 10), price],
                       );
                     }
                     return Row(
@@ -429,7 +429,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     );
                   },
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _imageController,
                   decoration: const InputDecoration(
@@ -437,7 +437,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     hintText: 'Optional',
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 10),
                 TextFormField(
                   controller: _prepController,
                   decoration: const InputDecoration(
@@ -447,7 +447,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   value: _isAvailable,
                   onChanged: (value) => setState(() => _isAvailable = value),
@@ -475,7 +475,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 20),
+                const SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(

@@ -97,9 +97,9 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
           _QuickActions(onNavigate: onNavigate, apiUrl: server.apiUrl),
-          const SizedBox(height: 22),
+          const SizedBox(height: 16),
           _ServerHintCard(
             isRunning: server.isRunning,
             apiUrl: server.apiUrl,
@@ -123,16 +123,24 @@ class _MetricGrid extends StatelessWidget {
         final width = constraints.maxWidth;
         final columns = width >= 1080
             ? 4
-            : width >= 620
+            : width >= 760
+            ? 3
+            : width >= 320
             ? 2
             : 1;
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 14,
-          crossAxisSpacing: 14,
-          childAspectRatio: width >= 620 ? 1.55 : 1.75,
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: width >= 1080
+              ? 2.15
+              : width >= 760
+              ? 1.9
+              : width >= 620
+              ? 1.75
+              : 1.42,
           children: cards,
         );
       },
@@ -150,7 +158,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -158,7 +166,7 @@ class _QuickActions extends StatelessWidget {
               'Quick actions',
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 10,
               runSpacing: 10,
@@ -220,20 +228,20 @@ class _ServerHintCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(18),
+        padding: const EdgeInsets.all(14),
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
-              width: 48,
-              height: 48,
+              width: 40,
+              height: 40,
               decoration: BoxDecoration(
                 color: PosColors.accent.withValues(alpha: 0.12),
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: const Icon(Icons.router_outlined, color: PosColors.accent),
             ),
-            const SizedBox(width: 14),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

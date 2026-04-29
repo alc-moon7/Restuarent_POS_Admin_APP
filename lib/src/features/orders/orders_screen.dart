@@ -38,7 +38,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             selected: _filter,
             onChanged: (status) => setState(() => _filter = status),
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (app.orders.isEmpty)
             EmptyState(
               title: 'No orders yet',
@@ -87,7 +87,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   onPrintTicket: () => _showTicketPreview(context, order),
                 );
               },
-              separatorBuilder: (context, index) => const SizedBox(height: 12),
+              separatorBuilder: (context, index) => const SizedBox(height: 10),
               itemCount: orders.length,
             ),
         ],
@@ -133,7 +133,7 @@ class _StatusFilters extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.all(10),
         child: SingleChildScrollView(
           scrollDirection: Axis.horizontal,
           child: Row(

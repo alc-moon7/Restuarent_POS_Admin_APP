@@ -29,9 +29,9 @@ class AppScaffold extends StatelessWidget {
             SliverPadding(
               padding: EdgeInsets.fromLTRB(
                 _horizontalPadding(context),
-                20,
+                14,
                 _horizontalPadding(context),
-                12,
+                8,
               ),
               sliver: SliverToBoxAdapter(
                 child: _Header(
@@ -46,7 +46,7 @@ class AppScaffold extends StatelessWidget {
                 _horizontalPadding(context),
                 0,
                 _horizontalPadding(context),
-                28,
+                18,
               ),
               sliver: SliverToBoxAdapter(child: child),
             ),
@@ -58,9 +58,9 @@ class AppScaffold extends StatelessWidget {
 
   double _horizontalPadding(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    if (width >= 1200) return 32;
-    if (width >= 700) return 24;
-    return 16;
+    if (width >= 1200) return 28;
+    if (width >= 700) return 20;
+    return 14;
   }
 }
 
@@ -93,8 +93,8 @@ class _Header extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               titleColumn,
-              const SizedBox(height: 14),
-              Wrap(spacing: 10, runSpacing: 10, children: actions),
+              const SizedBox(height: 10),
+              Wrap(spacing: 8, runSpacing: 8, children: actions),
             ],
           );
         }
@@ -102,8 +102,8 @@ class _Header extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Expanded(child: titleColumn),
-            const SizedBox(width: 16),
-            Wrap(spacing: 10, runSpacing: 10, children: actions),
+            const SizedBox(width: 12),
+            Wrap(spacing: 8, runSpacing: 8, children: actions),
           ],
         );
       },

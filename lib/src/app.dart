@@ -45,6 +45,15 @@ class _LocalPosAppState extends State<LocalPosApp> {
         title: 'Local POS',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
+        builder: (context, child) {
+          final mediaQuery = MediaQuery.of(context);
+          return MediaQuery(
+            data: mediaQuery.copyWith(
+              textScaler: mediaQuery.textScaler.clamp(maxScaleFactor: 1.12),
+            ),
+            child: child ?? const SizedBox.shrink(),
+          );
+        },
         home: AnimatedSwitcher(
           duration: const Duration(milliseconds: 320),
           child: _home(),
@@ -147,7 +156,7 @@ class _MainShellState extends State<MainShell> {
                 extended: constraints.maxWidth >= 1050,
                 minExtendedWidth: 210,
                 leading: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 18),
+                  padding: EdgeInsets.symmetric(vertical: 14),
                   child: _RailLogo(),
                 ),
                 destinations: _destinations
@@ -190,7 +199,7 @@ class _RailLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return CircleAvatar(
-      radius: 22,
+      radius: 19,
       backgroundColor: Theme.of(context).colorScheme.primary,
       foregroundColor: Colors.white,
       child: const Icon(Icons.point_of_sale),

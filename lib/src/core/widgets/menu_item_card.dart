@@ -24,21 +24,21 @@ class MenuItemCard extends StatelessWidget {
     final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(12),
               child: AspectRatio(
-                aspectRatio: 16 / 9,
+                aspectRatio: 1.9,
                 child: item.imageUrl == null
                     ? Container(
                         color: PosColors.primary.withValues(alpha: 0.08),
                         child: const Icon(
                           Icons.restaurant_menu,
                           color: PosColors.primary,
-                          size: 34,
+                          size: 28,
                         ),
                       )
                     : Image.network(
@@ -54,7 +54,7 @@ class MenuItemCard extends StatelessWidget {
                       ),
               ),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -66,7 +66,7 @@ class MenuItemCard extends StatelessWidget {
                     overflow: TextOverflow.ellipsis,
                   ),
                 ),
-                const SizedBox(width: 10),
+                const SizedBox(width: 8),
                 Text(
                   currency.format(item.price),
                   style: Theme.of(
@@ -75,14 +75,14 @@ class MenuItemCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Text(
               item.description,
               maxLines: 2,
               overflow: TextOverflow.ellipsis,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Wrap(
               spacing: 8,
               runSpacing: 8,
@@ -109,7 +109,7 @@ class MenuItemCard extends StatelessWidget {
               ],
             ),
             const Spacer(),
-            const SizedBox(height: 12),
+            const SizedBox(height: 8),
             Row(
               children: [
                 Expanded(
@@ -150,7 +150,7 @@ class _SmallPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 5),
       decoration: BoxDecoration(
         color: PosColors.background,
         borderRadius: BorderRadius.circular(999),
@@ -159,14 +159,14 @@ class _SmallPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 14, color: PosColors.muted),
+          Icon(icon, size: 13, color: PosColors.muted),
           const SizedBox(width: 5),
           Text(
             label,
             style: const TextStyle(
               color: PosColors.muted,
               fontWeight: FontWeight.w700,
-              fontSize: 12,
+              fontSize: 11,
             ),
           ),
         ],

@@ -5,10 +5,10 @@
 // 'flutter create' template.
 
 // The application's name. By default this is also the title of the Flutter window.
-PRODUCT_NAME = local_pos
+PRODUCT_NAME = Local POS
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.moon.localPos
+PRODUCT_BUNDLE_IDENTIFIER = com.terabyteAI.Res.Admin
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.moon. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 TerabyteAI. All rights reserved.

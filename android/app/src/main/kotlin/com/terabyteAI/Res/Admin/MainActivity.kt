@@ -1,4 +1,4 @@
-package com.moon.local_pos
+package com.terabyteAI.Res.Admin
 
 import io.flutter.embedding.android.FlutterActivity
 
