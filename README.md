@@ -1,4 +1,4 @@
-# Local POS
+# REs Admin
 
 Flutter Restaurant POS Admin/Server app for running a local restaurant server
 from an admin device. Customer Flutter or React clients can connect over the
@@ -9,6 +9,30 @@ same WiFi using HTTP and WebSocket APIs. Internet is not required.
 ```sh
 flutter pub get
 flutter run
+```
+
+## Android Release
+
+Create a private upload keystore first:
+
+```sh
+keytool -genkey -v -keystore android/app/upload-keystore.jks -keyalg RSA -keysize 2048 -validity 10000 -alias upload
+cp android/key.properties.example android/key.properties
+```
+
+Then edit `android/key.properties` with the same passwords used in `keytool`.
+Never commit `android/key.properties` or `.jks` files.
+
+Build Play Store app bundle:
+
+```sh
+flutter build appbundle --release
+```
+
+Build release APK:
+
+```sh
+flutter build apk --release
 ```
 
 ## API

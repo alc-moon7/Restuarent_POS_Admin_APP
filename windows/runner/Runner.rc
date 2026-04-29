@@ -89,13 +89,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.moon" "\0"
-            VALUE "FileDescription", "local_pos" "\0"
+            VALUE "CompanyName", "TerabyteAI" "\0"
+            VALUE "FileDescription", "REs Admin" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "local_pos" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2026 com.moon. All rights reserved." "\0"
-            VALUE "OriginalFilename", "local_pos.exe" "\0"
-            VALUE "ProductName", "local_pos" "\0"
+            VALUE "InternalName", "REs Admin" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2026 TerabyteAI. All rights reserved." "\0"
+            VALUE "OriginalFilename", "REs Admin.exe" "\0"
+            VALUE "ProductName", "REs Admin" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

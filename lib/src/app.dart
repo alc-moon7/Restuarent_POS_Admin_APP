@@ -42,7 +42,7 @@ class _LocalPosAppState extends State<LocalPosApp> {
     return AppScope(
       controller: _controller,
       child: MaterialApp(
-        title: 'Local POS',
+        title: 'REs Admin',
         debugShowCheckedModeBanner: false,
         theme: AppTheme.light(),
         builder: (context, child) {

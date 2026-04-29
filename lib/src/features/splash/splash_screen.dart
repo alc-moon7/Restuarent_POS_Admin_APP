@@ -81,7 +81,7 @@ class _SplashScreenState extends State<SplashScreen>
                   ),
                   const SizedBox(height: 18),
                   Text(
-                    'Local POS',
+                    'REs Admin',
                     style: Theme.of(context).textTheme.displaySmall?.copyWith(
                       color: Colors.white,
                       letterSpacing: 0,
