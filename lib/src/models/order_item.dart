@@ -47,7 +47,7 @@ class OrderItem {
       orderId: map['orderId'] as String,
       menuItemId: map['menuItemId'] as String,
       name: map['name'] as String,
-      qty: map['qty'] as int,
+      qty: (map['qty'] as num).toInt(),
       price: (map['price'] as num).toDouble(),
       lineTotal: (map['lineTotal'] as num).toDouble(),
     );

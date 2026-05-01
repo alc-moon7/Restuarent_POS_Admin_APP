@@ -49,7 +49,18 @@ class OrderCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 8),
-                StatusBadge.order(order.status),
+                Flexible(
+                  child: Wrap(
+                    spacing: 6,
+                    runSpacing: 6,
+                    alignment: WrapAlignment.end,
+                    children: [
+                      StatusBadge.source(order.source),
+                      StatusBadge.sync(order.syncStatus),
+                      StatusBadge.order(order.status),
+                    ],
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 12),

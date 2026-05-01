@@ -31,6 +31,31 @@ enum OrderStatus {
       this == OrderStatus.preparing ||
       this == OrderStatus.ready;
 
+  int get priority {
+    switch (this) {
+      case OrderStatus.pending:
+        return 0;
+      case OrderStatus.accepted:
+        return 1;
+      case OrderStatus.preparing:
+        return 2;
+      case OrderStatus.ready:
+        return 3;
+      case OrderStatus.served:
+        return 4;
+      case OrderStatus.cancelled:
+        return 99;
+    }
+  }
+
+  bool canTransitionTo(OrderStatus next) {
+    if (this == next) return true;
+    if (this == OrderStatus.served) return next == OrderStatus.served;
+    if (next == OrderStatus.cancelled) return this != OrderStatus.served;
+    if (this == OrderStatus.cancelled) return next == OrderStatus.cancelled;
+    return next.priority >= priority;
+  }
+
   static OrderStatus? tryParse(String? value) {
     if (value == null) return null;
     final normalized = value.trim().toLowerCase();

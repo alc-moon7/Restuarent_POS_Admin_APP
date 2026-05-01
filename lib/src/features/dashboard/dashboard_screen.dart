@@ -55,6 +55,30 @@ class DashboardScreen extends StatelessWidget {
                 onTap: () => onNavigate(3),
               ),
               DashboardCard(
+                title: 'Cloud sync',
+                value: app.syncState.cloudConnected ? 'Connected' : 'Queued',
+                caption: app.cloudConfig.enabled
+                    ? '${app.syncState.pendingCount} pending'
+                    : 'Disabled',
+                icon: Icons.cloud_sync_outlined,
+                color: app.syncState.cloudConnected
+                    ? PosColors.success
+                    : PosColors.warning,
+                onTap: () => onNavigate(4),
+              ),
+              DashboardCard(
+                title: 'Discovery',
+                value: app.discoveryState.isBroadcasting
+                    ? 'Broadcasting'
+                    : 'Stopped',
+                caption: 'UDP ${app.discoveryState.port}',
+                icon: Icons.radar_outlined,
+                color: app.discoveryState.isBroadcasting
+                    ? PosColors.primary
+                    : PosColors.muted,
+                onTap: () => onNavigate(3),
+              ),
+              DashboardCard(
                 title: 'Today orders',
                 value: metrics.todayOrders.toString(),
                 icon: Icons.today_outlined,
@@ -95,10 +119,23 @@ class DashboardScreen extends StatelessWidget {
                 color: PosColors.success,
                 onTap: () => onNavigate(1),
               ),
+              DashboardCard(
+                title: 'Pending sync',
+                value: metrics.pendingSyncCount.toString(),
+                icon: Icons.sync_problem_outlined,
+                color: metrics.pendingSyncCount == 0
+                    ? PosColors.success
+                    : PosColors.warning,
+                onTap: () => onNavigate(4),
+              ),
             ],
           ),
           const SizedBox(height: 16),
-          _QuickActions(onNavigate: onNavigate, apiUrl: server.apiUrl),
+          _QuickActions(
+            onNavigate: onNavigate,
+            apiUrl: server.apiUrl,
+            onSyncNow: app.busy ? null : app.syncNow,
+          ),
           const SizedBox(height: 16),
           _ServerHintCard(
             isRunning: server.isRunning,
@@ -149,10 +186,15 @@ class _MetricGrid extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({required this.onNavigate, required this.apiUrl});
+  const _QuickActions({
+    required this.onNavigate,
+    required this.apiUrl,
+    required this.onSyncNow,
+  });
 
   final ValueChanged<int> onNavigate;
   final String? apiUrl;
+  final Future<bool> Function()? onSyncNow;
 
   @override
   Widget build(BuildContext context) {
@@ -187,6 +229,24 @@ class _QuickActions extends StatelessWidget {
                   icon: Icons.settings_input_antenna,
                   secondary: true,
                   onPressed: () => onNavigate(3),
+                ),
+                PrimaryButton(
+                  label: 'Sync Now',
+                  icon: Icons.sync,
+                  secondary: true,
+                  onPressed: onSyncNow == null
+                      ? null
+                      : () async {
+                          final ok = await onSyncNow!();
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                ok ? 'Sync completed' : 'Sync failed',
+                              ),
+                            ),
+                          );
+                        },
                 ),
                 PrimaryButton(
                   label: 'Copy Menu URL',

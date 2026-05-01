@@ -8,10 +8,14 @@ import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../models/discovery_packet.dart';
 import '../models/order_item.dart';
+import '../models/order_source.dart';
 import '../models/order_status.dart';
+import '../models/server_config.dart';
 import 'local_database_service.dart';
 import 'network_info_service.dart';
+import 'server_discovery_service.dart';
 import 'websocket_service.dart';
 
 class LocalServerException implements Exception {
@@ -27,16 +31,32 @@ class ServerRuntimeState {
   const ServerRuntimeState({
     required this.isRunning,
     required this.port,
+    this.serverId = '',
+    this.restaurantId = '',
+    this.outletId = '',
     this.restaurantName,
+    this.outletName,
     this.localIp,
+    this.cloudBaseUrl = 'https://api.example.com',
+    this.cloudSyncEnabled = false,
+    this.cloudConnected = false,
+    this.discoveryEnabled = true,
     this.startedAt,
     this.error,
   });
 
   final bool isRunning;
+  final String serverId;
+  final String restaurantId;
+  final String outletId;
   final String? restaurantName;
+  final String? outletName;
   final String? localIp;
   final int port;
+  final String cloudBaseUrl;
+  final bool cloudSyncEnabled;
+  final bool cloudConnected;
+  final bool discoveryEnabled;
   final DateTime? startedAt;
   final String? error;
 
@@ -48,9 +68,17 @@ class ServerRuntimeState {
 
   ServerRuntimeState copyWith({
     bool? isRunning,
+    String? serverId,
+    String? restaurantId,
+    String? outletId,
     String? restaurantName,
+    String? outletName,
     String? localIp,
     int? port,
+    String? cloudBaseUrl,
+    bool? cloudSyncEnabled,
+    bool? cloudConnected,
+    bool? discoveryEnabled,
     DateTime? startedAt,
     String? error,
     bool clearError = false,
@@ -59,9 +87,17 @@ class ServerRuntimeState {
   }) {
     return ServerRuntimeState(
       isRunning: isRunning ?? this.isRunning,
+      serverId: serverId ?? this.serverId,
+      restaurantId: restaurantId ?? this.restaurantId,
+      outletId: outletId ?? this.outletId,
       restaurantName: restaurantName ?? this.restaurantName,
+      outletName: outletName ?? this.outletName,
       localIp: clearLocalIp ? null : localIp ?? this.localIp,
       port: port ?? this.port,
+      cloudBaseUrl: cloudBaseUrl ?? this.cloudBaseUrl,
+      cloudSyncEnabled: cloudSyncEnabled ?? this.cloudSyncEnabled,
+      cloudConnected: cloudConnected ?? this.cloudConnected,
+      discoveryEnabled: discoveryEnabled ?? this.discoveryEnabled,
       startedAt: clearStartedAt ? null : startedAt ?? this.startedAt,
       error: clearError ? null : error ?? this.error,
     );
@@ -89,19 +125,28 @@ class LocalServerService {
     required LocalDatabaseService database,
     required NetworkInfoService networkInfo,
     required WebSocketService webSocketService,
+    required ServerDiscoveryService discoveryService,
+    Future<void> Function()? onLocalMutation,
   }) : _database = database,
        _networkInfo = networkInfo,
-       _webSocketService = webSocketService;
+       _webSocketService = webSocketService,
+       _discoveryService = discoveryService,
+       _onLocalMutation = onLocalMutation;
 
   final LocalDatabaseService _database;
   final NetworkInfoService _networkInfo;
   final WebSocketService _webSocketService;
+  final ServerDiscoveryService _discoveryService;
+  final Future<void> Function()? _onLocalMutation;
   final StreamController<ServerRuntimeState> _stateController =
       StreamController<ServerRuntimeState>.broadcast();
   final StreamController<List<ApiLogEntry>> _logsController =
       StreamController<List<ApiLogEntry>>.broadcast();
 
   HttpServer? _server;
+  StreamSubscription<String?>? _ipSubscription;
+  ServerConfig? _serverConfig;
+  CloudConfig? _cloudConfig;
   ServerRuntimeState _state = const ServerRuntimeState(
     isRunning: false,
     port: 8080,
@@ -114,19 +159,22 @@ class LocalServerService {
   Stream<List<ApiLogEntry>> get logsStream => _logsController.stream;
 
   Future<void> start({
-    required String restaurantName,
-    required int port,
+    required ServerConfig serverConfig,
+    required CloudConfig cloudConfig,
+    required bool cloudConnected,
   }) async {
-    if (port < 1 || port > 65535) {
+    if (serverConfig.localPort < 1 || serverConfig.localPort > 65535) {
       throw const LocalServerException('Port must be between 1 and 65535.');
     }
-    if (restaurantName.trim().isEmpty) {
+    if (serverConfig.restaurantName.trim().isEmpty) {
       throw const LocalServerException('Restaurant name is required.');
     }
     if (_server != null) {
       await stop();
     }
 
+    _serverConfig = serverConfig;
+    _cloudConfig = cloudConfig;
     final localIp = await _networkInfo.getLocalIpAddress();
     final handler = const Pipeline()
         .addMiddleware(_corsMiddleware)
@@ -137,29 +185,54 @@ class LocalServerService {
       _server = await shelf_io.serve(
         handler,
         InternetAddress.anyIPv4,
-        port,
+        serverConfig.localPort,
         shared: false,
       );
       _server?.autoCompress = true;
       _state = ServerRuntimeState(
         isRunning: true,
-        restaurantName: restaurantName.trim(),
+        serverId: serverConfig.serverId,
+        restaurantId: serverConfig.restaurantId,
+        outletId: serverConfig.outletId,
+        restaurantName: serverConfig.restaurantName.trim(),
+        outletName: serverConfig.outletName.trim(),
         localIp: localIp,
-        port: port,
+        port: serverConfig.localPort,
+        cloudBaseUrl: cloudConfig.baseUrl,
+        cloudSyncEnabled: cloudConfig.enabled,
+        cloudConnected: cloudConnected,
+        discoveryEnabled: serverConfig.discoveryEnabled,
         startedAt: DateTime.now(),
       );
-      _addLog('SERVER', '/', 200, 'Server started on port $port');
+      _addLog(
+        'SERVER',
+        '/',
+        200,
+        'Server started on port ${serverConfig.localPort}',
+      );
       _emitState();
+      _startIpPolling();
+      if (serverConfig.discoveryEnabled) {
+        await _discoveryService.start(_buildDiscoveryPacket);
+      }
     } on SocketException catch (error) {
       final message =
           error.osError?.errorCode == 48 || error.osError?.errorCode == 98
-          ? 'Port $port is already in use. Try another port.'
+          ? 'Port ${serverConfig.localPort} is already in use. Try another port.'
           : 'Could not start server: ${error.message}';
       _state = _state.copyWith(
         isRunning: false,
-        restaurantName: restaurantName.trim(),
+        serverId: serverConfig.serverId,
+        restaurantId: serverConfig.restaurantId,
+        outletId: serverConfig.outletId,
+        restaurantName: serverConfig.restaurantName.trim(),
+        outletName: serverConfig.outletName.trim(),
         localIp: localIp,
-        port: port,
+        port: serverConfig.localPort,
+        cloudBaseUrl: cloudConfig.baseUrl,
+        cloudSyncEnabled: cloudConfig.enabled,
+        cloudConnected: cloudConnected,
+        discoveryEnabled: serverConfig.discoveryEnabled,
         error: message,
         clearStartedAt: true,
       );
@@ -169,9 +242,8 @@ class LocalServerService {
       final message = 'Could not start server: $error';
       _state = _state.copyWith(
         isRunning: false,
-        restaurantName: restaurantName.trim(),
         localIp: localIp,
-        port: port,
+        port: serverConfig.localPort,
         error: message,
         clearStartedAt: true,
       );
@@ -181,6 +253,9 @@ class LocalServerService {
   }
 
   Future<void> stop() async {
+    await _ipSubscription?.cancel();
+    _ipSubscription = null;
+    await _discoveryService.stop();
     await _server?.close(force: true);
     _server = null;
     await _webSocketService.closeAll();
@@ -194,13 +269,18 @@ class LocalServerService {
   }
 
   Future<void> restart() async {
-    final restaurantName = _state.restaurantName;
-    final port = _state.port;
-    if (restaurantName == null || restaurantName.trim().isEmpty) {
-      throw const LocalServerException('Restaurant name is required.');
+    final serverConfig = _serverConfig;
+    final cloudConfig = _cloudConfig;
+    if (serverConfig == null || cloudConfig == null) {
+      throw const LocalServerException('Server settings are required.');
     }
+    final cloudConnected = _state.cloudConnected;
     await stop();
-    await start(restaurantName: restaurantName, port: port);
+    await start(
+      serverConfig: serverConfig,
+      cloudConfig: cloudConfig,
+      cloudConnected: cloudConnected,
+    );
   }
 
   Future<void> refreshIp() async {
@@ -210,7 +290,40 @@ class LocalServerService {
       clearLocalIp: localIp == null,
       clearError: true,
     );
+    _discoveryService.refreshNow();
     _emitState();
+  }
+
+  Future<void> updateMetadata({
+    required ServerConfig serverConfig,
+    required CloudConfig cloudConfig,
+    required bool cloudConnected,
+  }) async {
+    _serverConfig = serverConfig;
+    _cloudConfig = cloudConfig;
+    _state = _state.copyWith(
+      serverId: serverConfig.serverId,
+      restaurantId: serverConfig.restaurantId,
+      outletId: serverConfig.outletId,
+      restaurantName: serverConfig.restaurantName,
+      outletName: serverConfig.outletName,
+      port: serverConfig.localPort,
+      cloudBaseUrl: cloudConfig.baseUrl,
+      cloudSyncEnabled: cloudConfig.enabled,
+      cloudConnected: cloudConnected,
+      discoveryEnabled: serverConfig.discoveryEnabled,
+    );
+    _emitState();
+    if (!_state.isRunning) return;
+    if (serverConfig.discoveryEnabled &&
+        !_discoveryService.state.isBroadcasting) {
+      await _discoveryService.start(_buildDiscoveryPacket);
+    } else if (!serverConfig.discoveryEnabled &&
+        _discoveryService.state.isBroadcasting) {
+      await _discoveryService.stop();
+    } else {
+      _discoveryService.refreshNow();
+    }
   }
 
   Future<void> dispose() async {
@@ -231,10 +344,12 @@ class LocalServerService {
             },
           )
           ..get('/health', _health)
+          ..get('/.well-known/pos-server', _wellKnownServer)
           ..get('/menu', _menu)
           ..post('/orders', _createOrder)
           ..get('/orders', _orders)
           ..patch('/orders/<id>/status', _updateOrderStatus)
+          ..get('/sync/status', _syncStatus)
           ..get(
             '/ws',
             webSocketHandler((WebSocketChannel channel, String? protocol) {
@@ -247,17 +362,11 @@ class LocalServerService {
   }
 
   Future<Response> _health(Request request) async {
-    return _json({
-      'ok': true,
-      'status': _state.isRunning ? 'running' : 'stopped',
-      'restaurantName': _state.restaurantName,
-      'localIp': _state.localIp,
-      'port': _state.port,
-      'apiUrl': _state.apiUrl,
-      'webSocketUrl': _state.wsUrl,
-      'connectedClients': _webSocketService.connectedClients,
-      'startedAt': _state.startedAt?.toIso8601String(),
-    });
+    return _json(_serverMetadataJson());
+  }
+
+  Future<Response> _wellKnownServer(Request request) async {
+    return _json(_serverMetadataJson());
   }
 
   Future<Response> _menu(Request request) async {
@@ -282,6 +391,11 @@ class LocalServerService {
     });
   }
 
+  Future<Response> _syncStatus(Request request) async {
+    final summary = await _database.getSyncSummary();
+    return _json({'ok': true, ...summary.toJson()});
+  }
+
   Future<Response> _createOrder(Request request) async {
     try {
       final body = await _readJsonObject(request);
@@ -299,15 +413,18 @@ class LocalServerService {
           .toList(growable: false);
 
       final order = await _database.createOrder(
+        id: (body['id'] ?? body['orderId'])?.toString(),
         customerName: body['customerName']?.toString(),
         tableNo: body['tableNo']?.toString(),
         note: body['note']?.toString(),
+        source: OrderSource.localLan,
         requestedItems: requestedItems,
       );
       _webSocketService.broadcast({
         'type': 'order_created',
         'data': order.toJson(),
       });
+      unawaited(_onLocalMutation?.call());
       return _json({
         'ok': true,
         'data': order.toJson(),
@@ -339,6 +456,7 @@ class LocalServerService {
         'type': 'order_status_updated',
         'data': order.toJson(),
       });
+      unawaited(_onLocalMutation?.call());
       return _json({'ok': true, 'data': order.toJson()});
     } on FormatException catch (error) {
       return _badRequest(error.message);
@@ -373,6 +491,57 @@ class LocalServerService {
       'ok': false,
       'error': message,
     }, statusCode: HttpStatus.internalServerError);
+  }
+
+  Map<String, Object?> _serverMetadataJson() {
+    return {
+      'ok': true,
+      'server': 'hybrid-pos-local',
+      'mode': 'local',
+      'serverId': _state.serverId,
+      'restaurantId': _state.restaurantId,
+      'outletId': _state.outletId,
+      'restaurantName': _state.restaurantName ?? '',
+      'outletName': _state.outletName ?? '',
+      'ip': _state.localIp,
+      'port': _state.port,
+      'baseUrl': _state.apiUrl,
+      'wsUrl': _state.wsUrl,
+      'cloudSyncEnabled': _state.cloudSyncEnabled,
+      'cloudConnected': _state.cloudConnected,
+      'discoveryEnabled': _state.discoveryEnabled,
+      'connectedClients': _webSocketService.connectedClients,
+      'timestamp': DateTime.now().toIso8601String(),
+    };
+  }
+
+  DiscoveryPacket _buildDiscoveryPacket() {
+    return DiscoveryPacket(
+      serverId: _state.serverId,
+      restaurantId: _state.restaurantId,
+      outletId: _state.outletId,
+      restaurantName: _state.restaurantName ?? 'Hybrid POS',
+      localIp: _state.localIp,
+      port: _state.port,
+      cloudBaseUrl: _state.cloudBaseUrl,
+      timestamp: DateTime.now(),
+    );
+  }
+
+  void _startIpPolling() {
+    unawaited(_ipSubscription?.cancel());
+    _ipSubscription = _networkInfo.watchLocalIp().listen((ip) {
+      if (ip == _state.localIp) return;
+      _state = _state.copyWith(localIp: ip, clearLocalIp: ip == null);
+      _addLog(
+        'NETWORK',
+        '/ip',
+        200,
+        'Local IP changed to ${ip ?? 'not found'}',
+      );
+      _discoveryService.refreshNow();
+      _emitState();
+    });
   }
 
   static Handler _corsMiddleware(Handler inner) {
@@ -447,8 +616,8 @@ class LocalServerService {
 
   static const Map<String, String> _corsHeaders = {
     'Access-Control-Allow-Origin': '*',
-    'Access-Control-Allow-Methods': 'GET, POST, PATCH, OPTIONS',
+    'Access-Control-Allow-Methods': 'GET, POST, PATCH, DELETE, OPTIONS',
     'Access-Control-Allow-Headers':
-        'Origin, Content-Type, Accept, Authorization',
+        'Origin, Content-Type, Accept, Authorization, Idempotency-Key',
   };
 }

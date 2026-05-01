@@ -1,5 +1,7 @@
 import 'dart:convert';
 
+import 'sync_status.dart';
+
 class MenuItem {
   const MenuItem({
     required this.id,
@@ -10,6 +12,9 @@ class MenuItem {
     required this.isAvailable,
     required this.createdAt,
     required this.updatedAt,
+    this.syncStatus = SyncStatus.synced,
+    this.version = 1,
+    this.deletedAt,
     this.imageUrl,
     this.preparationTimeMinutes,
     this.tags = const [],
@@ -24,6 +29,9 @@ class MenuItem {
   final bool isAvailable;
   final int? preparationTimeMinutes;
   final List<String> tags;
+  final SyncStatus syncStatus;
+  final int version;
+  final DateTime? deletedAt;
   final DateTime createdAt;
   final DateTime updatedAt;
 
@@ -37,6 +45,10 @@ class MenuItem {
     bool? isAvailable,
     int? preparationTimeMinutes,
     List<String>? tags,
+    SyncStatus? syncStatus,
+    int? version,
+    DateTime? deletedAt,
+    bool clearDeletedAt = false,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -51,6 +63,9 @@ class MenuItem {
       preparationTimeMinutes:
           preparationTimeMinutes ?? this.preparationTimeMinutes,
       tags: tags ?? this.tags,
+      syncStatus: syncStatus ?? this.syncStatus,
+      version: version ?? this.version,
+      deletedAt: clearDeletedAt ? null : deletedAt ?? this.deletedAt,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -67,6 +82,9 @@ class MenuItem {
       'isAvailable': isAvailable ? 1 : 0,
       'preparationTimeMinutes': preparationTimeMinutes,
       'tags': jsonEncode(tags),
+      'syncStatus': syncStatus.value,
+      'version': version,
+      'deletedAt': deletedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -83,6 +101,9 @@ class MenuItem {
       'isAvailable': isAvailable,
       'preparationTimeMinutes': preparationTimeMinutes,
       'tags': tags,
+      'syncStatus': syncStatus.value,
+      'version': version,
+      'deletedAt': deletedAt?.toIso8601String(),
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -96,12 +117,27 @@ class MenuItem {
       category: map['category'] as String? ?? 'General',
       price: (map['price'] as num).toDouble(),
       imageUrl: map['imageUrl'] as String?,
-      isAvailable: (map['isAvailable'] as int? ?? 1) == 1,
+      isAvailable: _decodeBool(map['isAvailable']),
       preparationTimeMinutes: map['preparationTimeMinutes'] as int?,
       tags: _decodeTags(map['tags'] as String?),
+      syncStatus: SyncStatus.parse(map['syncStatus'] as String?),
+      version: map['version'] as int? ?? 1,
+      deletedAt: _tryParseDate(map['deletedAt'] as String?),
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
     );
+  }
+
+  static DateTime? _tryParseDate(String? value) {
+    if (value == null || value.trim().isEmpty) return null;
+    return DateTime.tryParse(value);
+  }
+
+  static bool _decodeBool(Object? value) {
+    if (value is bool) return value;
+    if (value is num) return value == 1;
+    if (value is String) return value.toLowerCase() == 'true' || value == '1';
+    return true;
   }
 
   static List<String> _decodeTags(String? rawTags) {

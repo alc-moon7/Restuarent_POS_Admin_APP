@@ -6,6 +6,7 @@ class DashboardMetrics {
     required this.totalSales,
     required this.menuItemsCount,
     required this.availableItemsCount,
+    required this.pendingSyncCount,
   });
 
   final int todayOrders;
@@ -14,4 +15,5 @@ class DashboardMetrics {
   final double totalSales;
   final int menuItemsCount;
   final int availableItemsCount;
+  final int pendingSyncCount;
 }

@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:intl/intl.dart';
 import 'package:path/path.dart' as path;
@@ -9,7 +10,10 @@ import 'package:uuid/uuid.dart';
 import '../models/menu_item.dart';
 import '../models/order_item.dart';
 import '../models/order_model.dart';
+import '../models/order_source.dart';
 import '../models/order_status.dart';
+import '../models/sync_event.dart';
+import '../models/sync_status.dart';
 
 class DatabaseValidationException implements Exception {
   const DatabaseValidationException(this.message);
@@ -35,9 +39,10 @@ class LocalDatabaseService {
     final databasePath = path.join(documentsDirectory.path, 'local_pos.db');
     _database = await openDatabase(
       databasePath,
-      version: 1,
+      version: 2,
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createSchema,
+      onUpgrade: _upgradeSchema,
     );
     await seedDemoItemsIfEmpty();
   }
@@ -46,7 +51,9 @@ class LocalDatabaseService {
     final db = await _db;
     final count =
         Sqflite.firstIntValue(
-          await db.rawQuery('SELECT COUNT(*) FROM menu_items'),
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM menu_items WHERE deletedAt IS NULL',
+          ),
         ) ??
         0;
     if (count > 0) return;
@@ -55,56 +62,89 @@ class LocalDatabaseService {
     final items = <MenuItem>[
       MenuItem(
         id: _uuid.v4(),
-        name: 'Smoked Chicken Burger',
-        description: 'Charred chicken, cheddar, lettuce, house aioli.',
+        name: 'Chicken Burger',
+        description: 'Crispy chicken, lettuce, cheese, and house sauce.',
         category: 'Burgers',
-        price: 12.50,
+        price: 8.50,
         imageUrl:
             'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
         isAvailable: true,
+        preparationTimeMinutes: 12,
+        tags: const ['popular'],
+        syncStatus: SyncStatus.synced,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      MenuItem(
+        id: _uuid.v4(),
+        name: 'Beef Burger',
+        description: 'Juicy beef patty, cheddar, pickles, and smoky sauce.',
+        category: 'Burgers',
+        price: 10.75,
+        imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349',
+        isAvailable: true,
         preparationTimeMinutes: 14,
         tags: const ['popular'],
+        syncStatus: SyncStatus.synced,
         createdAt: now,
         updatedAt: now,
       ),
       MenuItem(
         id: _uuid.v4(),
-        name: 'Saffron Chicken Biryani',
-        description: 'Aromatic basmati rice, tender chicken, raita.',
-        category: 'Rice',
-        price: 14.00,
-        imageUrl:
-            'https://images.unsplash.com/photo-1631515243349-e0cb75fb8d3a',
-        isAvailable: true,
-        preparationTimeMinutes: 20,
-        tags: const ['spicy'],
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Grilled Paneer Bowl',
-        description: 'Paneer, quinoa, greens, roasted pepper dressing.',
-        category: 'Bowls',
-        price: 11.75,
-        imageUrl: 'https://images.unsplash.com/photo-1546069901-ba9599a7e63c',
-        isAvailable: true,
-        preparationTimeMinutes: 12,
-        tags: const ['veg'],
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Amber Lemon Iced Tea',
-        description: 'Fresh brewed tea, citrus, mint, amber syrup.',
-        category: 'Drinks',
+        name: 'French Fries',
+        description: 'Golden fries with sea salt and house dip.',
+        category: 'Sides',
         price: 4.25,
         imageUrl:
-            'https://images.unsplash.com/photo-1497534446932-c925b458314e',
+            'https://images.unsplash.com/photo-1576107232684-1279f390859f',
+        isAvailable: true,
+        preparationTimeMinutes: 7,
+        tags: const ['veg'],
+        syncStatus: SyncStatus.synced,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      MenuItem(
+        id: _uuid.v4(),
+        name: 'Chicken Pizza',
+        description: 'Thin crust pizza with chicken, peppers, and mozzarella.',
+        category: 'Pizza',
+        price: 13.00,
+        imageUrl:
+            'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38',
+        isAvailable: true,
+        preparationTimeMinutes: 18,
+        tags: const ['spicy'],
+        syncStatus: SyncStatus.synced,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      MenuItem(
+        id: _uuid.v4(),
+        name: 'Pasta',
+        description: 'Creamy pasta with herbs, parmesan, and grilled chicken.',
+        category: 'Pasta',
+        price: 11.50,
+        imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141',
+        isAvailable: true,
+        preparationTimeMinutes: 15,
+        tags: const ['chef'],
+        syncStatus: SyncStatus.synced,
+        createdAt: now,
+        updatedAt: now,
+      ),
+      MenuItem(
+        id: _uuid.v4(),
+        name: 'Cold Coffee',
+        description: 'Chilled coffee, milk, ice, and caramel drizzle.',
+        category: 'Drinks',
+        price: 4.75,
+        imageUrl:
+            'https://images.unsplash.com/photo-1461023058943-07fcbe16d735',
         isAvailable: true,
         preparationTimeMinutes: 5,
         tags: const ['cold'],
+        syncStatus: SyncStatus.synced,
         createdAt: now,
         updatedAt: now,
       ),
@@ -118,22 +158,38 @@ class LocalDatabaseService {
     _emitChange();
   }
 
-  Future<List<MenuItem>> getMenuItems({bool includeUnavailable = true}) async {
+  Future<List<MenuItem>> getMenuItems({
+    bool includeUnavailable = true,
+    bool includeDeleted = false,
+  }) async {
     final db = await _db;
+    final where = <String>[];
+    final whereArgs = <Object?>[];
+    if (!includeUnavailable) {
+      where.add('isAvailable = ?');
+      whereArgs.add(1);
+    }
+    if (!includeDeleted) {
+      where.add('deletedAt IS NULL');
+    }
     final rows = await db.query(
       'menu_items',
-      where: includeUnavailable ? null : 'isAvailable = ?',
-      whereArgs: includeUnavailable ? null : const [1],
+      where: where.isEmpty ? null : where.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
       orderBy: 'category COLLATE NOCASE ASC, name COLLATE NOCASE ASC',
     );
     return rows.map(MenuItem.fromMap).toList(growable: false);
   }
 
-  Future<MenuItem?> getMenuItemById(String id) async {
+  Future<MenuItem?> getMenuItemById(
+    String id, {
+    bool includeDeleted = false,
+  }) async {
     final db = await _db;
+    final where = includeDeleted ? 'id = ?' : 'id = ? AND deletedAt IS NULL';
     final rows = await db.query(
       'menu_items',
-      where: 'id = ?',
+      where: where,
       whereArgs: [id],
       limit: 1,
     );
@@ -141,42 +197,115 @@ class LocalDatabaseService {
     return MenuItem.fromMap(rows.first);
   }
 
-  Future<void> upsertMenuItem(MenuItem item) async {
+  Future<void> upsertMenuItem(
+    MenuItem item, {
+    bool createSyncEvent = true,
+  }) async {
     final db = await _db;
-    await db.insert(
-      'menu_items',
-      item.toMap(),
-      conflictAlgorithm: ConflictAlgorithm.replace,
+    await db.transaction((txn) async {
+      final existingRows = await txn.query(
+        'menu_items',
+        where: 'id = ?',
+        whereArgs: [item.id],
+        limit: 1,
+      );
+      final exists = existingRows.isNotEmpty;
+      final model = item.copyWith(
+        syncStatus: createSyncEvent ? SyncStatus.pending : item.syncStatus,
+        version: exists
+            ? (MenuItem.fromMap(existingRows.first).version + 1)
+            : item.version,
+      );
+      await txn.insert(
+        'menu_items',
+        model.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      if (createSyncEvent) {
+        await _insertSyncEvent(
+          txn,
+          entityType: 'menu_item',
+          entityId: model.id,
+          action: exists ? 'update' : 'create',
+          payload: model.toJson(),
+        );
+      }
+    });
+    _emitChange();
+  }
+
+  Future<void> deleteMenuItem(String id, {bool createSyncEvent = true}) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'menu_items',
+        where: 'id = ? AND deletedAt IS NULL',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (rows.isEmpty) return;
+      final existing = MenuItem.fromMap(rows.first);
+      final now = DateTime.now();
+      final deleted = existing.copyWith(
+        isAvailable: false,
+        syncStatus: createSyncEvent ? SyncStatus.pending : existing.syncStatus,
+        version: existing.version + 1,
+        deletedAt: now,
+        updatedAt: now,
+      );
+      await txn.update(
+        'menu_items',
+        deleted.toMap(),
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (createSyncEvent) {
+        await _insertSyncEvent(
+          txn,
+          entityType: 'menu_item',
+          entityId: id,
+          action: 'delete',
+          payload: deleted.toJson(),
+        );
+      }
+    });
+    _emitChange();
+  }
+
+  Future<MenuItem> toggleMenuAvailability(String id, bool isAvailable) async {
+    final existing = await getMenuItemById(id);
+    if (existing == null) {
+      throw const DatabaseValidationException('Menu item was not found.');
+    }
+    final updated = existing.copyWith(
+      isAvailable: isAvailable,
+      syncStatus: SyncStatus.pending,
+      updatedAt: DateTime.now(),
     );
-    _emitChange();
+    await upsertMenuItem(updated);
+    return updated;
   }
 
-  Future<void> deleteMenuItem(String id) async {
+  Future<List<OrderModel>> getOrders({
+    OrderStatus? status,
+    OrderSource? source,
+  }) async {
     final db = await _db;
-    await db.delete('menu_items', where: 'id = ?', whereArgs: [id]);
-    _emitChange();
-  }
+    final where = <String>[];
+    final whereArgs = <Object?>[];
+    if (status != null) {
+      where.add('status = ?');
+      whereArgs.add(status.value);
+    }
+    if (source != null) {
+      where.add('source = ?');
+      whereArgs.add(source.value);
+    }
 
-  Future<void> toggleMenuAvailability(String id, bool isAvailable) async {
-    final db = await _db;
-    await db.update(
-      'menu_items',
-      {
-        'isAvailable': isAvailable ? 1 : 0,
-        'updatedAt': DateTime.now().toIso8601String(),
-      },
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    _emitChange();
-  }
-
-  Future<List<OrderModel>> getOrders({OrderStatus? status}) async {
-    final db = await _db;
     final orderRows = await db.query(
       'orders',
-      where: status == null ? null : 'status = ?',
-      whereArgs: status == null ? null : [status.value],
+      where: where.isEmpty ? null : where.join(' AND '),
+      whereArgs: whereArgs.isEmpty ? null : whereArgs,
       orderBy: 'createdAt DESC',
     );
 
@@ -203,10 +332,18 @@ class LocalDatabaseService {
 
   Future<OrderModel> createOrder({
     required List<OrderRequestItem> requestedItems,
+    String? id,
     String? customerName,
     String? tableNo,
     String? note,
+    OrderSource source = OrderSource.localLan,
+    bool createSyncEvent = true,
   }) async {
+    final requestedId = _cleanNullable(id);
+    if (requestedId != null) {
+      final existing = await getOrderById(requestedId);
+      if (existing != null) return existing;
+    }
     if (requestedItems.isEmpty) {
       throw const DatabaseValidationException(
         'Order must contain at least one item.',
@@ -216,7 +353,7 @@ class LocalDatabaseService {
     final db = await _db;
     final order = await db.transaction<OrderModel>((txn) async {
       final now = DateTime.now();
-      final orderId = _uuid.v4();
+      final orderId = requestedId ?? _uuid.v4();
       final orderItems = <OrderItem>[];
       var total = 0.0;
 
@@ -229,7 +366,7 @@ class LocalDatabaseService {
 
         final menuRows = await txn.query(
           'menu_items',
-          where: 'id = ?',
+          where: 'id = ? AND deletedAt IS NULL',
           whereArgs: [requestItem.menuItemId],
           limit: 1,
         );
@@ -267,9 +404,11 @@ class LocalDatabaseService {
         customerName: _cleanNullable(customerName),
         tableNo: _cleanNullable(tableNo),
         note: _cleanNullable(note),
+        source: source,
         status: OrderStatus.pending,
         total: total,
         items: orderItems,
+        syncStatus: createSyncEvent ? SyncStatus.pending : SyncStatus.synced,
         createdAt: now,
         updatedAt: now,
       );
@@ -278,6 +417,15 @@ class LocalDatabaseService {
       for (final item in orderItems) {
         await txn.insert('order_items', item.toMap());
       }
+      if (createSyncEvent) {
+        await _insertSyncEvent(
+          txn,
+          entityType: 'order',
+          entityId: model.id,
+          action: 'create',
+          payload: model.toJson(),
+        );
+      }
       return model;
     });
 
@@ -285,23 +433,192 @@ class LocalDatabaseService {
     return order;
   }
 
-  Future<OrderModel> updateOrderStatus(String id, OrderStatus status) async {
+  Future<OrderModel> upsertCloudOrder(OrderModel order) async {
     final db = await _db;
-    final updatedRows = await db.update(
-      'orders',
-      {'status': status.value, 'updatedAt': DateTime.now().toIso8601String()},
-      where: 'id = ?',
-      whereArgs: [id],
-    );
-    if (updatedRows == 0) {
-      throw const DatabaseValidationException('Order was not found.');
-    }
-    final order = await getOrderById(id);
-    if (order == null) {
-      throw const DatabaseValidationException('Order was not found.');
-    }
+    await db.transaction((txn) async {
+      final existingRows = await txn.query(
+        'orders',
+        where: 'id = ?',
+        whereArgs: [order.id],
+        limit: 1,
+      );
+      if (existingRows.isNotEmpty) return;
+      await txn.insert('orders', order.toMap());
+      for (final item in order.items) {
+        await txn.insert('order_items', item.toMap());
+      }
+    });
+    _emitChange();
+    final saved = await getOrderById(order.id);
+    return saved ?? order;
+  }
+
+  Future<OrderModel> updateOrderStatus(
+    String id,
+    OrderStatus status, {
+    bool createSyncEvent = true,
+  }) async {
+    final db = await _db;
+    late OrderModel order;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'orders',
+        where: 'id = ?',
+        whereArgs: [id],
+        limit: 1,
+      );
+      if (rows.isEmpty) {
+        throw const DatabaseValidationException('Order was not found.');
+      }
+      final currentItems = await _getOrderItemsWithExecutor(txn, id);
+      final current = OrderModel.fromMap(rows.first, items: currentItems);
+      if (!current.status.canTransitionTo(status)) {
+        throw DatabaseValidationException(
+          'Cannot change ${current.status.label} order to ${status.label}.',
+        );
+      }
+      final updated = current.copyWith(
+        status: status,
+        syncStatus: createSyncEvent ? SyncStatus.pending : current.syncStatus,
+        version: current.version + 1,
+        updatedAt: DateTime.now(),
+      );
+      await txn.update(
+        'orders',
+        updated.toMap(),
+        where: 'id = ?',
+        whereArgs: [id],
+      );
+      if (createSyncEvent) {
+        await _insertSyncEvent(
+          txn,
+          entityType: 'order_status',
+          entityId: id,
+          action: 'status_update',
+          payload: updated.toJson(),
+        );
+      }
+      order = updated;
+    });
     _emitChange();
     return order;
+  }
+
+  Future<List<SyncEvent>> getSyncEvents({
+    Set<SyncStatus>? statuses,
+    int limit = 80,
+  }) async {
+    final db = await _db;
+    String? where;
+    List<Object?>? whereArgs;
+    if (statuses != null && statuses.isNotEmpty) {
+      final placeholders = List.filled(statuses.length, '?').join(',');
+      where = 'status IN ($placeholders)';
+      whereArgs = statuses
+          .map((status) => status.value)
+          .toList(growable: false);
+    }
+    final rows = await db.query(
+      'sync_events',
+      where: where,
+      whereArgs: whereArgs,
+      orderBy: 'createdAt ASC',
+      limit: limit,
+    );
+    return rows.map(SyncEvent.fromMap).toList(growable: false);
+  }
+
+  Future<SyncSummary> getSyncSummary() async {
+    final db = await _db;
+    final pending =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM sync_events WHERE status = ?',
+            [SyncStatus.pending.value],
+          ),
+        ) ??
+        0;
+    final failed =
+        Sqflite.firstIntValue(
+          await db.rawQuery(
+            'SELECT COUNT(*) FROM sync_events WHERE status = ?',
+            [SyncStatus.failed.value],
+          ),
+        ) ??
+        0;
+    final lastRows = await db.rawQuery(
+      'SELECT MAX(updatedAt) AS lastSyncAt FROM sync_events WHERE status = ?',
+      [SyncStatus.synced.value],
+    );
+    final lastRaw = lastRows.isEmpty
+        ? null
+        : lastRows.first['lastSyncAt'] as String?;
+    return SyncSummary(
+      pendingCount: pending,
+      failedCount: failed,
+      lastSyncAt: lastRaw == null ? null : DateTime.tryParse(lastRaw),
+    );
+  }
+
+  Future<void> markSyncEventSynced(SyncEvent event) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      final now = DateTime.now().toIso8601String();
+      await txn.update(
+        'sync_events',
+        {
+          'status': SyncStatus.synced.value,
+          'lastError': null,
+          'updatedAt': now,
+        },
+        where: 'id = ?',
+        whereArgs: [event.id],
+      );
+      await _markEntitySyncStatus(txn, event, SyncStatus.synced);
+    });
+    _emitChange();
+  }
+
+  Future<void> markSyncEventFailed(SyncEvent event, Object error) async {
+    final db = await _db;
+    await db.update(
+      'sync_events',
+      {
+        'status': SyncStatus.failed.value,
+        'retryCount': event.retryCount + 1,
+        'lastError': error.toString(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'id = ?',
+      whereArgs: [event.id],
+    );
+    _emitChange();
+  }
+
+  Future<void> retryFailedSyncEvents() async {
+    final db = await _db;
+    await db.update(
+      'sync_events',
+      {
+        'status': SyncStatus.pending.value,
+        'updatedAt': DateTime.now().toIso8601String(),
+      },
+      where: 'status = ?',
+      whereArgs: [SyncStatus.failed.value],
+    );
+    _emitChange();
+  }
+
+  Future<void> clearLocalData() async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await txn.delete('sync_events');
+      await txn.delete('order_items');
+      await txn.delete('orders');
+      await txn.delete('menu_items');
+    });
+    await seedDemoItemsIfEmpty();
+    _emitChange();
   }
 
   Future<void> close() async {
@@ -329,6 +646,9 @@ class LocalDatabaseService {
         isAvailable INTEGER NOT NULL,
         preparationTimeMinutes INTEGER,
         tags TEXT,
+        syncStatus TEXT NOT NULL DEFAULT 'synced',
+        version INTEGER NOT NULL DEFAULT 1,
+        deletedAt TEXT,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )
@@ -338,11 +658,14 @@ class LocalDatabaseService {
       CREATE TABLE orders (
         id TEXT PRIMARY KEY,
         orderNo TEXT NOT NULL UNIQUE,
+        source TEXT NOT NULL DEFAULT 'local_lan',
         customerName TEXT,
         tableNo TEXT,
         note TEXT,
         status TEXT NOT NULL,
         total REAL NOT NULL,
+        syncStatus TEXT NOT NULL DEFAULT 'synced',
+        version INTEGER NOT NULL DEFAULT 1,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )
@@ -361,19 +684,114 @@ class LocalDatabaseService {
       )
     ''');
 
+    await _createSyncTable(db);
+    await _createIndexes(db);
+  }
+
+  Future<void> _upgradeSchema(
+    Database db,
+    int oldVersion,
+    int newVersion,
+  ) async {
+    if (oldVersion < 2) {
+      await _addColumnIfMissing(
+        db,
+        'menu_items',
+        'syncStatus',
+        "syncStatus TEXT NOT NULL DEFAULT 'synced'",
+      );
+      await _addColumnIfMissing(
+        db,
+        'menu_items',
+        'version',
+        'version INTEGER NOT NULL DEFAULT 1',
+      );
+      await _addColumnIfMissing(
+        db,
+        'menu_items',
+        'deletedAt',
+        'deletedAt TEXT',
+      );
+      await _addColumnIfMissing(
+        db,
+        'orders',
+        'source',
+        "source TEXT NOT NULL DEFAULT 'local_lan'",
+      );
+      await _addColumnIfMissing(
+        db,
+        'orders',
+        'syncStatus',
+        "syncStatus TEXT NOT NULL DEFAULT 'synced'",
+      );
+      await _addColumnIfMissing(
+        db,
+        'orders',
+        'version',
+        'version INTEGER NOT NULL DEFAULT 1',
+      );
+      await _createSyncTable(db);
+      await _createIndexes(db);
+    }
+  }
+
+  Future<void> _createSyncTable(Database db) async {
+    await db.execute('''
+      CREATE TABLE IF NOT EXISTS sync_events (
+        id TEXT PRIMARY KEY,
+        entityType TEXT NOT NULL,
+        entityId TEXT NOT NULL,
+        action TEXT NOT NULL,
+        payloadJson TEXT NOT NULL,
+        status TEXT NOT NULL,
+        retryCount INTEGER NOT NULL DEFAULT 0,
+        lastError TEXT,
+        createdAt TEXT NOT NULL,
+        updatedAt TEXT NOT NULL
+      )
+    ''');
+  }
+
+  Future<void> _createIndexes(Database db) async {
     await db.execute(
-      'CREATE INDEX index_menu_items_category ON menu_items(category)',
+      'CREATE INDEX IF NOT EXISTS index_menu_items_category ON menu_items(category)',
     );
     await db.execute(
-      'CREATE INDEX index_orders_status_created ON orders(status, createdAt)',
+      'CREATE INDEX IF NOT EXISTS index_orders_status_created ON orders(status, createdAt)',
     );
     await db.execute(
-      'CREATE INDEX index_order_items_order ON order_items(orderId)',
+      'CREATE INDEX IF NOT EXISTS index_orders_source ON orders(source)',
     );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS index_order_items_order ON order_items(orderId)',
+    );
+    await db.execute(
+      'CREATE INDEX IF NOT EXISTS index_sync_events_status ON sync_events(status, createdAt)',
+    );
+  }
+
+  Future<void> _addColumnIfMissing(
+    Database db,
+    String table,
+    String column,
+    String definition,
+  ) async {
+    final columns = await db.rawQuery('PRAGMA table_info($table)');
+    final exists = columns.any((row) => row['name'] == column);
+    if (!exists) {
+      await db.execute('ALTER TABLE $table ADD COLUMN $definition');
+    }
   }
 
   Future<List<OrderItem>> _getOrderItems(String orderId) async {
     final db = await _db;
+    return _getOrderItemsWithExecutor(db, orderId);
+  }
+
+  Future<List<OrderItem>> _getOrderItemsWithExecutor(
+    DatabaseExecutor db,
+    String orderId,
+  ) async {
     final rows = await db.query(
       'order_items',
       where: 'orderId = ?',
@@ -381,6 +799,52 @@ class LocalDatabaseService {
       orderBy: 'name COLLATE NOCASE ASC',
     );
     return rows.map(OrderItem.fromMap).toList(growable: false);
+  }
+
+  Future<void> _insertSyncEvent(
+    DatabaseExecutor db, {
+    required String entityType,
+    required String entityId,
+    required String action,
+    required Map<String, Object?> payload,
+  }) async {
+    final now = DateTime.now();
+    final event = SyncEvent(
+      id: _uuid.v4(),
+      entityType: entityType,
+      entityId: entityId,
+      action: action,
+      payloadJson: jsonEncode(payload),
+      status: SyncStatus.pending,
+      retryCount: 0,
+      createdAt: now,
+      updatedAt: now,
+    );
+    await db.insert('sync_events', event.toMap());
+  }
+
+  Future<void> _markEntitySyncStatus(
+    DatabaseExecutor db,
+    SyncEvent event,
+    SyncStatus status,
+  ) async {
+    if (event.entityType == 'menu_item') {
+      await db.update(
+        'menu_items',
+        {'syncStatus': status.value},
+        where: 'id = ?',
+        whereArgs: [event.entityId],
+      );
+      return;
+    }
+    if (event.entityType == 'order' || event.entityType == 'order_status') {
+      await db.update(
+        'orders',
+        {'syncStatus': status.value},
+        where: 'id = ?',
+        whereArgs: [event.entityId],
+      );
+    }
   }
 
   String _buildOrderNumber(DateTime now) {

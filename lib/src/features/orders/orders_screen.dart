@@ -7,6 +7,7 @@ import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/order_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../models/order_model.dart';
+import '../../models/order_source.dart';
 import '../../models/order_status.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -18,15 +19,12 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   OrderStatus? _filter;
+  OrderSource? _sourceFilter;
 
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    final orders = app.orders
-        .where((order) {
-          return _filter == null || order.status == _filter;
-        })
-        .toList(growable: false);
+    final orders = app.ordersFor(status: _filter, source: _sourceFilter);
 
     return AppScaffold(
       title: 'Orders',
@@ -37,6 +35,11 @@ class _OrdersScreenState extends State<OrdersScreen> {
           _StatusFilters(
             selected: _filter,
             onChanged: (status) => setState(() => _filter = status),
+          ),
+          const SizedBox(height: 10),
+          _SourceFilters(
+            selected: _sourceFilter,
+            onChanged: (source) => setState(() => _sourceFilter = source),
           ),
           const SizedBox(height: 12),
           if (app.orders.isEmpty)
@@ -118,6 +121,40 @@ class _OrdersScreenState extends State<OrdersScreen> {
             child: const Text('Close'),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SourceFilters extends StatelessWidget {
+  const _SourceFilters({required this.selected, required this.onChanged});
+
+  final OrderSource? selected;
+  final ValueChanged<OrderSource?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          child: Row(
+            children: [
+              _FilterChip(
+                label: 'All Sources',
+                selected: selected == null,
+                onTap: () => onChanged(null),
+              ),
+              for (final source in OrderSource.values)
+                _FilterChip(
+                  label: source.label,
+                  selected: selected == source,
+                  onTap: () => onChanged(source),
+                ),
+            ],
+          ),
+        ),
       ),
     );
   }

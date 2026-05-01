@@ -6,9 +6,11 @@ import 'core/theme/app_theme.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/menu/menu_management_screen.dart';
 import 'features/orders/orders_screen.dart';
+import 'features/settings/settings_screen.dart';
 import 'features/server/server_setup_screen.dart';
 import 'features/splash/mode_intro_screen.dart';
 import 'features/splash/splash_screen.dart';
+import 'features/sync/sync_status_screen.dart';
 
 class LocalPosApp extends StatefulWidget {
   const LocalPosApp({super.key});
@@ -108,6 +110,8 @@ class _MainShellState extends State<MainShell> {
     _Destination('Menu', Icons.restaurant_menu_outlined, Icons.restaurant_menu),
     _Destination('Orders', Icons.receipt_long_outlined, Icons.receipt_long),
     _Destination('Server', Icons.settings_input_antenna, Icons.wifi_tethering),
+    _Destination('Sync', Icons.cloud_sync_outlined, Icons.cloud_done),
+    _Destination('Settings', Icons.tune_outlined, Icons.tune),
   ];
 
   @override
@@ -123,6 +127,8 @@ class _MainShellState extends State<MainShell> {
       const MenuManagementScreen(),
       const OrdersScreen(),
       const ServerSetupScreen(),
+      const SyncStatusScreen(),
+      const SettingsScreen(),
     ];
 
     return LayoutBuilder(

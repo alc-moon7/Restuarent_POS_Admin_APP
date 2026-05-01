@@ -97,6 +97,7 @@ class MenuItemCard extends StatelessWidget {
                       ? Icons.check_circle_outline
                       : Icons.pause_circle_outline,
                 ),
+                StatusBadge.sync(item.syncStatus),
                 _SmallPill(icon: Icons.category_outlined, label: item.category),
                 if (item.preparationTimeMinutes != null)
                   _SmallPill(

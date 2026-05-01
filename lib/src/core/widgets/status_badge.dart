@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 
+import '../../models/order_source.dart';
 import '../../models/order_status.dart';
+import '../../models/sync_status.dart';
 import '../theme/app_theme.dart';
 
 class StatusBadge extends StatelessWidget {
@@ -24,6 +26,30 @@ class StatusBadge extends StatelessWidget {
       label: status.label,
       color: _colorForOrderStatus(status),
       icon: _iconForOrderStatus(status),
+    );
+  }
+
+  factory StatusBadge.sync(SyncStatus status) {
+    return StatusBadge(
+      label: status.label,
+      color: _colorForSyncStatus(status),
+      icon: _iconForSyncStatus(status),
+    );
+  }
+
+  factory StatusBadge.source(OrderSource source) {
+    return StatusBadge(
+      label: source.label,
+      color: source == OrderSource.cloud
+          ? const Color(0xFF2563EB)
+          : source == OrderSource.manual
+          ? PosColors.accent
+          : PosColors.primary,
+      icon: source == OrderSource.cloud
+          ? Icons.cloud_outlined
+          : source == OrderSource.manual
+          ? Icons.edit_note
+          : Icons.router_outlined,
     );
   }
 
@@ -91,6 +117,28 @@ class StatusBadge extends StatelessWidget {
         return Icons.done_all;
       case OrderStatus.cancelled:
         return Icons.cancel_outlined;
+    }
+  }
+
+  static Color _colorForSyncStatus(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.synced:
+        return PosColors.success;
+      case SyncStatus.pending:
+        return PosColors.warning;
+      case SyncStatus.failed:
+        return PosColors.danger;
+    }
+  }
+
+  static IconData _iconForSyncStatus(SyncStatus status) {
+    switch (status) {
+      case SyncStatus.synced:
+        return Icons.cloud_done_outlined;
+      case SyncStatus.pending:
+        return Icons.sync_outlined;
+      case SyncStatus.failed:
+        return Icons.cloud_off_outlined;
     }
   }
 }

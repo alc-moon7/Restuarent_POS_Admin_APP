@@ -14,6 +14,20 @@ class NetworkInfoService {
     return _getFirstLocalInterfaceIp();
   }
 
+  Stream<String?> watchLocalIp({
+    Duration interval = const Duration(seconds: 8),
+  }) async* {
+    String? lastIp;
+    while (true) {
+      final currentIp = await getLocalIpAddress();
+      if (currentIp != lastIp) {
+        lastIp = currentIp;
+        yield currentIp;
+      }
+      await Future<void>.delayed(interval);
+    }
+  }
+
   Future<String?> _getPluginWifiIp() async {
     try {
       return await _networkInfo.getWifiIP();

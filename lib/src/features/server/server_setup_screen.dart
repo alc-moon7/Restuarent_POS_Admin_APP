@@ -1,7 +1,10 @@
+import 'dart:convert';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
+import '../../app_controller.dart';
 import '../../app_scope.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_scaffold.dart';
@@ -19,6 +22,7 @@ class ServerSetupScreen extends StatefulWidget {
 class _ServerSetupScreenState extends State<ServerSetupScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _restaurantController = TextEditingController();
+  final TextEditingController _outletController = TextEditingController();
   final TextEditingController _portController = TextEditingController();
   bool _hydrated = false;
 
@@ -28,6 +32,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
     if (_hydrated) return;
     final app = AppScope.of(context);
     _restaurantController.text = app.restaurantName;
+    _outletController.text = app.outletName;
     _portController.text = app.serverPort.toString();
     _hydrated = true;
   }
@@ -35,6 +40,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
   @override
   void dispose() {
     _restaurantController.dispose();
+    _outletController.dispose();
     _portController.dispose();
     super.dispose();
   }
@@ -54,6 +60,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
           _SetupCard(
             formKey: _formKey,
             restaurantController: _restaurantController,
+            outletController: _outletController,
             portController: _portController,
             busy: app.busy,
             onStart: _startServer,
@@ -84,6 +91,8 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
                   },
           ),
           const SizedBox(height: 12),
+          _HybridStatusCard(app: app),
+          const SizedBox(height: 12),
           _EndpointCard(baseUrl: state.apiUrl, wsUrl: state.wsUrl),
           const SizedBox(height: 12),
           _ActivityLogCard(logs: app.apiLogs),
@@ -97,6 +106,7 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
     final app = AppScope.of(context);
     final ok = await app.startServer(
       restaurantName: _restaurantController.text,
+      outletName: _outletController.text,
       port: int.parse(_portController.text),
     );
     if (!mounted) return;
@@ -134,6 +144,7 @@ class _SetupCard extends StatelessWidget {
   const _SetupCard({
     required this.formKey,
     required this.restaurantController,
+    required this.outletController,
     required this.portController,
     required this.busy,
     required this.onStart,
@@ -141,6 +152,7 @@ class _SetupCard extends StatelessWidget {
 
   final GlobalKey<FormState> formKey;
   final TextEditingController restaurantController;
+  final TextEditingController outletController;
   final TextEditingController portController;
   final bool busy;
   final VoidCallback onStart;
@@ -206,6 +218,20 @@ class _SetupCard extends StatelessWidget {
                       return null;
                     },
                   );
+                  final outlet = TextFormField(
+                    controller: outletController,
+                    textInputAction: TextInputAction.next,
+                    decoration: const InputDecoration(
+                      labelText: 'Outlet name',
+                      prefixIcon: Icon(Icons.location_on_outlined),
+                    ),
+                    validator: (value) {
+                      if (value == null || value.trim().isEmpty) {
+                        return 'Outlet name is required';
+                      }
+                      return null;
+                    },
+                  );
                   final port = TextFormField(
                     controller: portController,
                     keyboardType: TextInputType.number,
@@ -224,12 +250,20 @@ class _SetupCard extends StatelessWidget {
                   );
                   if (compact) {
                     return Column(
-                      children: [restaurant, const SizedBox(height: 10), port],
+                      children: [
+                        restaurant,
+                        const SizedBox(height: 10),
+                        outlet,
+                        const SizedBox(height: 10),
+                        port,
+                      ],
                     );
                   }
                   return Row(
                     children: [
-                      Expanded(flex: 3, child: restaurant),
+                      Expanded(flex: 2, child: restaurant),
+                      const SizedBox(width: 12),
+                      Expanded(flex: 2, child: outlet),
                       const SizedBox(width: 12),
                       Expanded(child: port),
                     ],
@@ -359,10 +393,16 @@ class _EndpointCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final endpoints = [
       _Endpoint('GET', '/health', 'Server status JSON'),
+      _Endpoint(
+        'GET',
+        '/.well-known/pos-server',
+        'Discovery verification metadata',
+      ),
       _Endpoint('GET', '/menu', 'Available menu items'),
       _Endpoint('POST', '/orders', 'Create a customer order'),
       _Endpoint('GET', '/orders', 'Admin order list'),
       _Endpoint('PATCH', '/orders/:id/status', 'Update order status'),
+      _Endpoint('GET', '/sync/status', 'Pending and failed sync count'),
       _Endpoint('WS', '/ws', 'Live order updates'),
     ];
 
@@ -392,6 +432,143 @@ class _EndpointCard extends StatelessWidget {
         ),
       ),
     );
+  }
+}
+
+class _HybridStatusCard extends StatelessWidget {
+  const _HybridStatusCard({required this.app});
+
+  final PosAppController app;
+
+  @override
+  Widget build(BuildContext context) {
+    final discovery = app.discoveryState;
+    final sync = app.syncState;
+    final state = app.serverState;
+    final lastPacket = discovery.lastPacket == null
+        ? 'No packet broadcast yet'
+        : const JsonEncoder.withIndent('  ').convert(discovery.lastPacket);
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Expanded(
+                  child: Text(
+                    'Hybrid access',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                StatusBadge(
+                  label: discovery.isBroadcasting
+                      ? 'Broadcasting'
+                      : 'Discovery Off',
+                  color: discovery.isBroadcasting
+                      ? PosColors.success
+                      : PosColors.muted,
+                  icon: Icons.radar_outlined,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _InfoGrid(
+              values: [
+                _InfoValue('Discovery port', discovery.port.toString()),
+                _InfoValue(
+                  'Discovery status',
+                  discovery.isBroadcasting ? 'Broadcasting' : 'Stopped',
+                ),
+                _InfoValue(
+                  'Cloud',
+                  sync.cloudConnected
+                      ? 'Connected'
+                      : app.cloudConfig.enabled
+                      ? 'Disconnected'
+                      : 'Disabled',
+                ),
+                _InfoValue('Pending sync', sync.pendingCount.toString()),
+                _InfoValue('Failed sync', sync.failedCount.toString()),
+                _InfoValue('Cloud URL', app.cloudConfig.baseUrl),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                PrimaryButton(
+                  label: 'Test Cloud',
+                  icon: Icons.health_and_safety_outlined,
+                  secondary: true,
+                  onPressed: app.busy
+                      ? null
+                      : () async {
+                          final ok = await app.testCloud();
+                          if (!context.mounted) return;
+                          _showSnack(
+                            context,
+                            ok ? 'Cloud API reachable' : 'Cloud API failed',
+                          );
+                        },
+                ),
+                PrimaryButton(
+                  label: 'Sync Now',
+                  icon: Icons.sync,
+                  secondary: true,
+                  onPressed: app.busy
+                      ? null
+                      : () async {
+                          final ok = await app.syncNow();
+                          if (!context.mounted) return;
+                          _showSnack(
+                            context,
+                            ok ? 'Sync completed' : 'Sync failed',
+                          );
+                        },
+                ),
+                PrimaryButton(
+                  label: 'Copy Local URL',
+                  icon: Icons.copy,
+                  secondary: true,
+                  onPressed: state.apiUrl == null
+                      ? null
+                      : () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: state.apiUrl!),
+                          );
+                          if (!context.mounted) return;
+                          _showSnack(context, 'Local URL copied');
+                        },
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: PosColors.background,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: PosColors.line),
+              ),
+              child: SelectableText(
+                lastPacket,
+                style: const TextStyle(fontFamily: 'monospace', fontSize: 12),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  void _showSnack(BuildContext context, String message) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 }
 

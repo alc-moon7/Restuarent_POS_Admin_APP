@@ -1,0 +1,78 @@
+class ServerConfig {
+  const ServerConfig({
+    required this.serverId,
+    required this.restaurantId,
+    required this.outletId,
+    required this.restaurantName,
+    required this.outletName,
+    required this.localPort,
+    required this.discoveryEnabled,
+  });
+
+  final String serverId;
+  final String restaurantId;
+  final String outletId;
+  final String restaurantName;
+  final String outletName;
+  final int localPort;
+  final bool discoveryEnabled;
+
+  ServerConfig copyWith({
+    String? serverId,
+    String? restaurantId,
+    String? outletId,
+    String? restaurantName,
+    String? outletName,
+    int? localPort,
+    bool? discoveryEnabled,
+  }) {
+    return ServerConfig(
+      serverId: serverId ?? this.serverId,
+      restaurantId: restaurantId ?? this.restaurantId,
+      outletId: outletId ?? this.outletId,
+      restaurantName: restaurantName ?? this.restaurantName,
+      outletName: outletName ?? this.outletName,
+      localPort: localPort ?? this.localPort,
+      discoveryEnabled: discoveryEnabled ?? this.discoveryEnabled,
+    );
+  }
+}
+
+class CloudConfig {
+  const CloudConfig({
+    required this.baseUrl,
+    required this.enabled,
+    required this.deviceToken,
+    required this.autoSyncIntervalSeconds,
+  });
+
+  final String baseUrl;
+  final bool enabled;
+  final String deviceToken;
+  final int autoSyncIntervalSeconds;
+
+  bool get hasValidBaseUrl {
+    final uri = Uri.tryParse(baseUrl.trim());
+    return uri != null &&
+        uri.hasScheme &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
+
+  bool get canSync => enabled && hasValidBaseUrl;
+
+  CloudConfig copyWith({
+    String? baseUrl,
+    bool? enabled,
+    String? deviceToken,
+    int? autoSyncIntervalSeconds,
+  }) {
+    return CloudConfig(
+      baseUrl: baseUrl ?? this.baseUrl,
+      enabled: enabled ?? this.enabled,
+      deviceToken: deviceToken ?? this.deviceToken,
+      autoSyncIntervalSeconds:
+          autoSyncIntervalSeconds ?? this.autoSyncIntervalSeconds,
+    );
+  }
+}
