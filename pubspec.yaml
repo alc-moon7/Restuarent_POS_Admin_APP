@@ -72,6 +72,8 @@ flutter:
 
   assets:
     - assets/icons/Admin_res.png
+    - assets/customer_web/
+    - assets/customer_web/assets/
 
   # To add assets to your application, add an assets section, like this:
   # assets:

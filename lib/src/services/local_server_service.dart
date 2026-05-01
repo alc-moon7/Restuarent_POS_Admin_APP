@@ -6,6 +6,8 @@ import 'package:shelf/shelf.dart';
 import 'package:shelf/shelf_io.dart' as shelf_io;
 import 'package:shelf_router/shelf_router.dart';
 import 'package:shelf_web_socket/shelf_web_socket.dart';
+import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../models/discovery_packet.dart';
@@ -345,6 +347,13 @@ class LocalServerService {
           )
           ..get('/health', _health)
           ..get('/.well-known/pos-server', _wellKnownServer)
+          ..get('/customer', _customerIndex)
+          ..get('/customer/<path|.*>', _customerIndex)
+          ..get('/cart', _customerIndex)
+          ..get('/settings', _customerIndex)
+          ..get('/order/<path|.*>', _customerIndex)
+          ..get('/r/<restaurantId>/o/<outletId>', _customerIndex)
+          ..get('/assets/<path|.*>', _customerAsset)
           ..get('/menu', _menu)
           ..post('/orders', _createOrder)
           ..get('/orders', _orders)
@@ -367,6 +376,23 @@ class LocalServerService {
 
   Future<Response> _wellKnownServer(Request request) async {
     return _json(_serverMetadataJson());
+  }
+
+  Future<Response> _customerIndex(Request request) {
+    return _serveCustomerAsset('index.html');
+  }
+
+  Future<Response> _customerAsset(Request request) {
+    final path = request.params['path'];
+    if (path == null || path.contains('..')) {
+      return Future.value(
+        _json({
+          'ok': false,
+          'error': 'Asset not found.',
+        }, statusCode: HttpStatus.notFound),
+      );
+    }
+    return _serveCustomerAsset('assets/$path');
   }
 
   Future<Response> _menu(Request request) async {
@@ -493,6 +519,22 @@ class LocalServerService {
     }, statusCode: HttpStatus.internalServerError);
   }
 
+  Future<Response> _serveCustomerAsset(String relativePath) async {
+    final assetPath = 'assets/customer_web/$relativePath';
+    try {
+      final data = await rootBundle.load(assetPath);
+      return Response.ok(
+        data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
+        headers: {HttpHeaders.contentTypeHeader: _contentType(relativePath)},
+      );
+    } on FlutterError {
+      return _json({
+        'ok': false,
+        'error': 'Customer web asset not found.',
+      }, statusCode: HttpStatus.notFound);
+    }
+  }
+
   Map<String, Object?> _serverMetadataJson() {
     return {
       'ok': true,
@@ -526,6 +568,20 @@ class LocalServerService {
       cloudBaseUrl: _state.cloudBaseUrl,
       timestamp: DateTime.now(),
     );
+  }
+
+  String _contentType(String path) {
+    final lower = path.toLowerCase();
+    if (lower.endsWith('.html')) return 'text/html; charset=utf-8';
+    if (lower.endsWith('.js')) return 'application/javascript; charset=utf-8';
+    if (lower.endsWith('.css')) return 'text/css; charset=utf-8';
+    if (lower.endsWith('.json')) return 'application/json; charset=utf-8';
+    if (lower.endsWith('.svg')) return 'image/svg+xml';
+    if (lower.endsWith('.png')) return 'image/png';
+    if (lower.endsWith('.jpg') || lower.endsWith('.jpeg')) return 'image/jpeg';
+    if (lower.endsWith('.webp')) return 'image/webp';
+    if (lower.endsWith('.ico')) return 'image/x-icon';
+    return 'application/octet-stream';
   }
 
   void _startIpPolling() {

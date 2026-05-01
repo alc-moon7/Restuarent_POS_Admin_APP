@@ -393,6 +393,8 @@ class _EndpointCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final endpoints = [
       _Endpoint('GET', '/health', 'Server status JSON'),
+      _Endpoint('GET', '/customer', 'Customer web ordering app'),
+      _Endpoint('GET', '/assets/*', 'Customer web static assets'),
       _Endpoint(
         'GET',
         '/.well-known/pos-server',
