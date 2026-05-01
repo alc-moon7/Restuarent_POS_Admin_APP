@@ -106,6 +106,20 @@ class CloudApiService {
     );
   }
 
+  Future<Map<String, Object?>> updateMenuItem(MenuItem item) async {
+    final config = _requireServerConfig();
+    final uri = _uri('/outlets/${config.outletId}/menu/${item.id}');
+    if (uri == null) {
+      throw const CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    return _sendJson(
+      'PATCH',
+      uri,
+      body: item.toJson(),
+      idempotencyKey: 'menu-${item.id}-${item.version}',
+    );
+  }
+
   Future<Map<String, Object?>> deleteMenuItem(String id) async {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu/$id');

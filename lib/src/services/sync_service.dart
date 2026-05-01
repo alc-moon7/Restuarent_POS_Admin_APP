@@ -262,6 +262,8 @@ class SyncService {
       case 'menu_item':
         if (event.action == 'delete') {
           await _cloudApi.deleteMenuItem(event.entityId);
+        } else if (event.action == 'update') {
+          await _cloudApi.updateMenuItem(MenuItem.fromMap(payload));
         } else {
           await _cloudApi.pushMenuItem(MenuItem.fromMap(payload));
         }
