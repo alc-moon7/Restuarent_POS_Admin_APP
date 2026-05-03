@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../core/constants/cloud_defaults.dart';
 import '../models/menu_item.dart';
 import '../models/order_model.dart';
 import '../models/order_status.dart';
@@ -17,17 +18,58 @@ class CloudApiException implements Exception {
   String toString() => message;
 }
 
+class CloudRealtimeConfig {
+  const CloudRealtimeConfig({
+    required this.enabled,
+    required this.supabaseUrl,
+    required this.publishableKey,
+    required this.channelPrefix,
+  });
+
+  final bool enabled;
+  final String supabaseUrl;
+  final String publishableKey;
+  final String channelPrefix;
+
+  bool get canConnect {
+    return enabled &&
+        supabaseUrl.trim().isNotEmpty &&
+        publishableKey.trim().isNotEmpty &&
+        channelPrefix.trim().isNotEmpty;
+  }
+
+  String channelName(String outletId) => '${channelPrefix.trim()}$outletId';
+
+  static CloudRealtimeConfig? fromJson(Object? value) {
+    if (value is! Map) return null;
+    final json = Map<String, Object?>.from(value);
+    final supabaseUrl = json['supabaseUrl']?.toString().trim() ?? '';
+    final publishableKey = json['publishableKey']?.toString().trim() ?? '';
+    final channelPrefix =
+        json['channelPrefix']?.toString().trim() ?? 'pos:outlet:';
+    return CloudRealtimeConfig(
+      enabled: json['enabled'] == true,
+      supabaseUrl: supabaseUrl,
+      publishableKey: publishableKey,
+      channelPrefix: channelPrefix,
+    );
+  }
+}
+
 class CloudApiService {
   CloudApiService({http.Client? client}) : _client = client ?? http.Client();
 
   final http.Client _client;
-  CloudConfig _cloudConfig = const CloudConfig(
-    baseUrl: 'https://api.example.com',
-    enabled: false,
+  CloudConfig _cloudConfig = CloudConfig(
+    baseUrl: CloudDefaults.baseUrl,
+    enabled: CloudDefaults.shouldEnableSyncByDefault,
     deviceToken: '',
     autoSyncIntervalSeconds: 30,
   );
   ServerConfig? _serverConfig;
+  CloudRealtimeConfig? _realtimeConfig;
+
+  CloudRealtimeConfig? get realtimeConfig => _realtimeConfig;
 
   void configure({
     required CloudConfig cloudConfig,
@@ -42,7 +84,16 @@ class CloudApiService {
     if (uri == null) {
       throw const CloudApiException('Cloud API URL is empty or invalid.');
     }
-    return _sendJson('GET', uri);
+    final response = await _sendJson('GET', uri);
+    _captureRealtimeConfig(response);
+    return response;
+  }
+
+  Future<CloudRealtimeConfig?> loadRealtimeConfig() async {
+    if (_realtimeConfig?.canConnect == true) return _realtimeConfig;
+    if (!_cloudConfig.canSync) return null;
+    await testHealth();
+    return _realtimeConfig;
   }
 
   Future<Map<String, Object?>> registerDevice() async {
@@ -296,6 +347,11 @@ class CloudApiService {
       throw const CloudApiException('Server config is not ready.');
     }
     return config;
+  }
+
+  void _captureRealtimeConfig(Map<String, Object?> json) {
+    final config = CloudRealtimeConfig.fromJson(json['realtime']);
+    if (config != null) _realtimeConfig = config;
   }
 
   void close() {

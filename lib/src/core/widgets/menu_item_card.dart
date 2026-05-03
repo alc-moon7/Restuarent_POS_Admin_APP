@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 
 import '../../models/menu_item.dart';
 import '../theme/app_theme.dart';
+import 'menu_image_view.dart';
 import 'status_badge.dart';
 
 class MenuItemCard extends StatelessWidget {
@@ -32,26 +33,7 @@ class MenuItemCard extends StatelessWidget {
               borderRadius: BorderRadius.circular(12),
               child: AspectRatio(
                 aspectRatio: 1.9,
-                child: item.imageUrl == null
-                    ? Container(
-                        color: PosColors.primary.withValues(alpha: 0.08),
-                        child: const Icon(
-                          Icons.restaurant_menu,
-                          color: PosColors.primary,
-                          size: 28,
-                        ),
-                      )
-                    : Image.network(
-                        item.imageUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (context, error, stackTrace) => Container(
-                          color: PosColors.primary.withValues(alpha: 0.08),
-                          child: const Icon(
-                            Icons.broken_image_outlined,
-                            color: PosColors.muted,
-                          ),
-                        ),
-                      ),
+                child: MenuImageView(imageUrl: item.imageUrl),
               ),
             ),
             const SizedBox(height: 10),

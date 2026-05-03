@@ -29,6 +29,10 @@ class DiscoveryPacket {
       ? null
       : 'http://$localIp:$port/health';
 
+  String? get customerUrl => localIp == null || localIp!.isEmpty
+      ? null
+      : 'http://$localIp:$port/customer';
+
   Map<String, Object?> toJson() {
     return {
       'type': 'POS_SERVER_ADVERTISEMENT',
@@ -42,6 +46,7 @@ class DiscoveryPacket {
       'baseUrl': baseUrl,
       'wsUrl': wsUrl,
       'healthUrl': healthUrl,
+      'customerUrl': customerUrl,
       'cloudBaseUrl': cloudBaseUrl,
       'timestamp': timestamp.toIso8601String(),
     };

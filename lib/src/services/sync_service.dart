@@ -1,14 +1,17 @@
 import 'dart:async';
 import 'dart:math';
 
+import '../core/constants/cloud_defaults.dart';
 import '../models/menu_item.dart';
 import '../models/order_item.dart';
 import '../models/order_model.dart';
+import '../models/order_source.dart';
 import '../models/order_status.dart';
 import '../models/server_config.dart';
 import '../models/sync_event.dart';
 import '../models/sync_status.dart';
 import 'cloud_api_service.dart';
+import 'cloud_realtime_service.dart';
 import 'connectivity_service.dart';
 import 'local_database_service.dart';
 
@@ -69,26 +72,42 @@ class SyncService {
   SyncService({
     required LocalDatabaseService database,
     required CloudApiService cloudApi,
+    required CloudRealtimeService cloudRealtime,
     required ConnectivityService connectivity,
+    void Function(Map<String, Object?> event)? onRemoteEvent,
   }) : _database = database,
        _cloudApi = cloudApi,
-       _connectivity = connectivity;
+       _cloudRealtime = cloudRealtime,
+       _connectivity = connectivity,
+       _onRemoteEvent = onRemoteEvent;
 
   final LocalDatabaseService _database;
   final CloudApiService _cloudApi;
+  final CloudRealtimeService _cloudRealtime;
   final ConnectivityService _connectivity;
+  final void Function(Map<String, Object?> event)? _onRemoteEvent;
   final StreamController<SyncRuntimeState> _stateController =
       StreamController<SyncRuntimeState>.broadcast();
 
   StreamSubscription<bool>? _connectivitySubscription;
   Timer? _autoSyncTimer;
-  CloudConfig _cloudConfig = const CloudConfig(
-    baseUrl: 'https://api.example.com',
-    enabled: false,
+  CloudConfig _cloudConfig = CloudConfig(
+    baseUrl: CloudDefaults.baseUrl,
+    enabled: CloudDefaults.shouldEnableSyncByDefault,
     deviceToken: '',
     autoSyncIntervalSeconds: 30,
   );
   bool _online = false;
+  DateTime? _lastCloudPullAt;
+  ServerConfig _serverConfig = const ServerConfig(
+    serverId: '',
+    restaurantId: '',
+    outletId: '',
+    restaurantName: '',
+    outletName: '',
+    localPort: 8080,
+    discoveryEnabled: true,
+  );
   SyncRuntimeState _state = const SyncRuntimeState(
     isSyncing: false,
     cloudConnected: false,
@@ -127,6 +146,7 @@ class SyncService {
     required ServerConfig serverConfig,
   }) {
     _cloudConfig = cloudConfig;
+    _serverConfig = serverConfig;
     _cloudApi.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
     _autoSyncTimer?.cancel();
     if (cloudConfig.canSync) {
@@ -135,6 +155,8 @@ class SyncService {
         Duration(seconds: seconds),
         (_) => unawaited(syncNow()),
       );
+    } else {
+      unawaited(_cloudRealtime.disconnect());
     }
   }
 
@@ -150,6 +172,7 @@ class SyncService {
     }
     try {
       await _cloudApi.testHealth();
+      await _connectCloudRealtime();
       _state = _state.copyWith(cloudConnected: true, clearError: true);
       _addLog('Cloud health check passed.');
       _emitState();
@@ -188,7 +211,9 @@ class SyncService {
     _state = _state.copyWith(isSyncing: true, clearError: true);
     _emitState();
     try {
+      await _cloudApi.testHealth();
       await _cloudApi.registerDevice();
+      await _connectCloudRealtime();
       _state = _state.copyWith(cloudConnected: true, clearError: true);
       final events = await _database.getSyncEvents(
         statuses: {SyncStatus.pending, SyncStatus.failed},
@@ -213,6 +238,10 @@ class SyncService {
       }
       if (synced > 0) {
         _addLog('Synced $synced pending event${synced == 1 ? '' : 's'}.');
+      }
+      final pulled = await _pullCloudChanges();
+      if (pulled > 0) {
+        _addLog('Imported $pulled cloud update${pulled == 1 ? '' : 's'}.');
       }
       await refreshSummary();
       _state = _state.copyWith(
@@ -253,6 +282,7 @@ class SyncService {
   Future<void> dispose() async {
     await _connectivitySubscription?.cancel();
     _autoSyncTimer?.cancel();
+    await _cloudRealtime.disconnect();
     await _stateController.close();
   }
 
@@ -286,7 +316,118 @@ class SyncService {
     }
   }
 
-  OrderModel _orderFromPayload(Map<String, Object?> payload) {
+  Future<int> _pullCloudChanges() async {
+    final since = _lastCloudPullAt;
+    final menuPayloads = await _cloudApi.pullMenu(since: since);
+    final orderPayloads = await _cloudApi.pullOrders(since: since);
+    var imported = 0;
+
+    for (final payload in menuPayloads) {
+      try {
+        final item = _menuFromPayload(payload);
+        final applied = await _database.applyRemoteMenuItem(item);
+        if (applied != null) {
+          imported++;
+          _onRemoteEvent?.call({
+            'type': 'menu_updated',
+            'data': applied.toJson(),
+          });
+        }
+      } catch (error) {
+        _addLog('Cloud menu import skipped: $error', isError: true);
+      }
+    }
+
+    for (final payload in orderPayloads) {
+      try {
+        final order = _orderFromPayload(
+          payload,
+          sourceFallback: OrderSource.cloud,
+        );
+        final applied = await _database.applyRemoteOrder(order);
+        if (applied != null) {
+          imported++;
+          _onRemoteEvent?.call({
+            'type': applied.status == OrderStatus.pending
+                ? 'order_created'
+                : 'order_status_updated',
+            'data': applied.toJson(),
+          });
+        }
+      } catch (error) {
+        _addLog('Cloud order import skipped: $error', isError: true);
+      }
+    }
+
+    _lastCloudPullAt = DateTime.now().subtract(const Duration(seconds: 2));
+    return imported;
+  }
+
+  Future<void> _connectCloudRealtime() async {
+    final realtimeConfig = await _cloudApi.loadRealtimeConfig();
+    if (realtimeConfig == null || !realtimeConfig.canConnect) return;
+    await _cloudRealtime.connect(
+      config: realtimeConfig,
+      serverConfig: _serverConfig,
+      onEvent: (event) => unawaited(_handleCloudRealtimeEvent(event)),
+      onLog: (message) => _addLog(message),
+    );
+  }
+
+  Future<void> _handleCloudRealtimeEvent(Map<String, Object?> event) async {
+    final type = event['type']?.toString() ?? '';
+    final data = event['data'];
+    if (data is! Map) return;
+
+    try {
+      if (type == 'menu_updated') {
+        final item = _menuFromPayload(Map<String, Object?>.from(data));
+        final applied = await _database.applyRemoteMenuItem(item);
+        if (applied != null) {
+          _onRemoteEvent?.call({
+            'type': 'menu_updated',
+            'data': applied.toJson(),
+          });
+          _addLog('Cloud realtime menu update imported.');
+        }
+        return;
+      }
+
+      if (type == 'order_created' || type == 'order_status_updated') {
+        final order = _orderFromPayload(
+          Map<String, Object?>.from(data),
+          sourceFallback: OrderSource.cloud,
+        );
+        final applied = await _database.applyRemoteOrder(order);
+        if (applied != null) {
+          _onRemoteEvent?.call({'type': type, 'data': applied.toJson()});
+          _addLog('Cloud realtime order update imported.');
+        }
+      }
+    } catch (error) {
+      _addLog('Cloud realtime event skipped: $error', isError: true);
+    } finally {
+      await refreshSummary();
+    }
+  }
+
+  MenuItem _menuFromPayload(Map<String, Object?> payload) {
+    final now = DateTime.now().toIso8601String();
+    final normalized = Map<String, Object?>.from(payload);
+    normalized['description'] ??= '';
+    normalized['category'] ??= 'General';
+    normalized['isAvailable'] ??= true;
+    normalized['syncStatus'] = SyncStatus.synced.value;
+    normalized['version'] ??= 1;
+    normalized['createdAt'] ??= normalized['updatedAt'] ?? now;
+    normalized['updatedAt'] ??= normalized['createdAt'] ?? now;
+    return MenuItem.fromMap(normalized);
+  }
+
+  OrderModel _orderFromPayload(
+    Map<String, Object?> payload, {
+    OrderSource sourceFallback = OrderSource.localLan,
+  }) {
     final rawItems = payload['items'];
     final items = rawItems is List
         ? rawItems
@@ -294,7 +435,23 @@ class SyncService {
               .map((item) => OrderItem.fromMap(Map<String, Object?>.from(item)))
               .toList(growable: false)
         : const <OrderItem>[];
-    return OrderModel.fromMap(payload, items: items);
+    final now = DateTime.now().toIso8601String();
+    final normalized = Map<String, Object?>.from(payload);
+    normalized['orderNo'] ??= 'WEB-${normalized['id'] ?? now.hashCode}';
+    normalized['source'] = OrderSource.parse(
+      normalized['source']?.toString(),
+      fallback: sourceFallback,
+    ).value;
+    normalized['status'] ??= OrderStatus.pending.value;
+    normalized['total'] ??= items.fold<double>(
+      0,
+      (total, item) => total + item.lineTotal,
+    );
+    normalized['syncStatus'] = SyncStatus.synced.value;
+    normalized['version'] ??= 1;
+    normalized['createdAt'] ??= normalized['updatedAt'] ?? now;
+    normalized['updatedAt'] ??= normalized['createdAt'] ?? now;
+    return OrderModel.fromMap(normalized, items: items);
   }
 
   bool _backoffReady(SyncEvent event) {

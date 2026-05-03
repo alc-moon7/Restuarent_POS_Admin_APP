@@ -31,9 +31,11 @@
 		<key>NSAllowsLocalNetworking</key>
 		<true/>
 	</dict>
-	<key>NSLocalNetworkUsageDescription</key>
-	<string>REs Admin hosts a restaurant server for devices on the same WiFi network.</string>
-	<key>UIApplicationSceneManifest</key>
+		<key>NSLocalNetworkUsageDescription</key>
+		<string>REs Admin hosts a restaurant server for devices on the same WiFi network.</string>
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>REs Admin lets you choose menu item photos from your gallery.</string>
+		<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
 		<false/>

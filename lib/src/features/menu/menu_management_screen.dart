@@ -4,9 +4,11 @@ import 'package:flutter/services.dart';
 import '../../app_scope.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/empty_state.dart';
+import '../../core/widgets/menu_image_view.dart';
 import '../../core/widgets/menu_item_card.dart';
 import '../../core/widgets/primary_button.dart';
 import '../../models/menu_item.dart';
+import '../../services/menu_image_service.dart';
 
 class MenuManagementScreen extends StatefulWidget {
   const MenuManagementScreen({super.key});
@@ -294,8 +296,10 @@ class _MenuItemFormState extends State<_MenuItemForm> {
   late final TextEditingController _priceController;
   late final TextEditingController _imageController;
   late final TextEditingController _prepController;
+  final MenuImageService _imageService = MenuImageService();
   late bool _isAvailable;
   late Set<String> _tags;
+  bool _imageBusy = false;
 
   @override
   void initState() {
@@ -430,13 +434,28 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                   },
                 ),
                 const SizedBox(height: 10),
-                TextFormField(
+                _ImagePickerField(
                   controller: _imageController,
-                  decoration: const InputDecoration(
-                    labelText: 'Image URL',
-                    hintText: 'Optional',
-                  ),
+                  busy: _imageBusy,
+                  onPick: _pickImage,
+                  onClear: () {
+                    _imageController.clear();
+                    setState(() {});
+                  },
+                  onChanged: (_) => setState(() {}),
                 ),
+                if (_imageController.text.trim().isNotEmpty) ...[
+                  const SizedBox(height: 10),
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(16),
+                    child: AspectRatio(
+                      aspectRatio: 1.8,
+                      child: MenuImageView(
+                        imageUrl: _imageController.text.trim(),
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _prepController,
@@ -504,6 +523,23 @@ class _MenuItemFormState extends State<_MenuItemForm> {
     });
   }
 
+  Future<void> _pickImage() async {
+    setState(() => _imageBusy = true);
+    try {
+      final imageUrl = await _imageService.pickMenuImageDataUrl();
+      if (imageUrl == null) return;
+      _imageController.text = imageUrl;
+      if (mounted) setState(() {});
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error.toString())));
+    } finally {
+      if (mounted) setState(() => _imageBusy = false);
+    }
+  }
+
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
     Navigator.pop(
@@ -518,6 +554,64 @@ class _MenuItemFormState extends State<_MenuItemForm> {
         preparationTimeMinutes: int.tryParse(_prepController.text),
         tags: _tags.toList(growable: false)..sort(),
       ),
+    );
+  }
+}
+
+class _ImagePickerField extends StatelessWidget {
+  const _ImagePickerField({
+    required this.controller,
+    required this.busy,
+    required this.onPick,
+    required this.onClear,
+    required this.onChanged,
+  });
+
+  final TextEditingController controller;
+  final bool busy;
+  final VoidCallback onPick;
+  final VoidCallback onClear;
+  final ValueChanged<String> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        TextFormField(
+          controller: controller,
+          onChanged: onChanged,
+          decoration: const InputDecoration(
+            labelText: 'Image URL or gallery image',
+            hintText: 'Optional',
+            prefixIcon: Icon(Icons.image_outlined),
+          ),
+          minLines: 1,
+          maxLines: 2,
+        ),
+        const SizedBox(height: 8),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: busy ? null : onPick,
+              icon: busy
+                  ? const SizedBox.square(
+                      dimension: 16,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(Icons.photo_library_outlined),
+              label: const Text('Choose from gallery'),
+            ),
+            OutlinedButton.icon(
+              onPressed: controller.text.trim().isEmpty ? null : onClear,
+              icon: const Icon(Icons.clear),
+              label: const Text('Clear image'),
+            ),
+          ],
+        ),
+      ],
     );
   }
 }

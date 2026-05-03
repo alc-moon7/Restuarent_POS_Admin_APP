@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../app_scope.dart';
+import '../../core/constants/cloud_defaults.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/primary_button.dart';
@@ -21,7 +22,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _cloudUrlController = TextEditingController();
   final TextEditingController _restaurantIdController = TextEditingController();
   final TextEditingController _outletIdController = TextEditingController();
-  final TextEditingController _tokenController = TextEditingController();
   final TextEditingController _syncIntervalController = TextEditingController();
   bool _cloudSyncEnabled = false;
   bool _discoveryEnabled = true;
@@ -38,7 +38,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cloudUrlController.text = app.cloudConfig.baseUrl;
     _restaurantIdController.text = app.serverConfig.restaurantId;
     _outletIdController.text = app.serverConfig.outletId;
-    _tokenController.text = app.cloudConfig.deviceToken;
     _syncIntervalController.text = app.cloudConfig.autoSyncIntervalSeconds
         .toString();
     _cloudSyncEnabled = app.cloudConfig.enabled;
@@ -54,7 +53,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _cloudUrlController.dispose();
     _restaurantIdController.dispose();
     _outletIdController.dispose();
-    _tokenController.dispose();
     _syncIntervalController.dispose();
     super.dispose();
   }
@@ -168,20 +166,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 TextFormField(
                   controller: _cloudUrlController,
                   decoration: const InputDecoration(
-                    labelText: 'Cloud API URL',
-                    hintText: 'https://api.example.com',
+                    labelText: 'Cloud API URL override',
+                    hintText:
+                        'https://project-ref.supabase.co/functions/v1/pos-api',
                     prefixIcon: Icon(Icons.link),
+                    helperText:
+                        'Leave as default after the Supabase URL is built into the APK.',
                   ),
                 ),
                 const SizedBox(height: 10),
-                TextFormField(
-                  controller: _tokenController,
-                  obscureText: true,
-                  decoration: const InputDecoration(
-                    labelText: 'Device token / API key',
-                    prefixIcon: Icon(Icons.key_outlined),
+                const _CloudSecretsNotice(),
+                if (!CloudDefaults.hasConfiguredBaseUrl) ...[
+                  const SizedBox(height: 10),
+                  const _CloudSecretsNotice(
+                    warning: true,
+                    title: 'Supabase URL not built in yet',
+                    message:
+                        'Build the APK with POS_CLOUD_API_URL so admins do not need to edit this field.',
                   ),
-                ),
+                ],
                 const SizedBox(height: 10),
                 TextFormField(
                   controller: _syncIntervalController,
@@ -231,7 +234,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
       cloudApiUrl: _cloudUrlController.text,
       restaurantId: _restaurantIdController.text,
       outletId: _outletIdController.text,
-      deviceToken: _tokenController.text,
       cloudSyncEnabled: _cloudSyncEnabled,
       discoveryEnabled: _discoveryEnabled,
       autoSyncIntervalSeconds: int.parse(_syncIntervalController.text),
@@ -342,6 +344,53 @@ class _ResponsiveFields extends StatelessWidget {
           ],
         );
       },
+    );
+  }
+}
+
+class _CloudSecretsNotice extends StatelessWidget {
+  const _CloudSecretsNotice({
+    this.warning = false,
+    this.title = 'No manual API key required',
+    this.message =
+        'Supabase secrets stay inside the Edge Function. This app only stores the public function URL.',
+  });
+
+  final bool warning;
+  final String title;
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = warning ? PosColors.warning : PosColors.success;
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            warning ? Icons.info_outline : Icons.verified_user_outlined,
+            color: color,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 3),
+                Text(message, style: Theme.of(context).textTheme.bodyMedium),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

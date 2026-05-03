@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../app_controller.dart';
 import '../../app_scope.dart';
@@ -85,11 +86,15 @@ class _ServerSetupScreenState extends State<ServerSetupScreen> {
             onCopyUrl: state.apiUrl == null
                 ? null
                 : () async {
-                    await Clipboard.setData(ClipboardData(text: state.apiUrl!));
+                    await Clipboard.setData(
+                      ClipboardData(text: '${state.apiUrl}/customer'),
+                    );
                     if (!context.mounted) return;
-                    _showSnack(context, 'API URL copied');
+                    _showSnack(context, 'Customer menu URL copied');
                   },
           ),
+          const SizedBox(height: 12),
+          _CustomerPortalQrCard(state: state),
           const SizedBox(height: 12),
           _HybridStatusCard(app: app),
           const SizedBox(height: 12),
@@ -329,6 +334,12 @@ class _ServerStatusCard extends StatelessWidget {
                 _InfoValue('Local IP', state.localIp ?? 'Not found'),
                 _InfoValue('Port', state.port.toString()),
                 _InfoValue('API URL', state.apiUrl ?? 'Unavailable'),
+                _InfoValue(
+                  'Customer URL',
+                  state.apiUrl == null
+                      ? 'Unavailable'
+                      : '${state.apiUrl}/customer',
+                ),
                 _InfoValue('WebSocket URL', state.wsUrl ?? 'Unavailable'),
                 _InfoValue('Clients', connectedClients.toString()),
                 _InfoValue(
@@ -369,7 +380,7 @@ class _ServerStatusCard extends StatelessWidget {
                   onPressed: onRefreshIp,
                 ),
                 PrimaryButton(
-                  label: 'Copy URL',
+                  label: 'Copy Customer URL',
                   icon: Icons.copy,
                   secondary: true,
                   onPressed: onCopyUrl,
@@ -379,6 +390,187 @@ class _ServerStatusCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _CustomerPortalQrCard extends StatelessWidget {
+  const _CustomerPortalQrCard({required this.state});
+
+  final ServerRuntimeState state;
+
+  @override
+  Widget build(BuildContext context) {
+    final customerUrl = state.apiUrl == null
+        ? null
+        : '${state.apiUrl}/customer';
+    final canOpen = state.isRunning && customerUrl != null;
+
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 680;
+            final details = Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        color: PosColors.primary.withValues(alpha: 0.1),
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: const Icon(
+                        Icons.qr_code_2,
+                        color: PosColors.primary,
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Text(
+                        'Customer portal QR',
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                    ),
+                    StatusBadge(
+                      label: canOpen ? 'Ready' : 'Waiting',
+                      color: canOpen ? PosColors.success : PosColors.warning,
+                      icon: canOpen
+                          ? Icons.check_circle_outline
+                          : Icons.pending_outlined,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Text(
+                  canOpen
+                      ? 'Scanning this QR opens the local customer menu on the same WiFi.'
+                      : 'Start the local server and refresh IP to generate the customer menu QR.',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+                const SizedBox(height: 12),
+                Container(
+                  width: double.infinity,
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: PosColors.background,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(color: PosColors.line),
+                  ),
+                  child: SelectableText(
+                    customerUrl ?? 'Customer URL unavailable',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: canOpen ? PosColors.slate : PosColors.muted,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+                PrimaryButton(
+                  label: 'Copy Customer URL',
+                  icon: Icons.copy,
+                  secondary: true,
+                  onPressed: canOpen
+                      ? () async {
+                          await Clipboard.setData(
+                            ClipboardData(text: customerUrl),
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Customer menu URL copied'),
+                            ),
+                          );
+                        }
+                      : null,
+                ),
+              ],
+            );
+            final qr = _QrPreview(data: customerUrl, enabled: canOpen);
+
+            if (compact) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  details,
+                  const SizedBox(height: 14),
+                  Align(child: qr),
+                ],
+              );
+            }
+
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(child: details),
+                const SizedBox(width: 16),
+                qr,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _QrPreview extends StatelessWidget {
+  const _QrPreview({required this.data, required this.enabled});
+
+  final String? data;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 220,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: PosColors.line),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 20,
+            offset: const Offset(0, 10),
+          ),
+        ],
+      ),
+      child: enabled && data != null
+          ? QrImageView(
+              data: data!,
+              version: QrVersions.auto,
+              size: 196,
+              backgroundColor: Colors.white,
+              eyeStyle: const QrEyeStyle(
+                eyeShape: QrEyeShape.square,
+                color: PosColors.slate,
+              ),
+              dataModuleStyle: const QrDataModuleStyle(
+                dataModuleShape: QrDataModuleShape.square,
+                color: PosColors.slate,
+              ),
+            )
+          : SizedBox(
+              width: 196,
+              height: 196,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  color: PosColors.background,
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: const Icon(
+                  Icons.qr_code_2,
+                  size: 72,
+                  color: PosColors.muted,
+                ),
+              ),
+            ),
     );
   }
 }
@@ -403,6 +595,7 @@ class _EndpointCard extends StatelessWidget {
       _Endpoint('GET', '/menu', 'Available menu items'),
       _Endpoint('POST', '/orders', 'Create a customer order'),
       _Endpoint('GET', '/orders', 'Admin order list'),
+      _Endpoint('GET', '/orders/:id', 'Track one order by id'),
       _Endpoint('PATCH', '/orders/:id/status', 'Update order status'),
       _Endpoint('GET', '/sync/status', 'Pending and failed sync count'),
       _Endpoint('WS', '/ws', 'Live order updates'),
@@ -532,17 +725,17 @@ class _HybridStatusCard extends StatelessWidget {
                         },
                 ),
                 PrimaryButton(
-                  label: 'Copy Local URL',
+                  label: 'Copy Customer URL',
                   icon: Icons.copy,
                   secondary: true,
                   onPressed: state.apiUrl == null
                       ? null
                       : () async {
                           await Clipboard.setData(
-                            ClipboardData(text: state.apiUrl!),
+                            ClipboardData(text: '${state.apiUrl}/customer'),
                           );
                           if (!context.mounted) return;
-                          _showSnack(context, 'Local URL copied');
+                          _showSnack(context, 'Customer menu URL copied');
                         },
                 ),
               ],

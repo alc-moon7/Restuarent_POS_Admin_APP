@@ -249,18 +249,20 @@ class _QuickActions extends StatelessWidget {
                         },
                 ),
                 PrimaryButton(
-                  label: 'Copy Menu URL',
+                  label: 'Copy Customer URL',
                   icon: Icons.copy,
                   secondary: true,
                   onPressed: apiUrl == null
                       ? null
                       : () async {
                           await Clipboard.setData(
-                            ClipboardData(text: '$apiUrl/menu'),
+                            ClipboardData(text: '$apiUrl/customer'),
                           );
                           if (!context.mounted) return;
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(content: Text('Menu URL copied')),
+                            const SnackBar(
+                              content: Text('Customer menu URL copied'),
+                            ),
                           );
                         },
                 ),

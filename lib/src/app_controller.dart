@@ -4,7 +4,9 @@ import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
+import 'core/constants/cloud_defaults.dart';
 import 'models/dashboard_metrics.dart';
+import 'models/order_item.dart';
 import 'models/menu_item.dart';
 import 'models/order_model.dart';
 import 'models/order_source.dart';
@@ -12,6 +14,7 @@ import 'models/order_status.dart';
 import 'models/server_config.dart';
 import 'models/sync_event.dart';
 import 'services/cloud_api_service.dart';
+import 'services/cloud_realtime_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/local_database_service.dart';
 import 'services/local_server_service.dart';
@@ -29,6 +32,7 @@ class PosAppController extends ChangeNotifier {
     WebSocketService? webSocketService,
     PrinterService? printerService,
     CloudApiService? cloudApiService,
+    CloudRealtimeService? cloudRealtimeService,
     ConnectivityService? connectivityService,
     ServerDiscoveryService? discoveryService,
     SyncService? syncService,
@@ -37,6 +41,7 @@ class PosAppController extends ChangeNotifier {
        webSocketService = webSocketService ?? WebSocketService(),
        printerService = printerService ?? PrinterService(),
        cloudApiService = cloudApiService ?? CloudApiService(),
+       cloudRealtimeService = cloudRealtimeService ?? CloudRealtimeService(),
        connectivityService = connectivityService ?? ConnectivityService(),
        discoveryService = discoveryService ?? ServerDiscoveryService() {
     this.syncService =
@@ -44,7 +49,9 @@ class PosAppController extends ChangeNotifier {
         SyncService(
           database: this.database,
           cloudApi: this.cloudApiService,
+          cloudRealtime: this.cloudRealtimeService,
           connectivity: this.connectivityService,
+          onRemoteEvent: this.webSocketService.broadcast,
         );
     localServer =
         server ??
@@ -62,6 +69,7 @@ class PosAppController extends ChangeNotifier {
   final WebSocketService webSocketService;
   final PrinterService printerService;
   final CloudApiService cloudApiService;
+  final CloudRealtimeService cloudRealtimeService;
   final ConnectivityService connectivityService;
   final ServerDiscoveryService discoveryService;
   late final SyncService syncService;
@@ -104,9 +112,9 @@ class PosAppController extends ChangeNotifier {
     localPort: 8080,
     discoveryEnabled: true,
   );
-  CloudConfig cloudConfig = const CloudConfig(
-    baseUrl: 'https://api.example.com',
-    enabled: false,
+  CloudConfig cloudConfig = CloudConfig(
+    baseUrl: CloudDefaults.baseUrl,
+    enabled: CloudDefaults.shouldEnableSyncByDefault,
     deviceToken: '',
     autoSyncIntervalSeconds: 30,
   );
@@ -141,10 +149,13 @@ class PosAppController extends ChangeNotifier {
         discoveryEnabled: preferences.getBool(_discoveryEnabledKey) ?? true,
       );
       cloudConfig = CloudConfig(
-        baseUrl:
-            preferences.getString(_cloudApiUrlKey) ?? 'https://api.example.com',
-        enabled: preferences.getBool(_cloudSyncEnabledKey) ?? false,
-        deviceToken: preferences.getString(_deviceTokenKey) ?? '',
+        baseUrl: CloudDefaults.resolveBaseUrl(
+          preferences.getString(_cloudApiUrlKey),
+        ),
+        enabled:
+            preferences.getBool(_cloudSyncEnabledKey) ??
+            CloudDefaults.shouldEnableSyncByDefault,
+        deviceToken: '',
         autoSyncIntervalSeconds: preferences.getInt(_autoSyncIntervalKey) ?? 30,
       );
       serverState = serverState.copyWith(
@@ -280,7 +291,6 @@ class PosAppController extends ChangeNotifier {
     required String cloudApiUrl,
     required String restaurantId,
     required String outletId,
-    required String deviceToken,
     required bool cloudSyncEnabled,
     required bool discoveryEnabled,
     required int autoSyncIntervalSeconds,
@@ -303,11 +313,9 @@ class PosAppController extends ChangeNotifier {
         discoveryEnabled: discoveryEnabled,
       );
       cloudConfig = cloudConfig.copyWith(
-        baseUrl: cloudApiUrl.trim().isEmpty
-            ? 'https://api.example.com'
-            : cloudApiUrl.trim(),
+        baseUrl: CloudDefaults.resolveBaseUrl(cloudApiUrl),
         enabled: cloudSyncEnabled,
-        deviceToken: deviceToken.trim(),
+        deviceToken: '',
         autoSyncIntervalSeconds: autoSyncIntervalSeconds.clamp(10, 3600),
       );
       await _persistSettings();
@@ -410,6 +418,26 @@ class PosAppController extends ChangeNotifier {
   Future<void> toggleMenuAvailability(String id, bool isAvailable) async {
     final item = await database.toggleMenuAvailability(id, isAvailable);
     webSocketService.broadcast({'type': 'menu_updated', 'data': item.toJson()});
+    unawaited(syncService.syncNow());
+  }
+
+  Future<void> createManualOrder({
+    required List<OrderRequestItem> requestedItems,
+    String? customerName,
+    String? tableNo,
+    String? note,
+  }) async {
+    final order = await database.createOrder(
+      requestedItems: requestedItems,
+      customerName: customerName,
+      tableNo: tableNo,
+      note: note,
+      source: OrderSource.manual,
+    );
+    webSocketService.broadcast({
+      'type': 'order_created',
+      'data': order.toJson(),
+    });
     unawaited(syncService.syncNow());
   }
 

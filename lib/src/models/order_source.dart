@@ -31,6 +31,12 @@ enum OrderSource {
   }) {
     if (value == null) return fallback;
     final normalized = value.trim().toLowerCase();
+    if (normalized == 'cloud_customer' ||
+        normalized == 'customer_cloud' ||
+        normalized == 'online' ||
+        normalized == 'web_cloud') {
+      return OrderSource.cloud;
+    }
     for (final source in OrderSource.values) {
       if (source.value == normalized ||
           source.name.toLowerCase() == normalized) {

@@ -119,7 +119,7 @@ class MenuItem {
       imageUrl: map['imageUrl'] as String?,
       isAvailable: _decodeBool(map['isAvailable']),
       preparationTimeMinutes: map['preparationTimeMinutes'] as int?,
-      tags: _decodeTags(map['tags'] as String?),
+      tags: _decodeTags(map['tags']),
       syncStatus: SyncStatus.parse(map['syncStatus'] as String?),
       version: map['version'] as int? ?? 1,
       deletedAt: _tryParseDate(map['deletedAt'] as String?),
@@ -140,8 +140,11 @@ class MenuItem {
     return true;
   }
 
-  static List<String> _decodeTags(String? rawTags) {
-    if (rawTags == null || rawTags.trim().isEmpty) return const [];
+  static List<String> _decodeTags(Object? rawTags) {
+    if (rawTags is List) {
+      return rawTags.map((tag) => tag.toString()).toList(growable: false);
+    }
+    if (rawTags is! String || rawTags.trim().isEmpty) return const [];
     final decoded = jsonDecode(rawTags);
     if (decoded is List) {
       return decoded.map((tag) => tag.toString()).toList(growable: false);

@@ -35,6 +35,17 @@ Build release APK:
 flutter build apk --release
 ```
 
+Build production APK with Supabase cloud sync/realtime enabled:
+
+```sh
+flutter build apk --release \
+  --dart-define=POS_CLOUD_API_URL=https://vnhxfvtpkgykatvbrczn.supabase.co/functions/v1/pos-api \
+  --dart-define=POS_CLOUD_SYNC_ENABLED=true
+```
+
+The app reads Supabase Realtime config from `GET /health`, so no manual Device
+token/API key is required in Settings.
+
 ## API
 
 Default server port: `8080`
@@ -64,3 +75,17 @@ const ws = new WebSocket("ws://ADMIN_LOCAL_IP:8080/ws");
 - `GET /orders`
 - `PATCH /orders/:id/status`
 - `WS /ws`
+
+## Cloud
+
+Cloud API:
+
+```txt
+https://vnhxfvtpkgykatvbrczn.supabase.co/functions/v1/pos-api
+```
+
+Cloud realtime uses Supabase Realtime Broadcast topic:
+
+```txt
+pos:outlet:<outletId>
+```

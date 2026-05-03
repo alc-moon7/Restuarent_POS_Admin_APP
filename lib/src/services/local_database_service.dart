@@ -234,6 +234,37 @@ class LocalDatabaseService {
     _emitChange();
   }
 
+  Future<MenuItem?> applyRemoteMenuItem(MenuItem item) async {
+    final db = await _db;
+    MenuItem? applied;
+    await db.transaction((txn) async {
+      final rows = await txn.query(
+        'menu_items',
+        where: 'id = ?',
+        whereArgs: [item.id],
+        limit: 1,
+      );
+      final remote = item.copyWith(syncStatus: SyncStatus.synced);
+      if (rows.isEmpty) {
+        await txn.insert('menu_items', remote.toMap());
+        applied = remote;
+        return;
+      }
+
+      final current = MenuItem.fromMap(rows.first);
+      if (_localVersionWins(current, remote.updatedAt)) return;
+
+      await txn.insert(
+        'menu_items',
+        remote.toMap(),
+        conflictAlgorithm: ConflictAlgorithm.replace,
+      );
+      applied = remote;
+    });
+    if (applied != null) _emitChange();
+    return applied;
+  }
+
   Future<void> deleteMenuItem(String id, {bool createSyncEvent = true}) async {
     final db = await _db;
     await db.transaction((txn) async {
@@ -434,7 +465,13 @@ class LocalDatabaseService {
   }
 
   Future<OrderModel> upsertCloudOrder(OrderModel order) async {
+    final applied = await applyRemoteOrder(order);
+    return applied ?? await getOrderById(order.id) ?? order;
+  }
+
+  Future<OrderModel?> applyRemoteOrder(OrderModel order) async {
     final db = await _db;
+    OrderModel? applied;
     await db.transaction((txn) async {
       final existingRows = await txn.query(
         'orders',
@@ -442,15 +479,75 @@ class LocalDatabaseService {
         whereArgs: [order.id],
         limit: 1,
       );
-      if (existingRows.isNotEmpty) return;
-      await txn.insert('orders', order.toMap());
-      for (final item in order.items) {
-        await txn.insert('order_items', item.toMap());
+      final remote = order.copyWith(syncStatus: SyncStatus.synced);
+      if (existingRows.isEmpty) {
+        await txn.insert('orders', remote.toMap());
+        for (final item in remote.items) {
+          await txn.insert('order_items', item.toMap());
+        }
+        applied = remote;
+        return;
       }
+
+      final currentItems = await _getOrderItemsWithExecutor(txn, order.id);
+      final current = OrderModel.fromMap(
+        existingRows.first,
+        items: currentItems,
+      );
+      final remoteNewer = remote.updatedAt.isAfter(current.updatedAt);
+      final statusCanAdvance = current.status.canTransitionTo(remote.status);
+      if (!remoteNewer &&
+          (!statusCanAdvance || current.status == remote.status)) {
+        return;
+      }
+
+      final nextStatus = statusCanAdvance ? remote.status : current.status;
+      final nextVersion = remote.version > current.version
+          ? remote.version
+          : current.version;
+      final next = remote.copyWith(
+        source: current.source == OrderSource.localLan
+            ? current.source
+            : remote.source,
+        status: nextStatus,
+        syncStatus: current.syncStatus == SyncStatus.synced
+            ? SyncStatus.synced
+            : current.syncStatus,
+        version: nextVersion,
+        updatedAt: remoteNewer ? remote.updatedAt : current.updatedAt,
+      );
+      await txn.update(
+        'orders',
+        next.toMap(),
+        where: 'id = ?',
+        whereArgs: [order.id],
+      );
+      if (remoteNewer && current.syncStatus == SyncStatus.synced) {
+        await txn.delete(
+          'order_items',
+          where: 'orderId = ?',
+          whereArgs: [order.id],
+        );
+        for (final item in remote.items) {
+          await txn.insert('order_items', item.toMap());
+        }
+      }
+      applied = next.copyWith(
+        items: remoteNewer && current.syncStatus == SyncStatus.synced
+            ? remote.items
+            : currentItems,
+      );
     });
-    _emitChange();
-    final saved = await getOrderById(order.id);
-    return saved ?? order;
+    if (applied != null) _emitChange();
+    return applied;
+  }
+
+  bool _localVersionWins(MenuItem current, DateTime remoteUpdatedAt) {
+    if (current.syncStatus != SyncStatus.synced &&
+        !remoteUpdatedAt.isAfter(current.updatedAt)) {
+      return true;
+    }
+    return current.updatedAt.isAfter(remoteUpdatedAt);
   }
 
   Future<OrderModel> updateOrderStatus(

@@ -10,6 +10,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 
+import '../core/constants/cloud_defaults.dart';
 import '../models/discovery_packet.dart';
 import '../models/order_item.dart';
 import '../models/order_source.dart';
@@ -39,7 +40,7 @@ class ServerRuntimeState {
     this.restaurantName,
     this.outletName,
     this.localIp,
-    this.cloudBaseUrl = 'https://api.example.com',
+    this.cloudBaseUrl = CloudDefaults.baseUrl,
     this.cloudSyncEnabled = false,
     this.cloudConnected = false,
     this.discoveryEnabled = true,
@@ -357,6 +358,7 @@ class LocalServerService {
           ..get('/menu', _menu)
           ..post('/orders', _createOrder)
           ..get('/orders', _orders)
+          ..get('/orders/<id>', _orderById)
           ..patch('/orders/<id>/status', _updateOrderStatus)
           ..get('/sync/status', _syncStatus)
           ..get(
@@ -415,6 +417,21 @@ class LocalServerService {
       'count': orders.length,
       'data': orders.map((order) => order.toJson()).toList(growable: false),
     });
+  }
+
+  Future<Response> _orderById(Request request) async {
+    final id = request.params['id'];
+    if (id == null || id.isEmpty) {
+      return _badRequest('Order id is required.');
+    }
+    final order = await _database.getOrderById(id);
+    if (order == null) {
+      return _json({
+        'ok': false,
+        'error': 'Order was not found.',
+      }, statusCode: HttpStatus.notFound);
+    }
+    return _json({'ok': true, 'data': order.toJson()});
   }
 
   Future<Response> _syncStatus(Request request) async {
@@ -549,12 +566,19 @@ class LocalServerService {
       'port': _state.port,
       'baseUrl': _state.apiUrl,
       'wsUrl': _state.wsUrl,
+      'customerUrl': _customerUrl(),
       'cloudSyncEnabled': _state.cloudSyncEnabled,
       'cloudConnected': _state.cloudConnected,
       'discoveryEnabled': _state.discoveryEnabled,
       'connectedClients': _webSocketService.connectedClients,
       'timestamp': DateTime.now().toIso8601String(),
     };
+  }
+
+  String? _customerUrl() {
+    final apiUrl = _state.apiUrl;
+    if (apiUrl == null || apiUrl.isEmpty) return null;
+    return '$apiUrl/customer';
   }
 
   DiscoveryPacket _buildDiscoveryPacket() {
