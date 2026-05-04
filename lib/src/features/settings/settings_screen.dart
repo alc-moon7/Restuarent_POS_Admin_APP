@@ -100,17 +100,21 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   children: [
                     TextFormField(
                       controller: _restaurantIdController,
+                      readOnly: true,
                       decoration: const InputDecoration(
                         labelText: 'Restaurant ID',
                         prefixIcon: Icon(Icons.badge_outlined),
+                        helperText: 'Created automatically by the cloud.',
                       ),
                       validator: _required,
                     ),
                     TextFormField(
                       controller: _outletIdController,
+                      readOnly: true,
                       decoration: const InputDecoration(
                         labelText: 'Outlet ID',
                         prefixIcon: Icon(Icons.pin_drop_outlined),
+                        helperText: 'Share this ID with the customer web app.',
                       ),
                       validator: _required,
                     ),
@@ -134,7 +138,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   ),
                 ),
                 const SizedBox(height: 10),
-                const _CloudSecretsNotice(),
+                _CloudSecretsNotice(
+                  hasDeviceToken: app.cloudConfig.hasDeviceToken,
+                ),
                 if (!CloudDefaults.hasConfiguredBaseUrl) ...[
                   const SizedBox(height: 10),
                   const _CloudSecretsNotice(
@@ -307,12 +313,14 @@ class _ResponsiveFields extends StatelessWidget {
 
 class _CloudSecretsNotice extends StatelessWidget {
   const _CloudSecretsNotice({
+    this.hasDeviceToken = false,
     this.warning = false,
     this.title = 'No manual API key required',
     this.message =
-        'Supabase secrets stay inside the Edge Function. This app only stores the public function URL.',
+        'Supabase secrets stay inside the Edge Function. This app stores only its private restaurant device token.',
   });
 
+  final bool hasDeviceToken;
   final bool warning;
   final String title;
   final String message;
@@ -342,7 +350,12 @@ class _CloudSecretsNotice extends StatelessWidget {
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 3),
-                Text(message, style: Theme.of(context).textTheme.bodyMedium),
+                Text(
+                  hasDeviceToken
+                      ? 'This device is authorized for the current restaurant/outlet. The token is hidden and managed automatically.'
+                      : message,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ],
             ),
           ),

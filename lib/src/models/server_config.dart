@@ -51,7 +51,9 @@ class CloudConfig {
         uri.host.isNotEmpty;
   }
 
-  bool get canSync => enabled && hasValidBaseUrl;
+  bool get hasDeviceToken => deviceToken.trim().isNotEmpty;
+  bool get canConnect => enabled && hasValidBaseUrl;
+  bool get canSync => canConnect && hasDeviceToken;
 
   CloudConfig copyWith({
     String? baseUrl,

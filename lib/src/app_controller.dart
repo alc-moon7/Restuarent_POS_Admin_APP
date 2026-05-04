@@ -84,6 +84,14 @@ class PosAppController extends ChangeNotifier {
 
   String get restaurantName => serverConfig.restaurantName;
   String get outletName => serverConfig.outletName;
+  bool get isTenantReady {
+    return serverConfig.restaurantId.trim().isNotEmpty &&
+        serverConfig.outletId.trim().isNotEmpty &&
+        serverConfig.restaurantName.trim().isNotEmpty &&
+        serverConfig.outletName.trim().isNotEmpty &&
+        cloudConfig.hasDeviceToken &&
+        cloudConfig.hasValidBaseUrl;
+  }
 
   Future<void> initialize() async {
     try {
@@ -95,16 +103,8 @@ class PosAppController extends ChangeNotifier {
           _serverIdKey,
           _uuid.v4(),
         ),
-        restaurantId: await _getOrCreatePreference(
-          preferences,
-          _restaurantIdKey,
-          'restaurant-${_uuid.v4().split('-').first}',
-        ),
-        outletId: await _getOrCreatePreference(
-          preferences,
-          _outletIdKey,
-          'outlet-${_uuid.v4().split('-').first}',
-        ),
+        restaurantId: preferences.getString(_restaurantIdKey) ?? '',
+        outletId: preferences.getString(_outletIdKey) ?? '',
         restaurantName: preferences.getString(_restaurantNameKey) ?? '',
         outletName: preferences.getString(_outletNameKey) ?? '',
       );
@@ -115,7 +115,7 @@ class PosAppController extends ChangeNotifier {
         enabled:
             preferences.getBool(_cloudSyncEnabledKey) ??
             CloudDefaults.shouldEnableSyncByDefault,
-        deviceToken: '',
+        deviceToken: preferences.getString(_deviceTokenKey) ?? '',
         autoSyncIntervalSeconds: preferences.getInt(_autoSyncIntervalKey) ?? 30,
       );
 
@@ -138,7 +138,7 @@ class PosAppController extends ChangeNotifier {
         serverConfig: serverConfig,
       );
       await reloadData();
-      if (cloudConfig.canSync) {
+      if (isTenantReady && cloudConfig.canSync) {
         unawaited(syncService.syncNow());
       }
       initialized = true;
@@ -218,7 +218,6 @@ class PosAppController extends ChangeNotifier {
       cloudConfig = cloudConfig.copyWith(
         baseUrl: CloudDefaults.resolveBaseUrl(cloudApiUrl),
         enabled: cloudSyncEnabled,
-        deviceToken: '',
         autoSyncIntervalSeconds: autoSyncIntervalSeconds.clamp(10, 3600),
       );
       await _persistSettings();
@@ -226,9 +225,48 @@ class PosAppController extends ChangeNotifier {
         cloudConfig: cloudConfig,
         serverConfig: serverConfig,
       );
-      if (cloudConfig.canSync) {
+      if (isTenantReady && cloudConfig.canSync) {
         unawaited(syncService.syncNow());
       }
+    });
+  }
+
+  Future<bool> provisionTenant({
+    required String restaurantName,
+    required String outletName,
+  }) async {
+    return _runBusy(() async {
+      final bootstrapCloudConfig = cloudConfig.copyWith(
+        baseUrl: CloudDefaults.resolveBaseUrl(cloudConfig.baseUrl),
+        enabled: true,
+      );
+      cloudApiService.configure(
+        cloudConfig: bootstrapCloudConfig,
+        serverConfig: serverConfig,
+      );
+      final tenant = await cloudApiService.bootstrapTenant(
+        serverId: serverConfig.serverId,
+        restaurantName: restaurantName.trim(),
+        outletName: outletName.trim(),
+        restaurantId: serverConfig.restaurantId,
+        outletId: serverConfig.outletId,
+      );
+      serverConfig = serverConfig.copyWith(
+        serverId: tenant.serverId,
+        restaurantId: tenant.restaurantId,
+        outletId: tenant.outletId,
+        restaurantName: tenant.restaurantName,
+        outletName: tenant.outletName,
+      );
+      cloudConfig = bootstrapCloudConfig.copyWith(
+        deviceToken: tenant.deviceToken,
+      );
+      await _persistSettings();
+      syncService.configure(
+        cloudConfig: cloudConfig,
+        serverConfig: serverConfig,
+      );
+      unawaited(syncService.syncNow());
     });
   }
 

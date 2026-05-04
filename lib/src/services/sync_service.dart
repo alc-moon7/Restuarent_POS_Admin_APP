@@ -159,7 +159,7 @@ class SyncService {
   }
 
   Future<bool> testCloud() async {
-    if (!_cloudConfig.canSync) {
+    if (!_cloudConfig.canConnect) {
       _state = _state.copyWith(
         cloudConnected: false,
         lastError: 'Cloud API URL is empty or invalid.',
@@ -192,7 +192,9 @@ class SyncService {
     if (!_cloudConfig.canSync) {
       _state = _state.copyWith(
         cloudConnected: false,
-        lastError: 'Cloud sync disabled or URL invalid.',
+        lastError: _cloudConfig.hasDeviceToken
+            ? 'Cloud sync disabled or URL invalid.'
+            : 'Restaurant cloud setup is not complete yet.',
       );
       _emitState();
       return;

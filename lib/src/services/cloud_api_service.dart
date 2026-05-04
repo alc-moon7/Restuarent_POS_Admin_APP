@@ -55,6 +55,46 @@ class CloudRealtimeConfig {
   }
 }
 
+class TenantBootstrapResult {
+  const TenantBootstrapResult({
+    required this.serverId,
+    required this.restaurantId,
+    required this.outletId,
+    required this.restaurantName,
+    required this.outletName,
+    required this.deviceToken,
+  });
+
+  final String serverId;
+  final String restaurantId;
+  final String outletId;
+  final String restaurantName;
+  final String outletName;
+  final String deviceToken;
+
+  static TenantBootstrapResult fromJson(Map<String, Object?> json) {
+    final data = json['data'] is Map
+        ? Map<String, Object?>.from(json['data'] as Map)
+        : json;
+    return TenantBootstrapResult(
+      serverId: _required(data, 'serverId'),
+      restaurantId: _required(data, 'restaurantId'),
+      outletId: _required(data, 'outletId'),
+      restaurantName: _required(data, 'restaurantName'),
+      outletName: _required(data, 'outletName'),
+      deviceToken: _required(data, 'deviceToken'),
+    );
+  }
+
+  static String _required(Map<String, Object?> json, String key) {
+    final value = json[key]?.toString().trim() ?? '';
+    if (value.isEmpty) {
+      throw CloudApiException('Cloud tenant response is missing $key.');
+    }
+    return value;
+  }
+}
+
 class CloudApiService {
   CloudApiService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -90,9 +130,36 @@ class CloudApiService {
 
   Future<CloudRealtimeConfig?> loadRealtimeConfig() async {
     if (_realtimeConfig?.canConnect == true) return _realtimeConfig;
-    if (!_cloudConfig.canSync) return null;
+    if (!_cloudConfig.canConnect) return null;
     await testHealth();
     return _realtimeConfig;
+  }
+
+  Future<TenantBootstrapResult> bootstrapTenant({
+    required String serverId,
+    required String restaurantName,
+    required String outletName,
+    String? restaurantId,
+    String? outletId,
+  }) async {
+    final uri = _uri('/tenants/bootstrap');
+    if (uri == null) {
+      throw const CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    final response = await _sendJson(
+      'POST',
+      uri,
+      body: {
+        'serverId': serverId,
+        'restaurantName': restaurantName,
+        'outletName': outletName,
+        if (restaurantId?.trim().isNotEmpty == true)
+          'restaurantId': restaurantId!.trim(),
+        if (outletId?.trim().isNotEmpty == true) 'outletId': outletId!.trim(),
+      },
+      idempotencyKey: 'tenant-bootstrap-$serverId',
+    );
+    return TenantBootstrapResult.fromJson(response);
   }
 
   Future<Map<String, Object?>> registerDevice() async {
@@ -288,7 +355,7 @@ class CloudApiService {
   }
 
   Uri? _baseUri() {
-    if (!_cloudConfig.canSync) return null;
+    if (!_cloudConfig.canConnect) return null;
     return Uri.tryParse(_cloudConfig.baseUrl.trim());
   }
 

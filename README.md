@@ -3,6 +3,14 @@
 Flutter Restaurant POS Admin app for cloud menu, order, sync, and realtime
 management through Supabase Edge Functions.
 
+## Multi-Restaurant Flow
+
+This APK is built for selling to many restaurants. On first launch, each
+restaurant enters only its restaurant and outlet name. The app calls
+`POST /tenants/bootstrap`, creates a separate cloud restaurant/outlet identity,
+and stores a private device token internally. Restaurant owners do not manually
+paste Supabase keys, API keys, IP addresses, or ports.
+
 ## Run
 
 ```sh
@@ -44,7 +52,8 @@ flutter build apk --release \
 ```
 
 The app reads Supabase Realtime config from `GET /health`, so no manual Device
-token/API key is required in Settings.
+token/API key is required in Settings. The private device token is issued by the
+backend during the first restaurant setup.
 
 ## Cloud
 
@@ -52,6 +61,12 @@ Cloud API:
 
 ```txt
 https://vnhxfvtpkgykatvbrczn.supabase.co/functions/v1/pos-api
+```
+
+First-run setup endpoint:
+
+```txt
+POST /tenants/bootstrap
 ```
 
 Cloud realtime uses Supabase Realtime Broadcast topic:

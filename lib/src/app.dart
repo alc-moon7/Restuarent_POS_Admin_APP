@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/menu/menu_management_screen.dart';
 import 'features/orders/orders_screen.dart';
+import 'features/setup/tenant_setup_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/splash/mode_intro_screen.dart';
 import 'features/splash/splash_screen.dart';
@@ -84,6 +85,15 @@ class _LocalPosAppState extends State<LocalPosApp> {
           setState(() {
             _showIntro = false;
             _initialShellIndex = 4;
+          });
+        },
+      );
+    }
+    if (!_controller.isTenantReady) {
+      return TenantSetupScreen(
+        onProvisioned: () {
+          setState(() {
+            _initialShellIndex = 0;
           });
         },
       );
