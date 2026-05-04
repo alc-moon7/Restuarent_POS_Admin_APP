@@ -17,7 +17,7 @@ enum OrderSource {
   String get label {
     switch (this) {
       case OrderSource.localLan:
-        return 'Local LAN';
+        return 'Legacy LAN';
       case OrderSource.cloud:
         return 'Cloud';
       case OrderSource.manual:
@@ -27,7 +27,7 @@ enum OrderSource {
 
   static OrderSource parse(
     String? value, {
-    OrderSource fallback = OrderSource.localLan,
+    OrderSource fallback = OrderSource.cloud,
   }) {
     if (value == null) return fallback;
     final normalized = value.trim().toLowerCase();

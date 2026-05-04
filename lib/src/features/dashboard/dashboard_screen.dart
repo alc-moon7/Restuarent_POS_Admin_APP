@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../../app_scope.dart';
@@ -20,7 +19,7 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     if (!app.initialized && app.lastError == null) {
-      return const LoadingView(message: 'Preparing restaurant workspace...');
+      return const LoadingView(message: 'Preparing cloud workspace...');
     }
     if (app.lastError != null && !app.initialized) {
       return Scaffold(
@@ -35,47 +34,35 @@ class DashboardScreen extends StatelessWidget {
 
     final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
     final metrics = app.metrics;
-    final server = app.serverState;
+    final sync = app.syncState;
 
     return AppScaffold(
       title: 'Admin Dashboard',
-      subtitle: 'Monitor server, orders, sales, and menu availability.',
-      actions: [StatusBadge.server(isRunning: server.isRunning)],
+      subtitle: 'Cloud menu, orders, sales, and realtime sync.',
+      actions: [
+        StatusBadge(
+          label: sync.cloudConnected ? 'Cloud Connected' : 'Cloud Queued',
+          color: sync.cloudConnected ? PosColors.success : PosColors.warning,
+          icon: sync.cloudConnected
+              ? Icons.cloud_done_outlined
+              : Icons.cloud_queue_outlined,
+        ),
+      ],
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _MetricGrid(
             cards: [
               DashboardCard(
-                title: 'Server status',
-                value: server.isRunning ? 'Online' : 'Offline',
-                caption: server.apiUrl ?? 'Start local server',
-                icon: Icons.wifi_tethering,
-                color: server.isRunning ? PosColors.success : PosColors.muted,
-                onTap: () => onNavigate(3),
-              ),
-              DashboardCard(
                 title: 'Cloud sync',
-                value: app.syncState.cloudConnected ? 'Connected' : 'Queued',
+                value: sync.cloudConnected ? 'Connected' : 'Queued',
                 caption: app.cloudConfig.enabled
-                    ? '${app.syncState.pendingCount} pending'
+                    ? '${sync.pendingCount} pending'
                     : 'Disabled',
                 icon: Icons.cloud_sync_outlined,
-                color: app.syncState.cloudConnected
+                color: sync.cloudConnected
                     ? PosColors.success
                     : PosColors.warning,
-                onTap: () => onNavigate(4),
-              ),
-              DashboardCard(
-                title: 'Discovery',
-                value: app.discoveryState.isBroadcasting
-                    ? 'Broadcasting'
-                    : 'Stopped',
-                caption: 'UDP ${app.discoveryState.port}',
-                icon: Icons.radar_outlined,
-                color: app.discoveryState.isBroadcasting
-                    ? PosColors.primary
-                    : PosColors.muted,
                 onTap: () => onNavigate(3),
               ),
               DashboardCard(
@@ -126,21 +113,16 @@ class DashboardScreen extends StatelessWidget {
                 color: metrics.pendingSyncCount == 0
                     ? PosColors.success
                     : PosColors.warning,
-                onTap: () => onNavigate(4),
+                onTap: () => onNavigate(3),
               ),
             ],
           ),
           const SizedBox(height: 16),
-          _QuickActions(
-            onNavigate: onNavigate,
-            apiUrl: server.apiUrl,
-            onSyncNow: app.busy ? null : app.syncNow,
-          ),
+          _QuickActions(onNavigate: onNavigate, onSyncNow: app.syncNow),
           const SizedBox(height: 16),
-          _ServerHintCard(
-            isRunning: server.isRunning,
-            apiUrl: server.apiUrl,
-            wsUrl: server.wsUrl,
+          _CloudHintCard(
+            connected: sync.cloudConnected,
+            cloudUrl: app.cloudConfig.baseUrl,
           ),
         ],
       ),
@@ -186,15 +168,10 @@ class _MetricGrid extends StatelessWidget {
 }
 
 class _QuickActions extends StatelessWidget {
-  const _QuickActions({
-    required this.onNavigate,
-    required this.apiUrl,
-    required this.onSyncNow,
-  });
+  const _QuickActions({required this.onNavigate, required this.onSyncNow});
 
   final ValueChanged<int> onNavigate;
-  final String? apiUrl;
-  final Future<bool> Function()? onSyncNow;
+  final Future<bool> Function() onSyncNow;
 
   @override
   Widget build(BuildContext context) {
@@ -225,46 +202,24 @@ class _QuickActions extends StatelessWidget {
                   onPressed: () => onNavigate(2),
                 ),
                 PrimaryButton(
-                  label: 'Server Settings',
-                  icon: Icons.settings_input_antenna,
-                  secondary: true,
-                  onPressed: () => onNavigate(3),
-                ),
-                PrimaryButton(
                   label: 'Sync Now',
                   icon: Icons.sync,
                   secondary: true,
-                  onPressed: onSyncNow == null
-                      ? null
-                      : () async {
-                          final ok = await onSyncNow!();
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text(
-                                ok ? 'Sync completed' : 'Sync failed',
-                              ),
-                            ),
-                          );
-                        },
+                  onPressed: () async {
+                    final ok = await onSyncNow();
+                    if (!context.mounted) return;
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(ok ? 'Sync completed' : 'Sync failed'),
+                      ),
+                    );
+                  },
                 ),
                 PrimaryButton(
-                  label: 'Copy Customer URL',
-                  icon: Icons.copy,
+                  label: 'Cloud Settings',
+                  icon: Icons.settings_outlined,
                   secondary: true,
-                  onPressed: apiUrl == null
-                      ? null
-                      : () async {
-                          await Clipboard.setData(
-                            ClipboardData(text: '$apiUrl/customer'),
-                          );
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Customer menu URL copied'),
-                            ),
-                          );
-                        },
+                  onPressed: () => onNavigate(4),
                 ),
               ],
             ),
@@ -275,16 +230,11 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _ServerHintCard extends StatelessWidget {
-  const _ServerHintCard({
-    required this.isRunning,
-    required this.apiUrl,
-    required this.wsUrl,
-  });
+class _CloudHintCard extends StatelessWidget {
+  const _CloudHintCard({required this.connected, required this.cloudUrl});
 
-  final bool isRunning;
-  final String? apiUrl;
-  final String? wsUrl;
+  final bool connected;
+  final String cloudUrl;
 
   @override
   Widget build(BuildContext context) {
@@ -298,10 +248,13 @@ class _ServerHintCard extends StatelessWidget {
               width: 40,
               height: 40,
               decoration: BoxDecoration(
-                color: PosColors.accent.withValues(alpha: 0.12),
+                color: PosColors.primary.withValues(alpha: 0.12),
                 borderRadius: BorderRadius.circular(12),
               ),
-              child: const Icon(Icons.router_outlined, color: PosColors.accent),
+              child: Icon(
+                connected ? Icons.cloud_done_outlined : Icons.cloud_queue,
+                color: PosColors.primary,
+              ),
             ),
             const SizedBox(width: 10),
             Expanded(
@@ -309,16 +262,14 @@ class _ServerHintCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    isRunning
-                        ? 'Customer devices can connect now'
-                        : 'Start the server before taking external orders',
+                    connected
+                        ? 'Cloud ordering is connected'
+                        : 'Cloud changes will sync when reachable',
                     style: Theme.of(context).textTheme.titleMedium,
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    isRunning
-                        ? 'API: ${apiUrl ?? 'IP unavailable'}\nWebSocket: ${wsUrl ?? 'IP unavailable'}'
-                        : 'Same WiFi is enough. Internet is not required.',
+                    'Customer websites should use the cloud API configured for this app.\n$cloudUrl',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],

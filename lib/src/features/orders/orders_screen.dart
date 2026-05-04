@@ -56,22 +56,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
           if (app.orders.isEmpty)
             EmptyState(
               title: 'No orders yet',
-              message:
-                  'Orders created through POST /orders will appear here instantly.',
+              message: 'Cloud customer orders will appear here after sync.',
               icon: Icons.receipt_long_outlined,
-              action: PrimaryButton(
-                label: 'Open Server Setup',
-                icon: Icons.settings_input_antenna,
-                onPressed: () {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                        'Use the Server tab to start LAN ordering.',
-                      ),
-                    ),
-                  );
-                },
-              ),
             )
           else if (orders.isEmpty)
             const EmptyState(

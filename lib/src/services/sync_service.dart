@@ -105,8 +105,6 @@ class SyncService {
     outletId: '',
     restaurantName: '',
     outletName: '',
-    localPort: 8080,
-    discoveryEnabled: true,
   );
   SyncRuntimeState _state = const SyncRuntimeState(
     isSyncing: false,
@@ -426,7 +424,7 @@ class SyncService {
 
   OrderModel _orderFromPayload(
     Map<String, Object?> payload, {
-    OrderSource sourceFallback = OrderSource.localLan,
+    OrderSource sourceFallback = OrderSource.cloud,
   }) {
     final rawItems = payload['items'];
     final items = rawItems is List

@@ -13,14 +13,6 @@ class StatusBadge extends StatelessWidget {
     super.key,
   });
 
-  factory StatusBadge.server({required bool isRunning}) {
-    return StatusBadge(
-      label: isRunning ? 'Running' : 'Stopped',
-      color: isRunning ? PosColors.success : PosColors.muted,
-      icon: isRunning ? Icons.wifi_tethering : Icons.stop_circle_outlined,
-    );
-  }
-
   factory StatusBadge.order(OrderStatus status) {
     return StatusBadge(
       label: status.label,

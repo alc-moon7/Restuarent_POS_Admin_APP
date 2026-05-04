@@ -53,7 +53,7 @@ class SyncStatusScreen extends StatelessWidget {
           if (app.syncEvents.isEmpty)
             const EmptyState(
               title: 'No sync events',
-              message: 'Local changes will appear here before cloud delivery.',
+              message: 'Queued changes will appear here before cloud delivery.',
               icon: Icons.cloud_sync_outlined,
             )
           else

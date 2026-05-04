@@ -12,7 +12,7 @@ class OrderModel {
     required this.items,
     required this.createdAt,
     required this.updatedAt,
-    this.source = OrderSource.localLan,
+    this.source = OrderSource.cloud,
     this.syncStatus = SyncStatus.synced,
     this.version = 1,
     this.customerName,

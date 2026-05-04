@@ -1,8 +1,7 @@
-# REs Admin
+# REs Cloud Admin
 
-Flutter Restaurant POS Admin/Server app for running a local restaurant server
-from an admin device. Customer Flutter or React clients can connect over the
-same WiFi using HTTP and WebSocket APIs. Internet is not required.
+Flutter Restaurant POS Admin app for cloud menu, order, sync, and realtime
+management through Supabase Edge Functions.
 
 ## Run
 
@@ -35,7 +34,8 @@ Build release APK:
 flutter build apk --release
 ```
 
-Build production APK with Supabase cloud sync/realtime enabled:
+The Supabase cloud API URL is built into the app by default. To override it for
+staging or another project, pass `POS_CLOUD_API_URL`:
 
 ```sh
 flutter build apk --release \
@@ -45,36 +45,6 @@ flutter build apk --release \
 
 The app reads Supabase Realtime config from `GET /health`, so no manual Device
 token/API key is required in Settings.
-
-## API
-
-Default server port: `8080`
-
-```js
-fetch("http://ADMIN_LOCAL_IP:8080/menu");
-
-fetch("http://ADMIN_LOCAL_IP:8080/orders", {
-  method: "POST",
-  headers: {"Content-Type": "application/json"},
-  body: JSON.stringify({
-    customerName: "Moon",
-    tableNo: "A1",
-    items: [{menuItemId: "MENU_ITEM_ID", qty: 2}]
-  })
-});
-
-const ws = new WebSocket("ws://ADMIN_LOCAL_IP:8080/ws");
-```
-
-## Endpoints
-
-- `GET /health`
-- `GET /menu`
-- `GET /menu?includeUnavailable=true`
-- `POST /orders`
-- `GET /orders`
-- `PATCH /orders/:id/status`
-- `WS /ws`
 
 ## Cloud
 
@@ -89,3 +59,6 @@ Cloud realtime uses Supabase Realtime Broadcast topic:
 ```txt
 pos:outlet:<outletId>
 ```
+
+Customer websites should call the cloud API directly; this app no longer hosts a
+local LAN HTTP/WebSocket server.

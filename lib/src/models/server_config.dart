@@ -5,8 +5,6 @@ class ServerConfig {
     required this.outletId,
     required this.restaurantName,
     required this.outletName,
-    required this.localPort,
-    required this.discoveryEnabled,
   });
 
   final String serverId;
@@ -14,8 +12,6 @@ class ServerConfig {
   final String outletId;
   final String restaurantName;
   final String outletName;
-  final int localPort;
-  final bool discoveryEnabled;
 
   ServerConfig copyWith({
     String? serverId,
@@ -23,8 +19,6 @@ class ServerConfig {
     String? outletId,
     String? restaurantName,
     String? outletName,
-    int? localPort,
-    bool? discoveryEnabled,
   }) {
     return ServerConfig(
       serverId: serverId ?? this.serverId,
@@ -32,8 +26,6 @@ class ServerConfig {
       outletId: outletId ?? this.outletId,
       restaurantName: restaurantName ?? this.restaurantName,
       outletName: outletName ?? this.outletName,
-      localPort: localPort ?? this.localPort,
-      discoveryEnabled: discoveryEnabled ?? this.discoveryEnabled,
     );
   }
 }

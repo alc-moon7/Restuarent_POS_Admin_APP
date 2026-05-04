@@ -75,7 +75,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
             EmptyState(
               title: 'No menu items yet',
               message:
-                  'Add your first item and it will become available through the local /menu API.',
+                  'Add your first item and it will sync to the cloud menu API.',
               icon: Icons.restaurant_menu,
               action: PrimaryButton(
                 label: 'Add Menu Item',

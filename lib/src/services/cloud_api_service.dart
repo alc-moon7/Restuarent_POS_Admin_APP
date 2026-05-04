@@ -1,7 +1,6 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
-import 'package:web_socket_channel/web_socket_channel.dart';
 
 import '../core/constants/cloud_defaults.dart';
 import '../models/menu_item.dart';
@@ -116,33 +115,6 @@ class CloudApiService {
     );
   }
 
-  Future<Map<String, Object?>> sendHeartbeat({
-    String? localIp,
-    int? port,
-    bool? localServerRunning,
-  }) async {
-    final config = _requireServerConfig();
-    final uri = _uri('/devices/heartbeat');
-    if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
-    }
-    return _sendJson(
-      'POST',
-      uri,
-      body: {
-        'serverId': config.serverId,
-        'restaurantId': config.restaurantId,
-        'outletId': config.outletId,
-        'localIp': localIp,
-        'port': port,
-        'localServerRunning': localServerRunning,
-        'timestamp': DateTime.now().toIso8601String(),
-      },
-      idempotencyKey:
-          'heartbeat-${config.serverId}-${DateTime.now().millisecondsSinceEpoch}',
-    );
-  }
-
   Future<Map<String, Object?>> pushMenuItem(MenuItem item) async {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu');
@@ -238,16 +210,6 @@ class CloudApiService {
     if (uri == null) return const [];
     final json = await _sendJson('GET', uri);
     return _extractList(json);
-  }
-
-  WebSocketChannel? openAdminRealtimeChannel() {
-    if (!_cloudConfig.canSync) return null;
-    final baseUri = _baseUri();
-    if (baseUri == null) return null;
-    final scheme = baseUri.scheme == 'https' ? 'wss' : 'ws';
-    return WebSocketChannel.connect(
-      baseUri.replace(scheme: scheme, path: '/ws/admin'),
-    );
   }
 
   Future<Map<String, Object?>> _sendJson(

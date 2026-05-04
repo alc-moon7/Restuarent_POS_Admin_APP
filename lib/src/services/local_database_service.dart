@@ -367,7 +367,7 @@ class LocalDatabaseService {
     String? customerName,
     String? tableNo,
     String? note,
-    OrderSource source = OrderSource.localLan,
+    OrderSource source = OrderSource.cloud,
     bool createSyncEvent = true,
   }) async {
     final requestedId = _cleanNullable(id);
@@ -755,7 +755,7 @@ class LocalDatabaseService {
       CREATE TABLE orders (
         id TEXT PRIMARY KEY,
         orderNo TEXT NOT NULL UNIQUE,
-        source TEXT NOT NULL DEFAULT 'local_lan',
+        source TEXT NOT NULL DEFAULT 'cloud',
         customerName TEXT,
         tableNo TEXT,
         note TEXT,
@@ -813,7 +813,7 @@ class LocalDatabaseService {
         db,
         'orders',
         'source',
-        "source TEXT NOT NULL DEFAULT 'local_lan'",
+        "source TEXT NOT NULL DEFAULT 'cloud'",
       );
       await _addColumnIfMissing(
         db,

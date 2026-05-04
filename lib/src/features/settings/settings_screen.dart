@@ -18,13 +18,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _restaurantController = TextEditingController();
   final TextEditingController _outletController = TextEditingController();
-  final TextEditingController _portController = TextEditingController();
   final TextEditingController _cloudUrlController = TextEditingController();
   final TextEditingController _restaurantIdController = TextEditingController();
   final TextEditingController _outletIdController = TextEditingController();
   final TextEditingController _syncIntervalController = TextEditingController();
   bool _cloudSyncEnabled = false;
-  bool _discoveryEnabled = true;
   bool _hydrated = false;
 
   @override
@@ -34,14 +32,12 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final app = AppScope.of(context);
     _restaurantController.text = app.serverConfig.restaurantName;
     _outletController.text = app.serverConfig.outletName;
-    _portController.text = app.serverConfig.localPort.toString();
     _cloudUrlController.text = app.cloudConfig.baseUrl;
     _restaurantIdController.text = app.serverConfig.restaurantId;
     _outletIdController.text = app.serverConfig.outletId;
     _syncIntervalController.text = app.cloudConfig.autoSyncIntervalSeconds
         .toString();
     _cloudSyncEnabled = app.cloudConfig.enabled;
-    _discoveryEnabled = app.serverConfig.discoveryEnabled;
     _hydrated = true;
   }
 
@@ -49,7 +45,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
   void dispose() {
     _restaurantController.dispose();
     _outletController.dispose();
-    _portController.dispose();
     _cloudUrlController.dispose();
     _restaurantIdController.dispose();
     _outletIdController.dispose();
@@ -62,8 +57,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final app = AppScope.of(context);
     return AppScaffold(
       title: 'Settings',
-      subtitle:
-          'Restaurant profile, server identity, discovery, and cloud API.',
+      subtitle: 'Restaurant profile, cloud identity, and sync settings.',
       actions: [
         PrimaryButton(
           label: 'Save',
@@ -124,41 +118,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            const SizedBox(height: 12),
-            _SectionCard(
-              title: 'Local Server',
-              icon: Icons.router_outlined,
-              children: [
-                TextFormField(
-                  controller: _portController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Local server port',
-                    prefixIcon: Icon(Icons.settings_ethernet),
-                  ),
-                  validator: (value) {
-                    final port = int.tryParse(value ?? '');
-                    if (port == null || port < 1 || port > 65535) {
-                      return 'Use a valid port';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile.adaptive(
-                  value: _discoveryEnabled,
-                  onChanged: (value) =>
-                      setState(() => _discoveryEnabled = value),
-                  contentPadding: EdgeInsets.zero,
-                  title: const Text('Enable UDP auto discovery'),
-                  subtitle: const Text(
-                    'Future customer apps can find this server automatically.',
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
             _SectionCard(
               title: 'Cloud Sync',
               icon: Icons.cloud_sync_outlined,
@@ -211,7 +170,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   contentPadding: EdgeInsets.zero,
                   title: const Text('Enable cloud sync'),
                   subtitle: const Text(
-                    'Local data remains primary when cloud is unavailable.',
+                    'Changes queue safely when the cloud is temporarily unavailable.',
                   ),
                 ),
               ],
@@ -230,12 +189,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final ok = await app.saveSettings(
       restaurantName: _restaurantController.text,
       outletName: _outletController.text,
-      localPort: int.parse(_portController.text),
       cloudApiUrl: _cloudUrlController.text,
       restaurantId: _restaurantIdController.text,
       outletId: _outletIdController.text,
       cloudSyncEnabled: _cloudSyncEnabled,
-      discoveryEnabled: _discoveryEnabled,
       autoSyncIntervalSeconds: int.parse(_syncIntervalController.text),
     );
     if (!mounted) return;
@@ -251,7 +208,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear local data?'),
+        title: const Text('Clear cached data?'),
         content: const Text(
           'Orders, menu items, and sync events will be cleared, then sample menu items will be seeded again.',
         ),
@@ -272,7 +229,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Local demo data reset')));
+    ).showSnackBar(const SnackBar(content: Text('Cached data cleared')));
   }
 
   String? _required(String? value) {
@@ -414,12 +371,12 @@ class _DangerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'Local data',
+                    'App cache',
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Export is a placeholder for the next production step.',
+                    'Clear cached menu, orders, and sync queue from this device.',
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -428,7 +385,7 @@ class _DangerCard extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onClear,
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Clear demo data'),
+              label: const Text('Clear cache'),
             ),
           ],
         ),

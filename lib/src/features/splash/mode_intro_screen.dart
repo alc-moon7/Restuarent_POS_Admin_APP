@@ -73,19 +73,19 @@ class _HeroPanel extends StatelessWidget {
             ),
             const SizedBox(height: 16),
             Text(
-              'Run your restaurant from one admin device',
+              'Run your restaurant from the cloud',
               style: Theme.of(context).textTheme.displaySmall,
             ),
             const SizedBox(height: 8),
             Text(
-              'Start in Admin/Server mode, manage menu and orders locally, then let customer apps connect over the same WiFi without internet.',
+              'Manage menu, orders, and status updates through the cloud API with realtime sync across customer websites.',
               style: Theme.of(
                 context,
               ).textTheme.bodyLarge?.copyWith(color: PosColors.muted),
             ),
             const SizedBox(height: 16),
             PrimaryButton(
-              label: 'Set up Admin Server',
+              label: 'Configure Cloud Admin',
               icon: Icons.arrow_forward,
               onPressed: () => onContinue(),
             ),
@@ -105,16 +105,15 @@ class _CapabilityCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = [
       const _Capability(
-        icon: Icons.wifi_tethering,
-        title: 'Local LAN APIs',
+        icon: Icons.cloud_done_outlined,
+        title: 'Cloud APIs',
         message:
-            'HTTP and WebSocket endpoints for future Flutter or React clients.',
+            'Supabase Edge Function endpoints for customer websites and admin sync.',
       ),
       const _Capability(
         icon: Icons.restaurant_menu,
         title: 'Live Menu',
-        message:
-            'Availability changes update the served /menu response instantly.',
+        message: 'Availability changes sync to customer websites through cloud.',
       ),
       const _Capability(
         icon: Icons.receipt_long,

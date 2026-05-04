@@ -6,8 +6,8 @@ import 'package:uuid/uuid.dart';
 
 import 'core/constants/cloud_defaults.dart';
 import 'models/dashboard_metrics.dart';
-import 'models/order_item.dart';
 import 'models/menu_item.dart';
+import 'models/order_item.dart';
 import 'models/order_model.dart';
 import 'models/order_source.dart';
 import 'models/order_status.dart';
@@ -17,33 +17,22 @@ import 'services/cloud_api_service.dart';
 import 'services/cloud_realtime_service.dart';
 import 'services/connectivity_service.dart';
 import 'services/local_database_service.dart';
-import 'services/local_server_service.dart';
-import 'services/network_info_service.dart';
 import 'services/printer_service.dart';
-import 'services/server_discovery_service.dart';
 import 'services/sync_service.dart';
-import 'services/websocket_service.dart';
 
 class PosAppController extends ChangeNotifier {
   PosAppController({
     LocalDatabaseService? database,
-    LocalServerService? server,
-    NetworkInfoService? networkInfo,
-    WebSocketService? webSocketService,
     PrinterService? printerService,
     CloudApiService? cloudApiService,
     CloudRealtimeService? cloudRealtimeService,
     ConnectivityService? connectivityService,
-    ServerDiscoveryService? discoveryService,
     SyncService? syncService,
   }) : database = database ?? LocalDatabaseService(),
-       networkInfo = networkInfo ?? NetworkInfoService(),
-       webSocketService = webSocketService ?? WebSocketService(),
        printerService = printerService ?? PrinterService(),
        cloudApiService = cloudApiService ?? CloudApiService(),
        cloudRealtimeService = cloudRealtimeService ?? CloudRealtimeService(),
-       connectivityService = connectivityService ?? ConnectivityService(),
-       discoveryService = discoveryService ?? ServerDiscoveryService() {
+       connectivityService = connectivityService ?? ConnectivityService() {
     this.syncService =
         syncService ??
         SyncService(
@@ -51,29 +40,15 @@ class PosAppController extends ChangeNotifier {
           cloudApi: this.cloudApiService,
           cloudRealtime: this.cloudRealtimeService,
           connectivity: this.connectivityService,
-          onRemoteEvent: this.webSocketService.broadcast,
-        );
-    localServer =
-        server ??
-        LocalServerService(
-          database: this.database,
-          networkInfo: this.networkInfo,
-          webSocketService: this.webSocketService,
-          discoveryService: this.discoveryService,
-          onLocalMutation: () => this.syncService.syncNow(),
         );
   }
 
   final LocalDatabaseService database;
-  final NetworkInfoService networkInfo;
-  final WebSocketService webSocketService;
   final PrinterService printerService;
   final CloudApiService cloudApiService;
   final CloudRealtimeService cloudRealtimeService;
   final ConnectivityService connectivityService;
-  final ServerDiscoveryService discoveryService;
   late final SyncService syncService;
-  late final LocalServerService localServer;
 
   final Uuid _uuid = const Uuid();
   final List<StreamSubscription<Object?>> _subscriptions = [];
@@ -85,16 +60,6 @@ class PosAppController extends ChangeNotifier {
   List<MenuItem> menuItems = const [];
   List<OrderModel> orders = const [];
   List<SyncEvent> syncEvents = const [];
-  List<ApiLogEntry> apiLogs = const [];
-  int connectedClients = 0;
-  ServerRuntimeState serverState = const ServerRuntimeState(
-    isRunning: false,
-    port: 8080,
-  );
-  DiscoveryRuntimeState discoveryState = const DiscoveryRuntimeState(
-    isBroadcasting: false,
-    port: 45678,
-  );
   SyncRuntimeState syncState = const SyncRuntimeState(
     isSyncing: false,
     cloudConnected: false,
@@ -109,8 +74,6 @@ class PosAppController extends ChangeNotifier {
     outletId: '',
     restaurantName: '',
     outletName: '',
-    localPort: 8080,
-    discoveryEnabled: true,
   );
   CloudConfig cloudConfig = CloudConfig(
     baseUrl: CloudDefaults.baseUrl,
@@ -121,7 +84,6 @@ class PosAppController extends ChangeNotifier {
 
   String get restaurantName => serverConfig.restaurantName;
   String get outletName => serverConfig.outletName;
-  int get serverPort => serverConfig.localPort;
 
   Future<void> initialize() async {
     try {
@@ -145,8 +107,6 @@ class PosAppController extends ChangeNotifier {
         ),
         restaurantName: preferences.getString(_restaurantNameKey) ?? '',
         outletName: preferences.getString(_outletNameKey) ?? '',
-        localPort: preferences.getInt(_serverPortKey) ?? 8080,
-        discoveryEnabled: preferences.getBool(_discoveryEnabledKey) ?? true,
       );
       cloudConfig = CloudConfig(
         baseUrl: CloudDefaults.resolveBaseUrl(
@@ -158,21 +118,6 @@ class PosAppController extends ChangeNotifier {
         deviceToken: '',
         autoSyncIntervalSeconds: preferences.getInt(_autoSyncIntervalKey) ?? 30,
       );
-      serverState = serverState.copyWith(
-        serverId: serverConfig.serverId,
-        restaurantId: serverConfig.restaurantId,
-        outletId: serverConfig.outletId,
-        restaurantName: serverConfig.restaurantName.isEmpty
-            ? null
-            : serverConfig.restaurantName,
-        outletName: serverConfig.outletName.isEmpty
-            ? null
-            : serverConfig.outletName,
-        port: serverConfig.localPort,
-        cloudBaseUrl: cloudConfig.baseUrl,
-        cloudSyncEnabled: cloudConfig.enabled,
-        discoveryEnabled: serverConfig.discoveryEnabled,
-      );
 
       _subscriptions.add(
         database.changes.listen((_) {
@@ -181,39 +126,8 @@ class PosAppController extends ChangeNotifier {
         }),
       );
       _subscriptions.add(
-        localServer.stateStream.listen((state) {
-          serverState = state;
-          notifyListeners();
-        }),
-      );
-      _subscriptions.add(
-        localServer.logsStream.listen((logs) {
-          apiLogs = logs;
-          notifyListeners();
-        }),
-      );
-      _subscriptions.add(
-        discoveryService.stateStream.listen((state) {
-          discoveryState = state;
-          notifyListeners();
-        }),
-      );
-      _subscriptions.add(
         syncService.stateStream.listen((state) {
           syncState = state;
-          unawaited(
-            localServer.updateMetadata(
-              serverConfig: serverConfig,
-              cloudConfig: cloudConfig,
-              cloudConnected: state.cloudConnected,
-            ),
-          );
-          notifyListeners();
-        }),
-      );
-      _subscriptions.add(
-        webSocketService.clientCountStream.listen((count) {
-          connectedClients = count;
           notifyListeners();
         }),
       );
@@ -223,13 +137,10 @@ class PosAppController extends ChangeNotifier {
         cloudConfig: cloudConfig,
         serverConfig: serverConfig,
       );
-      await localServer.updateMetadata(
-        serverConfig: serverConfig,
-        cloudConfig: cloudConfig,
-        cloudConnected: syncState.cloudConnected,
-      );
-      await refreshIp();
       await reloadData();
+      if (cloudConfig.canSync) {
+        unawaited(syncService.syncNow());
+      }
       initialized = true;
       lastError = null;
     } catch (error) {
@@ -287,30 +198,22 @@ class PosAppController extends ChangeNotifier {
   Future<bool> saveSettings({
     required String restaurantName,
     required String outletName,
-    required int localPort,
     required String cloudApiUrl,
     required String restaurantId,
     required String outletId,
     required bool cloudSyncEnabled,
-    required bool discoveryEnabled,
     required int autoSyncIntervalSeconds,
   }) async {
     return _runBusy(() async {
-      if (localPort < 1 || localPort > 65535) {
-        throw const LocalServerException('Port must be between 1 and 65535.');
-      }
-      final oldPort = serverConfig.localPort;
       serverConfig = serverConfig.copyWith(
         restaurantName: restaurantName.trim(),
         outletName: outletName.trim(),
-        localPort: localPort,
         restaurantId: restaurantId.trim().isEmpty
             ? serverConfig.restaurantId
             : restaurantId.trim(),
         outletId: outletId.trim().isEmpty
             ? serverConfig.outletId
             : outletId.trim(),
-        discoveryEnabled: discoveryEnabled,
       );
       cloudConfig = cloudConfig.copyWith(
         baseUrl: CloudDefaults.resolveBaseUrl(cloudApiUrl),
@@ -323,52 +226,10 @@ class PosAppController extends ChangeNotifier {
         cloudConfig: cloudConfig,
         serverConfig: serverConfig,
       );
-      await localServer.updateMetadata(
-        serverConfig: serverConfig,
-        cloudConfig: cloudConfig,
-        cloudConnected: syncState.cloudConnected,
-      );
-      if (localServer.state.isRunning && oldPort != serverConfig.localPort) {
-        await localServer.restart();
+      if (cloudConfig.canSync) {
+        unawaited(syncService.syncNow());
       }
     });
-  }
-
-  Future<bool> startServer({
-    String? restaurantName,
-    String? outletName,
-    int? port,
-  }) async {
-    return _runBusy(() async {
-      if (restaurantName != null || outletName != null || port != null) {
-        serverConfig = serverConfig.copyWith(
-          restaurantName: restaurantName?.trim(),
-          outletName: outletName?.trim(),
-          localPort: port,
-        );
-        await _persistSettings();
-      }
-      await localServer.start(
-        serverConfig: serverConfig,
-        cloudConfig: cloudConfig,
-        cloudConnected: syncState.cloudConnected,
-      );
-      unawaited(syncService.syncNow());
-    });
-  }
-
-  Future<bool> stopServer() async {
-    return _runBusy(localServer.stop);
-  }
-
-  Future<bool> restartServer() async {
-    return _runBusy(localServer.restart);
-  }
-
-  Future<void> refreshIp() async {
-    await localServer.refreshIp();
-    serverState = localServer.state;
-    notifyListeners();
   }
 
   Future<void> saveMenuItem({
@@ -398,26 +259,16 @@ class PosAppController extends ChangeNotifier {
       updatedAt: now,
     );
     await database.upsertMenuItem(item);
-    final saved = await database.getMenuItemById(item.id, includeDeleted: true);
-    webSocketService.broadcast({
-      'type': 'menu_updated',
-      'data': saved?.toJson() ?? item.toJson(),
-    });
     unawaited(syncService.syncNow());
   }
 
   Future<void> deleteMenuItem(String id) async {
     await database.deleteMenuItem(id);
-    webSocketService.broadcast({
-      'type': 'menu_updated',
-      'data': {'id': id, 'deleted': true},
-    });
     unawaited(syncService.syncNow());
   }
 
   Future<void> toggleMenuAvailability(String id, bool isAvailable) async {
-    final item = await database.toggleMenuAvailability(id, isAvailable);
-    webSocketService.broadcast({'type': 'menu_updated', 'data': item.toJson()});
+    await database.toggleMenuAvailability(id, isAvailable);
     unawaited(syncService.syncNow());
   }
 
@@ -427,26 +278,18 @@ class PosAppController extends ChangeNotifier {
     String? tableNo,
     String? note,
   }) async {
-    final order = await database.createOrder(
+    await database.createOrder(
       requestedItems: requestedItems,
       customerName: customerName,
       tableNo: tableNo,
       note: note,
       source: OrderSource.manual,
     );
-    webSocketService.broadcast({
-      'type': 'order_created',
-      'data': order.toJson(),
-    });
     unawaited(syncService.syncNow());
   }
 
   Future<void> updateOrderStatus(String id, OrderStatus status) async {
-    final order = await database.updateOrderStatus(id, status);
-    webSocketService.broadcast({
-      'type': 'order_status_updated',
-      'data': order.toJson(),
-    });
+    await database.updateOrderStatus(id, status);
     unawaited(syncService.syncNow());
   }
 
@@ -490,10 +333,7 @@ class PosAppController extends ChangeNotifier {
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }
-    unawaited(localServer.dispose());
-    unawaited(discoveryService.dispose());
     unawaited(syncService.dispose());
-    webSocketService.dispose();
     cloudApiService.close();
     unawaited(database.close());
     super.dispose();
@@ -522,14 +362,9 @@ class PosAppController extends ChangeNotifier {
       serverConfig.restaurantName,
     );
     await preferences.setString(_outletNameKey, serverConfig.outletName);
-    await preferences.setInt(_serverPortKey, serverConfig.localPort);
     await preferences.setString(_restaurantIdKey, serverConfig.restaurantId);
     await preferences.setString(_outletIdKey, serverConfig.outletId);
     await preferences.setString(_serverIdKey, serverConfig.serverId);
-    await preferences.setBool(
-      _discoveryEnabledKey,
-      serverConfig.discoveryEnabled,
-    );
     await preferences.setString(_cloudApiUrlKey, cloudConfig.baseUrl);
     await preferences.setBool(_cloudSyncEnabledKey, cloudConfig.enabled);
     await preferences.setString(_deviceTokenKey, cloudConfig.deviceToken);
@@ -559,13 +394,11 @@ class PosAppController extends ChangeNotifier {
   static const String _seenIntroKey = 'local_pos_seen_intro';
   static const String _restaurantNameKey = 'local_pos_restaurant_name';
   static const String _outletNameKey = 'local_pos_outlet_name';
-  static const String _serverPortKey = 'local_pos_server_port';
   static const String _serverIdKey = 'local_pos_server_id';
   static const String _restaurantIdKey = 'local_pos_restaurant_id';
   static const String _outletIdKey = 'local_pos_outlet_id';
   static const String _cloudApiUrlKey = 'local_pos_cloud_api_url';
   static const String _deviceTokenKey = 'local_pos_device_token';
   static const String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
-  static const String _discoveryEnabledKey = 'local_pos_discovery_enabled';
   static const String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
 }

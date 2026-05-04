@@ -7,7 +7,6 @@ import 'features/dashboard/dashboard_screen.dart';
 import 'features/menu/menu_management_screen.dart';
 import 'features/orders/orders_screen.dart';
 import 'features/settings/settings_screen.dart';
-import 'features/server/server_setup_screen.dart';
 import 'features/splash/mode_intro_screen.dart';
 import 'features/splash/splash_screen.dart';
 import 'features/sync/sync_status_screen.dart';
@@ -72,7 +71,7 @@ class _LocalPosAppState extends State<LocalPosApp> {
           setState(() {
             _showSplash = false;
             _showIntro = !_controller.hasSeenIntro;
-            _initialShellIndex = _showIntro ? 3 : 0;
+            _initialShellIndex = _showIntro ? 4 : 0;
           });
         },
       );
@@ -84,7 +83,7 @@ class _LocalPosAppState extends State<LocalPosApp> {
           if (!mounted) return;
           setState(() {
             _showIntro = false;
-            _initialShellIndex = 3;
+            _initialShellIndex = 4;
           });
         },
       );
@@ -109,7 +108,6 @@ class _MainShellState extends State<MainShell> {
     _Destination('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
     _Destination('Menu', Icons.restaurant_menu_outlined, Icons.restaurant_menu),
     _Destination('Orders', Icons.receipt_long_outlined, Icons.receipt_long),
-    _Destination('Server', Icons.settings_input_antenna, Icons.wifi_tethering),
     _Destination('Sync', Icons.cloud_sync_outlined, Icons.cloud_done),
     _Destination('Settings', Icons.tune_outlined, Icons.tune),
   ];
@@ -126,7 +124,6 @@ class _MainShellState extends State<MainShell> {
       DashboardScreen(onNavigate: _setIndex),
       const MenuManagementScreen(),
       const OrdersScreen(),
-      const ServerSetupScreen(),
       const SyncStatusScreen(),
       const SettingsScreen(),
     ];
