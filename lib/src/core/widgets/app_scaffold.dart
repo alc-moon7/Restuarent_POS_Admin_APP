@@ -24,31 +24,36 @@ class AppScaffold extends StatelessWidget {
       backgroundColor: PosColors.background,
       floatingActionButton: floatingActionButton,
       body: SafeArea(
-        child: CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                _horizontalPadding(context),
-                14,
-                _horizontalPadding(context),
-                8,
-              ),
-              sliver: SliverToBoxAdapter(
-                child: _Header(
-                  title: title,
-                  subtitle: subtitle,
-                  actions: actions,
+        child: Stack(
+          children: [
+            const _TopWash(),
+            CustomScrollView(
+              slivers: [
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    _horizontalPadding(context),
+                    18,
+                    _horizontalPadding(context),
+                    12,
+                  ),
+                  sliver: SliverToBoxAdapter(
+                    child: _Header(
+                      title: title,
+                      subtitle: subtitle,
+                      actions: actions,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SliverPadding(
-              padding: EdgeInsets.fromLTRB(
-                _horizontalPadding(context),
-                0,
-                _horizontalPadding(context),
-                18,
-              ),
-              sliver: SliverToBoxAdapter(child: child),
+                SliverPadding(
+                  padding: EdgeInsets.fromLTRB(
+                    _horizontalPadding(context),
+                    0,
+                    _horizontalPadding(context),
+                    22,
+                  ),
+                  sliver: SliverToBoxAdapter(child: child),
+                ),
+              ],
             ),
           ],
         ),
@@ -64,6 +69,32 @@ class AppScaffold extends StatelessWidget {
   }
 }
 
+class _TopWash extends StatelessWidget {
+  const _TopWash();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Align(
+        alignment: Alignment.topCenter,
+        child: Container(
+          height: 190,
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [
+                PosColors.primarySoft.withValues(alpha: 0.86),
+                PosColors.background.withValues(alpha: 0),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
 class _Header extends StatelessWidget {
   const _Header({required this.title, required this.actions, this.subtitle});
 
@@ -74,12 +105,36 @@ class _Header extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final textTheme = Theme.of(context).textTheme;
+    final dateLabel = _dateLabel();
     return LayoutBuilder(
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final titleColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  width: 8,
+                  height: 8,
+                  decoration: const BoxDecoration(
+                    color: PosColors.primary,
+                    shape: BoxShape.circle,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Text(
+                  dateLabel,
+                  style: const TextStyle(
+                    color: PosColors.primary,
+                    fontSize: 11.5,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
             Text(title, style: textTheme.headlineMedium),
             if (subtitle != null) ...[
               const SizedBox(height: 6),
@@ -108,5 +163,24 @@ class _Header extends StatelessWidget {
         );
       },
     );
+  }
+
+  String _dateLabel() {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec',
+    ];
+    final now = DateTime.now();
+    return '${months[now.month - 1]} ${now.day}, ${now.year}';
   }
 }

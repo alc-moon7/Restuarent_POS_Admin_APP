@@ -147,45 +147,64 @@ class _MainShellState extends State<MainShell> {
         if (!useRail) {
           return Scaffold(
             body: IndexedStack(index: _selectedIndex, children: pages),
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: _selectedIndex,
-              onDestinationSelected: _setIndex,
-              destinations: _destinations
-                  .map((destination) {
-                    return NavigationDestination(
-                      icon: Icon(destination.icon),
-                      selectedIcon: Icon(destination.selectedIcon),
-                      label: destination.label,
-                    );
-                  })
-                  .toList(growable: false),
-            ),
-          );
-        }
-
-        return Scaffold(
-          body: Row(
-            children: [
-              NavigationRail(
+            bottomNavigationBar: DecoratedBox(
+              decoration: const BoxDecoration(
+                color: PosColors.surface,
+                border: Border(top: BorderSide(color: PosColors.line)),
+              ),
+              child: NavigationBar(
                 selectedIndex: _selectedIndex,
                 onDestinationSelected: _setIndex,
-                extended: constraints.maxWidth >= 1050,
-                minExtendedWidth: 210,
-                leading: const Padding(
-                  padding: EdgeInsets.symmetric(vertical: 14),
-                  child: _RailLogo(),
-                ),
+                labelBehavior:
+                    NavigationDestinationLabelBehavior.onlyShowSelected,
                 destinations: _destinations
                     .map((destination) {
-                      return NavigationRailDestination(
+                      return NavigationDestination(
                         icon: Icon(destination.icon),
                         selectedIcon: Icon(destination.selectedIcon),
-                        label: Text(destination.label),
+                        label: destination.label,
                       );
                     })
                     .toList(growable: false),
               ),
-              const VerticalDivider(width: 1),
+            ),
+          );
+        }
+
+        final extended = constraints.maxWidth >= 1050;
+        return Scaffold(
+          body: Row(
+            children: [
+              DecoratedBox(
+                decoration: const BoxDecoration(
+                  color: PosColors.surface,
+                  border: Border(right: BorderSide(color: PosColors.line)),
+                ),
+                child: NavigationRail(
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _setIndex,
+                  extended: extended,
+                  minExtendedWidth: 224,
+                  groupAlignment: -0.86,
+                  leading: Padding(
+                    padding: const EdgeInsets.fromLTRB(14, 18, 14, 24),
+                    child: _RailLogo(extended: extended),
+                  ),
+                  trailing: Padding(
+                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
+                    child: _RailFooter(extended: extended),
+                  ),
+                  destinations: _destinations
+                      .map((destination) {
+                        return NavigationRailDestination(
+                          icon: Icon(destination.icon),
+                          selectedIcon: Icon(destination.selectedIcon),
+                          label: Text(destination.label),
+                        );
+                      })
+                      .toList(growable: false),
+                ),
+              ),
               Expanded(
                 child: IndexedStack(index: _selectedIndex, children: pages),
               ),
@@ -210,15 +229,95 @@ class _Destination {
 }
 
 class _RailLogo extends StatelessWidget {
-  const _RailLogo();
+  const _RailLogo({required this.extended});
+
+  final bool extended;
 
   @override
   Widget build(BuildContext context) {
-    return CircleAvatar(
-      radius: 19,
-      backgroundColor: Theme.of(context).colorScheme.primary,
-      foregroundColor: Colors.white,
-      child: const Icon(Icons.point_of_sale),
+    final mark = Container(
+      width: 42,
+      height: 42,
+      decoration: BoxDecoration(
+        color: PosColors.primary,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [
+          BoxShadow(
+            color: PosColors.primary.withValues(alpha: 0.24),
+            blurRadius: 18,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: const Icon(Icons.point_of_sale, color: Colors.white),
+    );
+    if (!extended) return mark;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        mark,
+        const SizedBox(width: 10),
+        const Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'REs Admin',
+              style: TextStyle(
+                color: PosColors.slate,
+                fontWeight: FontWeight.w900,
+                fontSize: 16,
+              ),
+            ),
+            SizedBox(height: 2),
+            Text(
+              'Cloud POS',
+              style: TextStyle(
+                color: PosColors.muted,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class _RailFooter extends StatelessWidget {
+  const _RailFooter({required this.extended});
+
+  final bool extended;
+
+  @override
+  Widget build(BuildContext context) {
+    if (!extended) {
+      return const Icon(Icons.verified_user_outlined, color: PosColors.primary);
+    }
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: PosColors.primarySoft,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: const Row(
+        children: [
+          Icon(Icons.verified_user_outlined, color: PosColors.primary),
+          SizedBox(width: 9),
+          Expanded(
+            child: Text(
+              'Secure cloud tenant',
+              maxLines: 2,
+              style: TextStyle(
+                color: PosColors.primaryDark,
+                fontWeight: FontWeight.w800,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

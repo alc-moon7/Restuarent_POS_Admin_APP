@@ -24,38 +24,84 @@ class MenuItemCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             ClipRRect(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(16),
               child: AspectRatio(
-                aspectRatio: 1.9,
-                child: MenuImageView(imageUrl: item.imageUrl),
+                aspectRatio: 1.82,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    MenuImageView(imageUrl: item.imageUrl),
+                    Positioned.fill(
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [
+                              Colors.black.withValues(alpha: 0.02),
+                              Colors.black.withValues(alpha: 0.26),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                    Positioned(
+                      left: 10,
+                      bottom: 10,
+                      child: StatusBadge(
+                        label: item.isAvailable ? 'Available' : 'Paused',
+                        color: item.isAvailable
+                            ? PosColors.success
+                            : PosColors.danger,
+                        icon: item.isAvailable
+                            ? Icons.check_circle_outline
+                            : Icons.pause_circle_outline,
+                      ),
+                    ),
+                    Positioned(
+                      right: 8,
+                      top: 8,
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.92),
+                          borderRadius: BorderRadius.circular(999),
+                        ),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 10,
+                            vertical: 6,
+                          ),
+                          child: Text(
+                            currency.format(item.price),
+                            style: const TextStyle(
+                              color: PosColors.primaryDark,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Text(
-                    item.name,
-                    style: Theme.of(context).textTheme.titleMedium,
-                    maxLines: 2,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Text(
-                  currency.format(item.price),
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleMedium?.copyWith(color: PosColors.primary),
-                ),
-              ],
+            Text(
+              item.name,
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontSize: 15.5,
+                fontWeight: FontWeight.w900,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 4),
             Text(
@@ -70,15 +116,6 @@ class MenuItemCard extends StatelessWidget {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                StatusBadge(
-                  label: item.isAvailable ? 'Available' : 'Unavailable',
-                  color: item.isAvailable
-                      ? PosColors.success
-                      : PosColors.danger,
-                  icon: item.isAvailable
-                      ? Icons.check_circle_outline
-                      : Icons.pause_circle_outline,
-                ),
                 StatusBadge.sync(item.syncStatus),
                 _SmallPill(icon: Icons.category_outlined, label: item.category),
                 if (item.preparationTimeMinutes != null)
@@ -92,6 +129,8 @@ class MenuItemCard extends StatelessWidget {
               ],
             ),
             const Spacer(),
+            const SizedBox(height: 8),
+            const Divider(height: 1, color: PosColors.line),
             const SizedBox(height: 8),
             Row(
               children: [

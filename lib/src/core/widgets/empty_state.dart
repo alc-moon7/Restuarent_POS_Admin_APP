@@ -19,21 +19,23 @@ class EmptyState extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 24),
+        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 54,
-              height: 54,
+              width: 62,
+              height: 62,
               decoration: BoxDecoration(
-                color: PosColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                color: PosColors.primarySoft,
+                borderRadius: BorderRadius.circular(22),
+                border: Border.all(color: PosColors.line),
               ),
-              child: Icon(icon, color: PosColors.primary, size: 26),
+              child: Icon(icon, color: PosColors.primary, size: 29),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Text(title, style: Theme.of(context).textTheme.titleLarge),
             const SizedBox(height: 8),
             Text(

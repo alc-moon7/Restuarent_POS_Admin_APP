@@ -261,7 +261,11 @@ class _MenuGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: columns == 1 ? 0.96 : 0.9,
+            childAspectRatio: columns == 1
+                ? 0.72
+                : columns == 2
+                ? 0.76
+                : 0.8,
           ),
           itemBuilder: (context, index) {
             final item = items[index];

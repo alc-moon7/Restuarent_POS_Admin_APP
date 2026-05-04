@@ -34,94 +34,124 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
       animation: app,
       builder: (context, _) {
         return Scaffold(
+          backgroundColor: PosColors.background,
           body: SafeArea(
-            child: Center(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(20),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 560),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.all(22),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Container(
-                              width: 58,
-                              height: 58,
-                              decoration: BoxDecoration(
-                                color: PosColors.primary.withValues(
-                                  alpha: 0.12,
+            child: Stack(
+              children: [
+                const _SetupWash(),
+                Center(
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.all(20),
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 620),
+                      child: Card(
+                        clipBehavior: Clip.antiAlias,
+                        child: Padding(
+                          padding: const EdgeInsets.all(24),
+                          child: Form(
+                            key: _formKey,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 60,
+                                      height: 60,
+                                      decoration: BoxDecoration(
+                                        color: PosColors.primary,
+                                        borderRadius: BorderRadius.circular(22),
+                                        boxShadow: [
+                                          BoxShadow(
+                                            color: PosColors.primary.withValues(
+                                              alpha: 0.22,
+                                            ),
+                                            blurRadius: 22,
+                                            offset: const Offset(0, 10),
+                                          ),
+                                        ],
+                                      ),
+                                      child: const Icon(
+                                        Icons.verified_outlined,
+                                        color: Colors.white,
+                                        size: 30,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 14),
+                                    Expanded(
+                                      child: Column(
+                                        crossAxisAlignment:
+                                            CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            'Create Restaurant Cloud',
+                                            style: Theme.of(
+                                              context,
+                                            ).textTheme.displaySmall,
+                                          ),
+                                          const SizedBox(height: 4),
+                                          const _SetupBadge(),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                borderRadius: BorderRadius.circular(20),
-                              ),
-                              child: const Icon(
-                                Icons.verified_outlined,
-                                color: PosColors.primary,
-                                size: 30,
-                              ),
+                                const SizedBox(height: 16),
+                                Text(
+                                  'Set up this restaurant once. The app will create a private restaurant/outlet identity in the cloud automatically.',
+                                  style: Theme.of(context).textTheme.bodyLarge,
+                                ),
+                                const SizedBox(height: 20),
+                                TextFormField(
+                                  controller: _restaurantController,
+                                  textInputAction: TextInputAction.next,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Restaurant name',
+                                    hintText: 'Example: Moon Bistro',
+                                    prefixIcon: Icon(Icons.restaurant_outlined),
+                                  ),
+                                  validator: _required,
+                                ),
+                                const SizedBox(height: 12),
+                                TextFormField(
+                                  controller: _outletController,
+                                  textInputAction: TextInputAction.done,
+                                  decoration: const InputDecoration(
+                                    labelText: 'Outlet name',
+                                    hintText: 'Example: Dhanmondi Branch',
+                                    prefixIcon: Icon(Icons.storefront_outlined),
+                                  ),
+                                  validator: _required,
+                                  onFieldSubmitted: (_) => _submit(),
+                                ),
+                                const SizedBox(height: 14),
+                                _SecurityNotice(
+                                  hasToken: app.cloudConfig.hasDeviceToken,
+                                ),
+                                if (app.lastError != null) ...[
+                                  const SizedBox(height: 12),
+                                  _InlineError(message: app.lastError!),
+                                ],
+                                const SizedBox(height: 18),
+                                SizedBox(
+                                  width: double.infinity,
+                                  child: PrimaryButton(
+                                    label: 'Create Cloud Restaurant',
+                                    icon: Icons.cloud_done_outlined,
+                                    busy: app.busy,
+                                    onPressed: app.busy ? null : _submit,
+                                  ),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 18),
-                            Text(
-                              'Create Restaurant Cloud',
-                              style: Theme.of(context).textTheme.displaySmall,
-                            ),
-                            const SizedBox(height: 8),
-                            Text(
-                              'Set up this restaurant once. The app will create a private restaurant/outlet identity in the cloud automatically.',
-                              style: Theme.of(context).textTheme.bodyLarge,
-                            ),
-                            const SizedBox(height: 18),
-                            TextFormField(
-                              controller: _restaurantController,
-                              textInputAction: TextInputAction.next,
-                              decoration: const InputDecoration(
-                                labelText: 'Restaurant name',
-                                hintText: 'Example: Moon Bistro',
-                                prefixIcon: Icon(Icons.restaurant_outlined),
-                              ),
-                              validator: _required,
-                            ),
-                            const SizedBox(height: 12),
-                            TextFormField(
-                              controller: _outletController,
-                              textInputAction: TextInputAction.done,
-                              decoration: const InputDecoration(
-                                labelText: 'Outlet name',
-                                hintText: 'Example: Dhanmondi Branch',
-                                prefixIcon: Icon(Icons.storefront_outlined),
-                              ),
-                              validator: _required,
-                              onFieldSubmitted: (_) => _submit(),
-                            ),
-                            const SizedBox(height: 14),
-                            _SecurityNotice(
-                              hasToken: app.cloudConfig.hasDeviceToken,
-                            ),
-                            if (app.lastError != null) ...[
-                              const SizedBox(height: 12),
-                              _InlineError(message: app.lastError!),
-                            ],
-                            const SizedBox(height: 18),
-                            SizedBox(
-                              width: double.infinity,
-                              child: PrimaryButton(
-                                label: 'Create Cloud Restaurant',
-                                icon: Icons.cloud_done_outlined,
-                                busy: app.busy,
-                                onPressed: app.busy ? null : _submit,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
                       ),
                     ),
                   ),
                 ),
-              ),
+              ],
             ),
           ),
         );
@@ -149,6 +179,54 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
   String? _required(String? value) {
     if (value == null || value.trim().isEmpty) return 'Required';
     return null;
+  }
+}
+
+class _SetupWash extends StatelessWidget {
+  const _SetupWash();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              PosColors.primarySoft,
+              PosColors.accentSoft.withValues(alpha: 0.45),
+              PosColors.background,
+            ],
+          ),
+        ),
+        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _SetupBadge extends StatelessWidget {
+  const _SetupBadge();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: PosColors.primarySoft,
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: const Text(
+        'One-time secure setup',
+        style: TextStyle(
+          color: PosColors.primaryDark,
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
+        ),
+      ),
+    );
   }
 }
 
