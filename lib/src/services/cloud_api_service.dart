@@ -210,6 +210,32 @@ class CloudApiService {
     );
   }
 
+  Future<String> uploadMenuImageDataUrl(String dataUrl) async {
+    final config = _requireServerConfig();
+    final uri = _uri('/outlets/${config.outletId}/menu/images');
+    if (uri == null) {
+      throw const CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    final response = await _sendJson(
+      'POST',
+      uri,
+      body: {
+        'dataUrl': dataUrl,
+        'fileName': 'menu-${DateTime.now().millisecondsSinceEpoch}.jpg',
+      },
+      idempotencyKey:
+          'menu-image-${config.serverId}-${DateTime.now().microsecondsSinceEpoch}',
+    );
+    final data = response['data'] is Map
+        ? Map<String, Object?>.from(response['data'] as Map)
+        : response;
+    final publicUrl = data['publicUrl']?.toString().trim() ?? '';
+    if (publicUrl.isEmpty) {
+      throw const CloudApiException('Cloud image upload did not return a URL.');
+    }
+    return publicUrl;
+  }
+
   Future<Map<String, Object?>> deleteMenuItem(String id) async {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu/$id');

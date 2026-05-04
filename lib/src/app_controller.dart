@@ -11,6 +11,7 @@ import 'models/order_item.dart';
 import 'models/order_model.dart';
 import 'models/order_source.dart';
 import 'models/order_status.dart';
+import 'models/sales_report.dart';
 import 'models/server_config.dart';
 import 'models/sync_event.dart';
 import 'services/cloud_api_service.dart';
@@ -159,6 +160,9 @@ class PosAppController extends ChangeNotifier {
               order.createdAt.day == now.day;
         })
         .toList(growable: false);
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final sevenDayStart = todayStart.subtract(const Duration(days: 6));
+    final thirtyDayStart = todayStart.subtract(const Duration(days: 29));
 
     return DashboardMetrics(
       todayOrders: todaysOrders.length,
@@ -169,16 +173,32 @@ class PosAppController extends ChangeNotifier {
       totalSales: todaysOrders
           .where((order) => order.status != OrderStatus.cancelled)
           .fold<double>(0, (total, order) => total + order.total),
+      sevenDaySales: _salesSince(sevenDayStart),
+      thirtyDaySales: _salesSince(thirtyDayStart),
       menuItemsCount: menuItems.length,
       availableItemsCount: menuItems.where((item) => item.isAvailable).length,
       pendingSyncCount: syncState.pendingCount,
     );
   }
 
+  SalesReport salesReportForDays(int days) {
+    return SalesReport.fromOrders(orders: orders, days: days);
+  }
+
   List<String> get categories {
     final values = menuItems.map((item) => item.category).toSet().toList()
       ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
     return values;
+  }
+
+  double _salesSince(DateTime startAt) {
+    return orders
+        .where(
+          (order) =>
+              !order.createdAt.isBefore(startAt) &&
+              order.status != OrderStatus.cancelled,
+        )
+        .fold<double>(0, (total, order) => total + order.total);
   }
 
   Future<void> completeIntro() async {
@@ -298,6 +318,11 @@ class PosAppController extends ChangeNotifier {
     );
     await database.upsertMenuItem(item);
     unawaited(syncService.syncNow());
+  }
+
+  Future<String> uploadMenuImageDataUrl(String dataUrl) async {
+    if (!cloudConfig.canSync) return dataUrl;
+    return cloudApiService.uploadMenuImageDataUrl(dataUrl);
   }
 
   Future<void> deleteMenuItem(String id) async {

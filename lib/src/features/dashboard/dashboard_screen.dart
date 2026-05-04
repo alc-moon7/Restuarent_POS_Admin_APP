@@ -63,7 +63,7 @@ class DashboardScreen extends StatelessWidget {
                 color: sync.cloudConnected
                     ? PosColors.success
                     : PosColors.warning,
-                onTap: () => onNavigate(3),
+                onTap: () => onNavigate(4),
               ),
               DashboardCard(
                 title: 'Today orders',
@@ -87,10 +87,25 @@ class DashboardScreen extends StatelessWidget {
                 onTap: () => onNavigate(2),
               ),
               DashboardCard(
-                title: 'Total sales',
+                title: 'Today sales',
                 value: currency.format(metrics.totalSales),
                 icon: Icons.payments_outlined,
                 color: const Color(0xFF2563EB),
+                onTap: () => onNavigate(3),
+              ),
+              DashboardCard(
+                title: '7 day sales',
+                value: currency.format(metrics.sevenDaySales),
+                icon: Icons.date_range_outlined,
+                color: PosColors.success,
+                onTap: () => onNavigate(3),
+              ),
+              DashboardCard(
+                title: '30 day sales',
+                value: currency.format(metrics.thirtyDaySales),
+                icon: Icons.calendar_month_outlined,
+                color: PosColors.warning,
+                onTap: () => onNavigate(3),
               ),
               DashboardCard(
                 title: 'Menu items',
@@ -113,7 +128,7 @@ class DashboardScreen extends StatelessWidget {
                 color: metrics.pendingSyncCount == 0
                     ? PosColors.success
                     : PosColors.warning,
-                onTap: () => onNavigate(3),
+                onTap: () => onNavigate(4),
               ),
             ],
           ),
@@ -202,6 +217,12 @@ class _QuickActions extends StatelessWidget {
                   onPressed: () => onNavigate(2),
                 ),
                 PrimaryButton(
+                  label: 'Reports',
+                  icon: Icons.assessment_outlined,
+                  secondary: true,
+                  onPressed: () => onNavigate(3),
+                ),
+                PrimaryButton(
                   label: 'Sync Now',
                   icon: Icons.sync,
                   secondary: true,
@@ -219,7 +240,7 @@ class _QuickActions extends StatelessWidget {
                   label: 'Cloud Settings',
                   icon: Icons.settings_outlined,
                   secondary: true,
-                  onPressed: () => onNavigate(4),
+                  onPressed: () => onNavigate(5),
                 ),
               ],
             ),

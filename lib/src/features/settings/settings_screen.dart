@@ -216,7 +216,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       builder: (context) => AlertDialog(
         title: const Text('Clear cached data?'),
         content: const Text(
-          'Orders, menu items, and sync events will be cleared, then sample menu items will be seeded again.',
+          'Orders, menu items, and sync events will be cleared from this device. No demo menu will be added again.',
         ),
         actions: [
           TextButton(

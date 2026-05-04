@@ -44,118 +44,6 @@ class LocalDatabaseService {
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
     );
-    await seedDemoItemsIfEmpty();
-  }
-
-  Future<void> seedDemoItemsIfEmpty() async {
-    final db = await _db;
-    final count =
-        Sqflite.firstIntValue(
-          await db.rawQuery(
-            'SELECT COUNT(*) FROM menu_items WHERE deletedAt IS NULL',
-          ),
-        ) ??
-        0;
-    if (count > 0) return;
-
-    final now = DateTime.now();
-    final items = <MenuItem>[
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Chicken Burger',
-        description: 'Crispy chicken, lettuce, cheese, and house sauce.',
-        category: 'Burgers',
-        price: 8.50,
-        imageUrl:
-            'https://images.unsplash.com/photo-1568901346375-23c9450c58cd',
-        isAvailable: true,
-        preparationTimeMinutes: 12,
-        tags: const ['popular'],
-        syncStatus: SyncStatus.synced,
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Beef Burger',
-        description: 'Juicy beef patty, cheddar, pickles, and smoky sauce.',
-        category: 'Burgers',
-        price: 10.75,
-        imageUrl: 'https://images.unsplash.com/photo-1550547660-d9450f859349',
-        isAvailable: true,
-        preparationTimeMinutes: 14,
-        tags: const ['popular'],
-        syncStatus: SyncStatus.synced,
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'French Fries',
-        description: 'Golden fries with sea salt and house dip.',
-        category: 'Sides',
-        price: 4.25,
-        imageUrl:
-            'https://images.unsplash.com/photo-1576107232684-1279f390859f',
-        isAvailable: true,
-        preparationTimeMinutes: 7,
-        tags: const ['veg'],
-        syncStatus: SyncStatus.synced,
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Chicken Pizza',
-        description: 'Thin crust pizza with chicken, peppers, and mozzarella.',
-        category: 'Pizza',
-        price: 13.00,
-        imageUrl:
-            'https://images.unsplash.com/photo-1565299624946-b28f40a0ae38',
-        isAvailable: true,
-        preparationTimeMinutes: 18,
-        tags: const ['spicy'],
-        syncStatus: SyncStatus.synced,
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Pasta',
-        description: 'Creamy pasta with herbs, parmesan, and grilled chicken.',
-        category: 'Pasta',
-        price: 11.50,
-        imageUrl: 'https://images.unsplash.com/photo-1551183053-bf91a1d81141',
-        isAvailable: true,
-        preparationTimeMinutes: 15,
-        tags: const ['chef'],
-        syncStatus: SyncStatus.synced,
-        createdAt: now,
-        updatedAt: now,
-      ),
-      MenuItem(
-        id: _uuid.v4(),
-        name: 'Cold Coffee',
-        description: 'Chilled coffee, milk, ice, and caramel drizzle.',
-        category: 'Drinks',
-        price: 4.75,
-        imageUrl:
-            'https://images.unsplash.com/photo-1461023058943-07fcbe16d735',
-        isAvailable: true,
-        preparationTimeMinutes: 5,
-        tags: const ['cold'],
-        syncStatus: SyncStatus.synced,
-        createdAt: now,
-        updatedAt: now,
-      ),
-    ];
-
-    final batch = db.batch();
-    for (final item in items) {
-      batch.insert('menu_items', item.toMap());
-    }
-    await batch.commit(noResult: true);
-    _emitChange();
   }
 
   Future<List<MenuItem>> getMenuItems({
@@ -714,7 +602,6 @@ class LocalDatabaseService {
       await txn.delete('orders');
       await txn.delete('menu_items');
     });
-    await seedDemoItemsIfEmpty();
     _emitChange();
   }
 

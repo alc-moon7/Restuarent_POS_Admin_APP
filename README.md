@@ -69,6 +69,10 @@ First-run setup endpoint:
 POST /tenants/bootstrap
 ```
 
+Menu images selected from the Admin gallery are uploaded to Supabase Storage and
+saved as public HTTPS URLs on menu items, so customer web menus can render them
+directly.
+
 Cloud realtime uses Supabase Realtime Broadcast topic:
 
 ```txt

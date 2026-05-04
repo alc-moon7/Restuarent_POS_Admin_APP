@@ -524,12 +524,33 @@ class _MenuItemFormState extends State<_MenuItemForm> {
   }
 
   Future<void> _pickImage() async {
+    final app = AppScope.of(context);
     setState(() => _imageBusy = true);
     try {
-      final imageUrl = await _imageService.pickMenuImageDataUrl();
-      if (imageUrl == null) return;
+      final dataUrl = await _imageService.pickMenuImageDataUrl();
+      if (dataUrl == null) return;
+      var imageUrl = dataUrl;
+      var uploadWarning = false;
+      try {
+        imageUrl = await app.uploadMenuImageDataUrl(dataUrl);
+      } catch (_) {
+        uploadWarning = true;
+      }
       _imageController.text = imageUrl;
       if (mounted) setState(() {});
+      if (!mounted) return;
+      final uploaded = !imageUrl.startsWith('data:image/');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            uploadWarning
+                ? 'Image kept locally. Cloud upload will need internet.'
+                : uploaded
+                ? 'Image uploaded to cloud'
+                : 'Image saved locally. It will sync when cloud is ready.',
+          ),
+        ),
+      );
     } catch (error) {
       if (!mounted) return;
       ScaffoldMessenger.of(
