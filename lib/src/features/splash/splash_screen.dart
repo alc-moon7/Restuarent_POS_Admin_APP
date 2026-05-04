@@ -17,88 +17,200 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller;
+    with TickerProviderStateMixin {
+  late final AnimationController _entryController;
+  late final AnimationController _shimmerController;
   late final Animation<double> _scale;
   late final Animation<double> _fade;
 
   @override
   void initState() {
     super.initState();
-    _controller = AnimationController(
+    _entryController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 900),
+      duration: const Duration(milliseconds: 1000),
     )..forward();
-    _scale = CurvedAnimation(parent: _controller, curve: Curves.easeOutBack);
-    _fade = CurvedAnimation(parent: _controller, curve: Curves.easeOut);
+    _shimmerController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 2200),
+    )..repeat();
+    _scale = CurvedAnimation(
+      parent: _entryController,
+      curve: Curves.easeOutBack,
+    );
+    _fade = CurvedAnimation(parent: _entryController, curve: Curves.easeOut);
     _finishAfterBoot();
   }
 
   @override
   void dispose() {
-    _controller.dispose();
+    _entryController.dispose();
+    _shimmerController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF063E37), PosColors.primary],
+      body: Stack(
+        children: [
+          const Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(gradient: PosGradients.brandDeep),
+            ),
           ),
-        ),
-        child: Center(
-          child: FadeTransition(
-            opacity: _fade,
-            child: ScaleTransition(
-              scale: _scale,
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 76,
-                    height: 76,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(22),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withValues(alpha: 0.18),
-                          blurRadius: 28,
-                          offset: const Offset(0, 14),
-                        ),
+          Positioned(
+            top: -120,
+            right: -80,
+            child: _BgOrb(
+              size: 360,
+              color: Colors.white.withValues(alpha: 0.08),
+            ),
+          ),
+          Positioned(
+            bottom: -140,
+            left: -100,
+            child: _BgOrb(
+              size: 380,
+              color: PosColors.primaryGlow.withValues(alpha: 0.18),
+            ),
+          ),
+          AnimatedBuilder(
+            animation: _shimmerController,
+            builder: (context, _) {
+              return Positioned(
+                top: -100 + 200 * _shimmerController.value,
+                left: -50 + 100 * _shimmerController.value,
+                child: Container(
+                  width: 240,
+                  height: 240,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    gradient: RadialGradient(
+                      colors: [
+                        Colors.white.withValues(alpha: 0.10),
+                        Colors.white.withValues(alpha: 0),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.point_of_sale,
-                      color: PosColors.primary,
-                      size: 38,
-                    ),
                   ),
-                  const SizedBox(height: 18),
-                  Text(
-                    'REs Admin',
-                    style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                      color: Colors.white,
-                      letterSpacing: 0,
+                ),
+              );
+            },
+          ),
+          Center(
+            child: FadeTransition(
+              opacity: _fade,
+              child: ScaleTransition(
+                scale: _scale,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(28),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.35),
+                            blurRadius: 40,
+                            offset: const Offset(0, 22),
+                          ),
+                          BoxShadow(
+                            color: PosColors.primaryGlow.withValues(alpha: 0.3),
+                            blurRadius: 32,
+                            offset: const Offset(0, 6),
+                          ),
+                        ],
+                      ),
+                      child: ShaderMask(
+                        shaderCallback: (rect) {
+                          return PosGradients.brand.createShader(rect);
+                        },
+                        child: const Icon(
+                          Icons.point_of_sale_rounded,
+                          color: Colors.white,
+                          size: 48,
+                        ),
+                      ),
                     ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Offline Restaurant Management',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.82),
+                    const SizedBox(height: 22),
+                    Text(
+                      'REs Admin',
+                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                        color: Colors.white,
+                        letterSpacing: 0,
+                        fontSize: 32,
+                      ),
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 14,
+                        vertical: 6,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.14),
+                        borderRadius: BorderRadius.circular(PosRadii.pill),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.22),
+                        ),
+                      ),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 6,
+                            height: 6,
+                            decoration: BoxDecoration(
+                              color: PosColors.primaryGlow,
+                              shape: BoxShape.circle,
+                              boxShadow: [
+                                BoxShadow(
+                                  color: PosColors.primaryGlow,
+                                  blurRadius: 8,
+                                ),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          Text(
+                            'Cloud Restaurant Suite',
+                            style: TextStyle(
+                              color: Colors.white.withValues(alpha: 0.92),
+                              fontWeight: FontWeight.w800,
+                              fontSize: 11.5,
+                              letterSpacing: 0.4,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
+          Positioned(
+            left: 0,
+            right: 0,
+            bottom: 36,
+            child: FadeTransition(
+              opacity: _fade,
+              child: const Center(
+                child: SizedBox(
+                  width: 28,
+                  height: 28,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -109,5 +221,23 @@ class _SplashScreenState extends State<SplashScreen>
       Future<void>.delayed(const Duration(milliseconds: 1600)),
     ]);
     if (mounted) widget.onFinished();
+  }
+}
+
+class _BgOrb extends StatelessWidget {
+  const _BgOrb({required this.size, required this.color});
+  final double size;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        gradient: RadialGradient(colors: [color, color.withValues(alpha: 0)]),
+      ),
+    );
   }
 }

@@ -21,29 +21,55 @@ class EmptyState extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 28),
+        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 62,
-              height: 62,
+              width: 88,
+              height: 88,
               decoration: BoxDecoration(
-                color: PosColors.primarySoft,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: PosColors.line),
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    PosColors.primarySoft,
+                    PosColors.primarySoft.withValues(alpha: 0.4),
+                  ],
+                ),
               ),
-              child: Icon(icon, color: PosColors.primary, size: 29),
+              child: Center(
+                child: Container(
+                  width: 64,
+                  height: 64,
+                  decoration: BoxDecoration(
+                    color: PosColors.surface,
+                    borderRadius: BorderRadius.circular(PosRadii.lg),
+                    border: Border.all(color: PosColors.line),
+                    boxShadow: const [
+                      BoxShadow(
+                        color: Color(0x14008C76),
+                        blurRadius: 14,
+                        offset: Offset(0, 6),
+                      ),
+                    ],
+                  ),
+                  child: Icon(icon, color: PosColors.primary, size: 30),
+                ),
+              ),
             ),
-            const SizedBox(height: 14),
-            Text(title, style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 8),
+            const SizedBox(height: 18),
+            Text(
+              title,
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.titleLarge,
+            ),
+            const SizedBox(height: 6),
             Text(
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            if (action != null) ...[const SizedBox(height: 14), action!],
+            if (action != null) ...[const SizedBox(height: 16), action!],
           ],
         ),
       ),

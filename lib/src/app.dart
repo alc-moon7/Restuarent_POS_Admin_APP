@@ -44,25 +44,42 @@ class _LocalPosAppState extends State<LocalPosApp> {
   Widget build(BuildContext context) {
     return AppScope(
       controller: _controller,
-      child: MaterialApp(
-        title: 'REs Admin',
-        debugShowCheckedModeBanner: false,
-        theme: AppTheme.light(),
-        builder: (context, child) {
-          final mediaQuery = MediaQuery.of(context);
-          return MediaQuery(
-            data: mediaQuery.copyWith(
-              textScaler: mediaQuery.textScaler.clamp(maxScaleFactor: 1.12),
+      child: AnimatedBuilder(
+        animation: _controller,
+        builder: (context, _) {
+          final uiScale = _controller.uiScale;
+          return MaterialApp(
+            title: 'REs Admin',
+            debugShowCheckedModeBanner: false,
+            theme: AppTheme.light().copyWith(
+              visualDensity: _visualDensityFor(uiScale),
             ),
-            child: child ?? const SizedBox.shrink(),
+            builder: (context, child) {
+              final mediaQuery = MediaQuery.of(context);
+              final systemScale = mediaQuery.textScaler.scale(1);
+              final effectiveScale = (systemScale * uiScale)
+                  .clamp(0.82, 1.24)
+                  .toDouble();
+              return MediaQuery(
+                data: mediaQuery.copyWith(
+                  textScaler: TextScaler.linear(effectiveScale),
+                ),
+                child: child ?? const SizedBox.shrink(),
+              );
+            },
+            home: AnimatedSwitcher(
+              duration: const Duration(milliseconds: 320),
+              child: _home(),
+            ),
           );
         },
-        home: AnimatedSwitcher(
-          duration: const Duration(milliseconds: 320),
-          child: _home(),
-        ),
       ),
     );
+  }
+
+  VisualDensity _visualDensityFor(double uiScale) {
+    final density = ((uiScale - 1) * 5).clamp(-0.9, 0.8).toDouble();
+    return VisualDensity(horizontal: density, vertical: density);
   }
 
   Widget _home() {
@@ -147,26 +164,10 @@ class _MainShellState extends State<MainShell> {
         if (!useRail) {
           return Scaffold(
             body: IndexedStack(index: _selectedIndex, children: pages),
-            bottomNavigationBar: DecoratedBox(
-              decoration: const BoxDecoration(
-                color: PosColors.surface,
-                border: Border(top: BorderSide(color: PosColors.line)),
-              ),
-              child: NavigationBar(
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: _setIndex,
-                labelBehavior:
-                    NavigationDestinationLabelBehavior.onlyShowSelected,
-                destinations: _destinations
-                    .map((destination) {
-                      return NavigationDestination(
-                        icon: Icon(destination.icon),
-                        selectedIcon: Icon(destination.selectedIcon),
-                        label: destination.label,
-                      );
-                    })
-                    .toList(growable: false),
-              ),
+            bottomNavigationBar: _FloatingBottomNav(
+              destinations: _destinations,
+              selectedIndex: _selectedIndex,
+              onChanged: _setIndex,
             ),
           );
         }
@@ -179,19 +180,26 @@ class _MainShellState extends State<MainShell> {
                 decoration: const BoxDecoration(
                   color: PosColors.surface,
                   border: Border(right: BorderSide(color: PosColors.line)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Color(0x0A0F2A1F),
+                      blurRadius: 22,
+                      offset: Offset(2, 0),
+                    ),
+                  ],
                 ),
                 child: NavigationRail(
                   selectedIndex: _selectedIndex,
                   onDestinationSelected: _setIndex,
                   extended: extended,
-                  minExtendedWidth: 224,
+                  minExtendedWidth: 232,
                   groupAlignment: -0.86,
                   leading: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 18, 14, 24),
+                    padding: const EdgeInsets.fromLTRB(14, 22, 14, 28),
                     child: _RailLogo(extended: extended),
                   ),
                   trailing: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 18),
+                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 22),
                     child: _RailFooter(extended: extended),
                   ),
                   destinations: _destinations
@@ -236,27 +244,31 @@ class _RailLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final mark = Container(
-      width: 42,
-      height: 42,
+      width: 46,
+      height: 46,
       decoration: BoxDecoration(
-        color: PosColors.primary,
-        borderRadius: BorderRadius.circular(16),
+        gradient: PosGradients.brand,
+        borderRadius: BorderRadius.circular(PosRadii.md),
         boxShadow: [
           BoxShadow(
-            color: PosColors.primary.withValues(alpha: 0.24),
+            color: PosColors.primary.withValues(alpha: 0.36),
             blurRadius: 18,
-            offset: const Offset(0, 8),
+            offset: const Offset(0, 10),
           ),
         ],
       ),
-      child: const Icon(Icons.point_of_sale, color: Colors.white),
+      child: const Icon(
+        Icons.point_of_sale_rounded,
+        color: Colors.white,
+        size: 24,
+      ),
     );
     if (!extended) return mark;
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
         mark,
-        const SizedBox(width: 10),
+        const SizedBox(width: 12),
         const Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -265,21 +277,162 @@ class _RailLogo extends StatelessWidget {
               style: TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
-                fontSize: 16,
+                fontSize: 16.5,
+                letterSpacing: 0,
               ),
             ),
             SizedBox(height: 2),
             Text(
-              'Cloud POS',
+              'Cloud POS Suite',
               style: TextStyle(
                 color: PosColors.muted,
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
+                letterSpacing: 0.2,
               ),
             ),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _FloatingBottomNav extends StatelessWidget {
+  const _FloatingBottomNav({
+    required this.destinations,
+    required this.selectedIndex,
+    required this.onChanged,
+  });
+
+  final List<_Destination> destinations;
+  final int selectedIndex;
+  final ValueChanged<int> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    final width = MediaQuery.sizeOf(context).width;
+    final showLabel = width >= 390;
+    final barHeight = showLabel ? 66.0 : 60.0;
+
+    return SafeArea(
+      top: false,
+      minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+      child: DecoratedBox(
+        decoration: BoxDecoration(
+          color: PosColors.surface.withValues(alpha: 0.96),
+          borderRadius: BorderRadius.circular(26),
+          border: Border.all(color: PosColors.line),
+          boxShadow: const [
+            BoxShadow(
+              color: Color(0x180F2A1F),
+              blurRadius: 24,
+              offset: Offset(0, 10),
+            ),
+          ],
+        ),
+        child: SizedBox(
+          height: barHeight,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            child: Row(
+              children: [
+                for (var i = 0; i < destinations.length; i++)
+                  Expanded(
+                    flex: showLabel && i == selectedIndex ? 2 : 1,
+                    child: _BottomNavItem(
+                      destination: destinations[i],
+                      selected: i == selectedIndex,
+                      showLabel: showLabel,
+                      onTap: () => onChanged(i),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavItem extends StatelessWidget {
+  const _BottomNavItem({
+    required this.destination,
+    required this.selected,
+    required this.showLabel,
+    required this.onTap,
+  });
+
+  final _Destination destination;
+  final bool selected;
+  final bool showLabel;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final foreground = selected ? Colors.white : PosColors.muted;
+    final icon = selected ? destination.selectedIcon : destination.icon;
+
+    return Tooltip(
+      message: destination.label,
+      child: Semantics(
+        button: true,
+        selected: selected,
+        label: destination.label,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 2),
+          child: Material(
+            color: Colors.transparent,
+            borderRadius: BorderRadius.circular(20),
+            clipBehavior: Clip.antiAlias,
+            child: InkWell(
+              onTap: onTap,
+              child: AnimatedContainer(
+                duration: const Duration(milliseconds: 220),
+                curve: Curves.easeOutCubic,
+                height: double.infinity,
+                padding: EdgeInsets.symmetric(
+                  horizontal: selected && showLabel ? 10 : 0,
+                ),
+                decoration: BoxDecoration(
+                  gradient: selected ? PosGradients.brand : null,
+                  color: selected ? null : Colors.transparent,
+                  borderRadius: BorderRadius.circular(20),
+                  boxShadow: selected ? PosShadows.glow : const [],
+                ),
+                child: Center(
+                  child: showLabel && selected
+                      ? Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(icon, color: foreground, size: 20),
+                            const SizedBox(width: 6),
+                            Flexible(
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  destination.label,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: foreground,
+                                    fontWeight: FontWeight.w900,
+                                    fontSize: 11.5,
+                                    letterSpacing: 0,
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ],
+                        )
+                      : Icon(icon, color: foreground, size: selected ? 23 : 22),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
@@ -292,28 +445,65 @@ class _RailFooter extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     if (!extended) {
-      return const Icon(Icons.verified_user_outlined, color: PosColors.primary);
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: PosColors.primarySoft,
+          borderRadius: BorderRadius.circular(PosRadii.sm),
+          border: Border.all(color: PosColors.line),
+        ),
+        child: const Icon(
+          Icons.verified_user_outlined,
+          color: PosColors.primary,
+          size: 20,
+        ),
+      );
     }
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PosColors.primarySoft,
-        borderRadius: BorderRadius.circular(18),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            PosColors.primarySoft,
+            PosColors.primarySoft.withValues(alpha: 0.55),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
       ),
       child: const Row(
         children: [
-          Icon(Icons.verified_user_outlined, color: PosColors.primary),
-          SizedBox(width: 9),
+          Icon(
+            Icons.verified_user_outlined,
+            color: PosColors.primary,
+            size: 20,
+          ),
+          SizedBox(width: 10),
           Expanded(
-            child: Text(
-              'Secure cloud tenant',
-              maxLines: 2,
-              style: TextStyle(
-                color: PosColors.primaryDark,
-                fontWeight: FontWeight.w800,
-                fontSize: 12,
-              ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Secure tenant',
+                  style: TextStyle(
+                    color: PosColors.primaryDark,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 12.5,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Token verified',
+                  style: TextStyle(
+                    color: PosColors.muted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10.5,
+                  ),
+                ),
+              ],
             ),
           ),
         ],

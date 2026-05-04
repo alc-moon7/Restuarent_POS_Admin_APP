@@ -19,42 +19,88 @@ class CopyableTextCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final canCopy = value.trim().isNotEmpty && !value.contains('Unavailable');
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PosColors.background,
-        borderRadius: BorderRadius.circular(14),
+        color: PosColors.surfaceTinted,
+        borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
       ),
       child: Row(
         children: [
-          Icon(icon, color: PosColors.primary),
-          const SizedBox(width: 10),
+          Container(
+            width: 38,
+            height: 38,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  PosColors.primary.withValues(alpha: 0.18),
+                  PosColors.primary.withValues(alpha: 0.06),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(PosRadii.sm),
+              border: Border.all(
+                color: PosColors.primary.withValues(alpha: 0.22),
+              ),
+            ),
+            child: Icon(icon, color: PosColors.primary, size: 19),
+          ),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(label, style: Theme.of(context).textTheme.bodyMedium),
-                const SizedBox(height: 3),
+                Text(
+                  label.toUpperCase(),
+                  style: const TextStyle(
+                    color: PosColors.muted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10.6,
+                    letterSpacing: 1.2,
+                  ),
+                ),
+                const SizedBox(height: 4),
                 SelectableText(
                   value,
                   maxLines: 2,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: const TextStyle(
+                    color: PosColors.slate,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 13.4,
+                    height: 1.3,
+                  ),
                 ),
               ],
             ),
           ),
-          IconButton(
-            tooltip: 'Copy',
-            onPressed: canCopy
-                ? () async {
-                    await Clipboard.setData(ClipboardData(text: value));
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(SnackBar(content: Text('$label copied')));
-                  }
-                : null,
-            icon: const Icon(Icons.copy),
+          Material(
+            color: PosColors.surface,
+            borderRadius: BorderRadius.circular(PosRadii.sm),
+            child: InkWell(
+              borderRadius: BorderRadius.circular(PosRadii.sm),
+              onTap: canCopy
+                  ? () async {
+                      await Clipboard.setData(ClipboardData(text: value));
+                      if (!context.mounted) return;
+                      ScaffoldMessenger.of(
+                        context,
+                      ).showSnackBar(SnackBar(content: Text('$label copied')));
+                    }
+                  : null,
+              child: Container(
+                padding: const EdgeInsets.all(9),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(PosRadii.sm),
+                  border: Border.all(color: PosColors.line),
+                ),
+                child: Icon(
+                  Icons.copy_rounded,
+                  size: 17,
+                  color: canCopy ? PosColors.primary : PosColors.muted,
+                ),
+              ),
+            ),
           ),
         ],
       ),

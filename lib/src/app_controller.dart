@@ -57,6 +57,7 @@ class PosAppController extends ChangeNotifier {
   bool initialized = false;
   bool busy = false;
   bool hasSeenIntro = false;
+  double uiScale = 1.0;
   String? lastError;
   List<MenuItem> menuItems = const [];
   List<OrderModel> orders = const [];
@@ -85,6 +86,12 @@ class PosAppController extends ChangeNotifier {
 
   String get restaurantName => serverConfig.restaurantName;
   String get outletName => serverConfig.outletName;
+  String get uiScaleLabel {
+    if (uiScale <= 0.94) return 'Compact';
+    if (uiScale >= 1.08) return 'Large';
+    return 'Comfortable';
+  }
+
   bool get isTenantReady {
     return serverConfig.restaurantId.trim().isNotEmpty &&
         serverConfig.outletId.trim().isNotEmpty &&
@@ -98,6 +105,9 @@ class PosAppController extends ChangeNotifier {
     try {
       final preferences = await SharedPreferences.getInstance();
       hasSeenIntro = preferences.getBool(_seenIntroKey) ?? false;
+      uiScale = (preferences.getDouble(_uiScaleKey) ?? 1.0)
+          .clamp(minUiScale, maxUiScale)
+          .toDouble();
       serverConfig = ServerConfig(
         serverId: await _getOrCreatePreference(
           preferences,
@@ -372,6 +382,15 @@ class PosAppController extends ChangeNotifier {
     return _runBusy(syncService.retryFailed);
   }
 
+  Future<void> updateUiScale(double value) async {
+    final next = value.clamp(minUiScale, maxUiScale).toDouble();
+    if ((uiScale - next).abs() < 0.001) return;
+    uiScale = next;
+    notifyListeners();
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setDouble(_uiScaleKey, uiScale);
+  }
+
   Future<void> clearLocalData() async {
     await database.clearLocalData();
     await reloadData();
@@ -431,6 +450,7 @@ class PosAppController extends ChangeNotifier {
     await preferences.setString(_cloudApiUrlKey, cloudConfig.baseUrl);
     await preferences.setBool(_cloudSyncEnabledKey, cloudConfig.enabled);
     await preferences.setString(_deviceTokenKey, cloudConfig.deviceToken);
+    await preferences.setDouble(_uiScaleKey, uiScale);
     await preferences.setInt(
       _autoSyncIntervalKey,
       cloudConfig.autoSyncIntervalSeconds,
@@ -464,4 +484,7 @@ class PosAppController extends ChangeNotifier {
   static const String _deviceTokenKey = 'local_pos_device_token';
   static const String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
   static const String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
+  static const String _uiScaleKey = 'local_pos_ui_scale';
+  static const double minUiScale = 0.86;
+  static const double maxUiScale = 1.16;
 }

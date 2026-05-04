@@ -57,28 +57,22 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                 Row(
                                   children: [
                                     Container(
-                                      width: 60,
-                                      height: 60,
+                                      width: 64,
+                                      height: 64,
                                       decoration: BoxDecoration(
-                                        color: PosColors.primary,
-                                        borderRadius: BorderRadius.circular(22),
-                                        boxShadow: [
-                                          BoxShadow(
-                                            color: PosColors.primary.withValues(
-                                              alpha: 0.22,
-                                            ),
-                                            blurRadius: 22,
-                                            offset: const Offset(0, 10),
-                                          ),
-                                        ],
+                                        gradient: PosGradients.brand,
+                                        borderRadius: BorderRadius.circular(
+                                          PosRadii.lg,
+                                        ),
+                                        boxShadow: PosShadows.glow,
                                       ),
                                       child: const Icon(
-                                        Icons.verified_outlined,
+                                        Icons.verified_rounded,
                                         color: Colors.white,
-                                        size: 30,
+                                        size: 32,
                                       ),
                                     ),
-                                    const SizedBox(width: 14),
+                                    const SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -86,11 +80,12 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                         children: [
                                           Text(
                                             'Create Restaurant Cloud',
-                                            style: Theme.of(
-                                              context,
-                                            ).textTheme.displaySmall,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .displaySmall
+                                                ?.copyWith(fontSize: 26),
                                           ),
-                                          const SizedBox(height: 4),
+                                          const SizedBox(height: 6),
                                           const _SetupBadge(),
                                         ],
                                       ),
@@ -188,19 +183,59 @@ class _SetupWash extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              PosColors.primarySoft,
-              PosColors.accentSoft.withValues(alpha: 0.45),
-              PosColors.background,
-            ],
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    PosColors.primarySoft,
+                    PosColors.accentSoft.withValues(alpha: 0.45),
+                    PosColors.background,
+                  ],
+                ),
+              ),
+              child: const SizedBox.expand(),
+            ),
           ),
-        ),
-        child: const SizedBox.expand(),
+          Positioned(
+            top: -100,
+            left: -80,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    PosColors.primaryGlow.withValues(alpha: 0.18),
+                    PosColors.primaryGlow.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            bottom: -120,
+            right: -90,
+            child: Container(
+              width: 320,
+              height: 320,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    PosColors.accent.withValues(alpha: 0.12),
+                    PosColors.accent.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -212,19 +247,27 @@ class _SetupBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: PosColors.primarySoft,
-        borderRadius: BorderRadius.circular(999),
+        borderRadius: BorderRadius.circular(PosRadii.pill),
         border: Border.all(color: PosColors.line),
       ),
-      child: const Text(
-        'One-time secure setup',
-        style: TextStyle(
-          color: PosColors.primaryDark,
-          fontWeight: FontWeight.w900,
-          fontSize: 11,
-        ),
+      child: const Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.lock_clock_rounded, size: 12, color: PosColors.primary),
+          SizedBox(width: 5),
+          Text(
+            'ONE-TIME SECURE SETUP',
+            style: TextStyle(
+              color: PosColors.primaryDark,
+              fontWeight: FontWeight.w900,
+              fontSize: 10.6,
+              letterSpacing: 1.0,
+            ),
+          ),
+        ],
       ),
     );
   }

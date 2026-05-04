@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
 import '../../models/sync_event.dart';
+import '../../models/sync_status.dart';
 import '../theme/app_theme.dart';
 import 'status_badge.dart';
 
@@ -12,26 +13,46 @@ class SyncEventTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final accent = switch (event.status) {
+      SyncStatus.synced => PosColors.success,
+      SyncStatus.pending => PosColors.warning,
+      SyncStatus.failed => PosColors.danger,
+    };
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F2A1F),
+            blurRadius: 8,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Container(
-            width: 38,
-            height: 38,
+            width: 42,
+            height: 42,
             decoration: BoxDecoration(
-              color: PosColors.primary.withValues(alpha: 0.1),
-              borderRadius: BorderRadius.circular(12),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  accent.withValues(alpha: 0.20),
+                  accent.withValues(alpha: 0.08),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(PosRadii.md),
+              border: Border.all(color: accent.withValues(alpha: 0.25)),
             ),
-            child: const Icon(Icons.sync_alt, color: PosColors.primary),
+            child: Icon(Icons.sync_alt, color: accent, size: 20),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -48,22 +69,28 @@ class SyncEventTile extends StatelessWidget {
                     StatusBadge.sync(event.status),
                   ],
                 ),
-                const SizedBox(height: 4),
+                const SizedBox(height: 5),
                 Text(
                   event.entityId,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: const TextStyle(
+                    fontSize: 11.5,
+                    fontFamily: 'monospace',
+                    color: PosColors.muted,
+                  ),
                 ),
                 if (event.lastError != null) ...[
-                  const SizedBox(height: 4),
+                  const SizedBox(height: 6),
                   Text(
                     event.lastError!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(
-                      context,
-                    ).textTheme.bodyMedium?.copyWith(color: PosColors.danger),
+                    style: const TextStyle(
+                      color: PosColors.danger,
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                 ],
               ],
@@ -75,12 +102,28 @@ class SyncEventTile extends StatelessWidget {
             children: [
               Text(
                 DateFormat('h:mm a').format(event.updatedAt),
-                style: Theme.of(context).textTheme.bodyMedium,
+                style: const TextStyle(
+                  color: PosColors.slateSoft,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 12,
+                ),
               ),
               const SizedBox(height: 4),
-              Text(
-                'Retry ${event.retryCount}',
-                style: Theme.of(context).textTheme.bodyMedium,
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                decoration: BoxDecoration(
+                  color: PosColors.surfaceTinted,
+                  borderRadius: BorderRadius.circular(PosRadii.pill),
+                  border: Border.all(color: PosColors.line),
+                ),
+                child: Text(
+                  'Retry ${event.retryCount}',
+                  style: const TextStyle(
+                    color: PosColors.muted,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 10.5,
+                  ),
+                ),
               ),
             ],
           ),

@@ -13,25 +13,44 @@ class LoadingView extends StatelessWidget {
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 18),
+          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
           decoration: BoxDecoration(
             color: PosColors.surface,
-            borderRadius: BorderRadius.circular(22),
+            borderRadius: BorderRadius.circular(PosRadii.xl),
             border: Border.all(color: PosColors.line),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: 0.05),
-                blurRadius: 22,
-                offset: const Offset(0, 12),
-              ),
-            ],
+            boxShadow: PosShadows.card,
           ),
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const CircularProgressIndicator(color: PosColors.primary),
-              const SizedBox(height: 12),
-              Text(message, style: Theme.of(context).textTheme.bodyMedium),
+              Container(
+                width: 56,
+                height: 56,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      PosColors.primarySoft,
+                      PosColors.primarySoft.withValues(alpha: 0.4),
+                    ],
+                  ),
+                ),
+                child: const Padding(
+                  padding: EdgeInsets.all(14),
+                  child: CircularProgressIndicator(
+                    color: PosColors.primary,
+                    strokeWidth: 2.6,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 14),
+              Text(
+                message,
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  fontWeight: FontWeight.w700,
+                  color: PosColors.slateSoft,
+                ),
+              ),
             ],
           ),
         ),

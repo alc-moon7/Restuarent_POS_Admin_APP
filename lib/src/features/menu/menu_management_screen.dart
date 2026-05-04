@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../app_scope.dart';
+import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/empty_state.dart';
 import '../../core/widgets/menu_image_view.dart';
@@ -49,9 +51,11 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         })
         .toList(growable: false);
 
+    final stats = _MenuStats.from(app.menuItems);
+
     return AppScaffold(
       title: 'Menu Management',
-      subtitle: 'Create, edit, delete, and control item availability.',
+      subtitle: 'Create, edit, and control availability across the cloud menu.',
       actions: [
         PrimaryButton(
           label: 'Add Item',
@@ -60,17 +64,28 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         ),
       ],
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          _StatsStrip(
+            stats: stats,
+            currency: NumberFormat.compactCurrency(symbol: r'$'),
+          ),
+          const SizedBox(height: 14),
           _MenuToolbar(
             searchController: _searchController,
-            categories: categories,
-            selectedCategory: _selectedCategory,
             onSearchChanged: (_) => setState(() {}),
-            onCategoryChanged: (value) {
-              setState(() => _selectedCategory = value);
-            },
           ),
           const SizedBox(height: 12),
+          if (app.menuItems.isNotEmpty)
+            _CategoryStrip(
+              categories: categories,
+              selectedCategory: _selectedCategory,
+              countOf: (cat) => cat == 'All'
+                  ? app.menuItems.length
+                  : app.menuItems.where((i) => i.category == cat).length,
+              onSelected: (value) => setState(() => _selectedCategory = value),
+            ),
+          const SizedBox(height: 14),
           if (app.menuItems.isEmpty)
             EmptyState(
               title: 'No menu items yet',
@@ -165,68 +180,241 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
 class _MenuToolbar extends StatelessWidget {
   const _MenuToolbar({
     required this.searchController,
-    required this.categories,
-    required this.selectedCategory,
     required this.onSearchChanged,
-    required this.onCategoryChanged,
   });
 
   final TextEditingController searchController;
-  final List<String> categories;
-  final String selectedCategory;
   final ValueChanged<String> onSearchChanged;
-  final ValueChanged<String> onCategoryChanged;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(12),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 620;
-            final search = TextField(
-              controller: searchController,
-              onChanged: onSearchChanged,
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.search),
-                hintText: 'Search menu',
-              ),
-            );
-            final category = DropdownButtonFormField<String>(
-              key: ValueKey(selectedCategory),
-              initialValue: selectedCategory,
-              items: categories
-                  .map((category) {
-                    return DropdownMenuItem(
-                      value: category,
-                      child: Text(category),
-                    );
-                  })
-                  .toList(growable: false),
-              onChanged: (value) {
-                if (value != null) onCategoryChanged(value);
-              },
-              decoration: const InputDecoration(
-                prefixIcon: Icon(Icons.filter_list),
-                labelText: 'Category',
-              ),
-            );
-            if (compact) {
-              return Column(
-                children: [search, const SizedBox(height: 10), category],
-              );
-            }
-            return Row(
-              children: [
-                Expanded(flex: 3, child: search),
-                const SizedBox(width: 12),
-                Expanded(flex: 2, child: category),
-              ],
-            );
-          },
+        child: TextField(
+          controller: searchController,
+          onChanged: onSearchChanged,
+          decoration: const InputDecoration(
+            prefixIcon: Icon(Icons.search_rounded),
+            hintText: 'Search by item, description, or category',
+          ),
         ),
       ),
+    );
+  }
+}
+
+class _StatsStrip extends StatelessWidget {
+  const _StatsStrip({required this.stats, required this.currency});
+
+  final _MenuStats stats;
+  final NumberFormat currency;
+
+  @override
+  Widget build(BuildContext context) {
+    final values = [
+      _StatValue(
+        label: 'Items',
+        value: stats.total.toString(),
+        icon: Icons.restaurant_menu_rounded,
+        color: PosColors.primary,
+      ),
+      _StatValue(
+        label: 'Available',
+        value: stats.available.toString(),
+        icon: Icons.check_circle_outline,
+        color: PosColors.success,
+      ),
+      _StatValue(
+        label: 'Categories',
+        value: stats.categories.toString(),
+        icon: Icons.category_outlined,
+        color: PosColors.info,
+      ),
+      _StatValue(
+        label: 'Avg Price',
+        value: stats.averagePrice == 0
+            ? '-'
+            : currency.format(stats.averagePrice),
+        icon: Icons.payments_outlined,
+        color: PosColors.warning,
+      ),
+    ];
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final columns = constraints.maxWidth >= 900
+            ? 4
+            : constraints.maxWidth >= 560
+            ? 2
+            : 1;
+        return GridView.count(
+          crossAxisCount: columns,
+          shrinkWrap: true,
+          physics: const NeverScrollableScrollPhysics(),
+          crossAxisSpacing: 8,
+          mainAxisSpacing: 8,
+          childAspectRatio: columns == 1 ? 3.6 : 2.65,
+          children: values
+              .map((value) => _MenuStatTile(value: value))
+              .toList(growable: false),
+        );
+      },
+    );
+  }
+}
+
+class _MenuStatTile extends StatelessWidget {
+  const _MenuStatTile({required this.value});
+
+  final _StatValue value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: PosGradients.cardTint(value.color),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Row(
+              children: [
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    color: value.color.withValues(alpha: 0.14),
+                    borderRadius: BorderRadius.circular(PosRadii.md),
+                    border: Border.all(
+                      color: value.color.withValues(alpha: 0.22),
+                    ),
+                  ),
+                  child: Icon(value.icon, color: value.color, size: 19),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        value.value,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      const SizedBox(height: 2),
+                      Text(
+                        value.label.toUpperCase(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: PosColors.muted,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 10,
+                          letterSpacing: 0.8,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _CategoryStrip extends StatelessWidget {
+  const _CategoryStrip({
+    required this.categories,
+    required this.selectedCategory,
+    required this.countOf,
+    required this.onSelected,
+  });
+
+  final List<String> categories;
+  final String selectedCategory;
+  final int Function(String category) countOf;
+  final ValueChanged<String> onSelected;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 42,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: categories.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final category = categories[index];
+          final selected = category == selectedCategory;
+          return ChoiceChip(
+            selected: selected,
+            label: Text('$category (${countOf(category)})'),
+            onSelected: (_) => onSelected(category),
+            avatar: selected
+                ? const Icon(
+                    Icons.check_rounded,
+                    size: 16,
+                    color: PosColors.primary,
+                  )
+                : null,
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _StatValue {
+  const _StatValue({
+    required this.label,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String label;
+  final String value;
+  final IconData icon;
+  final Color color;
+}
+
+class _MenuStats {
+  const _MenuStats({
+    required this.total,
+    required this.available,
+    required this.categories,
+    required this.averagePrice,
+  });
+
+  final int total;
+  final int available;
+  final int categories;
+  final double averagePrice;
+
+  static _MenuStats from(List<MenuItem> items) {
+    final total = items.length;
+    final available = items.where((item) => item.isAvailable).length;
+    final categories = items.map((item) => item.category).toSet().length;
+    final averagePrice = total == 0
+        ? 0.0
+        : items.fold<double>(0, (sum, item) => sum + item.price) / total;
+    return _MenuStats(
+      total: total,
+      available: available,
+      categories: categories,
+      averagePrice: averagePrice,
     );
   }
 }

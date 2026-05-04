@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
+import '../../app_controller.dart';
 import '../../app_scope.dart';
 import '../../core/constants/cloud_defaults.dart';
 import '../../core/theme/app_theme.dart';
@@ -23,6 +24,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _outletIdController = TextEditingController();
   final TextEditingController _syncIntervalController = TextEditingController();
   bool _cloudSyncEnabled = false;
+  double _displayScale = 1.0;
   bool _hydrated = false;
 
   @override
@@ -38,6 +40,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _syncIntervalController.text = app.cloudConfig.autoSyncIntervalSeconds
         .toString();
     _cloudSyncEnabled = app.cloudConfig.enabled;
+    _displayScale = app.uiScale;
     _hydrated = true;
   }
 
@@ -71,8 +74,19 @@ class _SettingsScreenState extends State<SettingsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            _DisplaySizeCard(
+              value: _displayScale,
+              label: app.uiScaleLabel,
+              onChanged: (value) => setState(() => _displayScale = value),
+              onChangeEnd: _updateDisplayScale,
+              onPreset: (value) {
+                setState(() => _displayScale = value);
+                _updateDisplayScale(value);
+              },
+            ),
             _SectionCard(
               title: 'Restaurant',
+              subtitle: 'Public identity for this outlet.',
               icon: Icons.storefront_outlined,
               children: [
                 _ResponsiveFields(
@@ -124,6 +138,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             ),
             _SectionCard(
               title: 'Cloud Sync',
+              subtitle: 'Cloud connection stays automatic for staff.',
               icon: Icons.cloud_sync_outlined,
               children: [
                 TextFormField(
@@ -209,6 +224,11 @@ class _SettingsScreenState extends State<SettingsScreen> {
     );
   }
 
+  Future<void> _updateDisplayScale(double value) async {
+    final app = AppScope.of(context);
+    await app.updateUiScale(value);
+  }
+
   Future<void> _confirmClearData() async {
     final app = AppScope.of(context);
     final confirmed = await showDialog<bool>(
@@ -249,31 +269,247 @@ class _SectionCard extends StatelessWidget {
     required this.title,
     required this.icon,
     required this.children,
+    this.subtitle,
   });
 
   final String title;
+  final String? subtitle;
   final IconData icon;
   final List<Widget> children;
 
   @override
   Widget build(BuildContext context) {
     return Card(
+      clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(icon, color: PosColors.primary),
-                const SizedBox(width: 8),
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
+                Container(
+                  width: 38,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: PosGradients.cardTint(PosColors.primary),
+                    borderRadius: BorderRadius.circular(PosRadii.md),
+                    border: Border.all(
+                      color: PosColors.primary.withValues(alpha: 0.20),
+                    ),
+                  ),
+                  child: Icon(icon, color: PosColors.primary, size: 19),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        title,
+                        style: Theme.of(context).textTheme.titleLarge,
+                      ),
+                      if (subtitle != null) ...[
+                        const SizedBox(height: 3),
+                        Text(
+                          subtitle!,
+                          style: Theme.of(context).textTheme.bodyMedium,
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
               ],
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             ...children,
           ],
         ),
+      ),
+    );
+  }
+}
+
+class _DisplaySizeCard extends StatelessWidget {
+  const _DisplaySizeCard({
+    required this.value,
+    required this.label,
+    required this.onChanged,
+    required this.onChangeEnd,
+    required this.onPreset,
+  });
+
+  final double value;
+  final String label;
+  final ValueChanged<double> onChanged;
+  final ValueChanged<double> onChangeEnd;
+  final ValueChanged<double> onPreset;
+
+  @override
+  Widget build(BuildContext context) {
+    final percent = (value * 100).round();
+    return Card(
+      clipBehavior: Clip.antiAlias,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: PosGradients.cardTint(PosColors.primary),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Container(
+                      width: 42,
+                      height: 42,
+                      decoration: BoxDecoration(
+                        gradient: PosGradients.brand,
+                        borderRadius: BorderRadius.circular(PosRadii.md),
+                        boxShadow: PosShadows.glow,
+                      ),
+                      child: const Icon(
+                        Icons.text_fields_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Display Size',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const SizedBox(height: 3),
+                          Text(
+                            'Adjust the whole app for compact counters, tablets, or large text comfort.',
+                            style: Theme.of(context).textTheme.bodyMedium,
+                          ),
+                        ],
+                      ),
+                    ),
+                    _ScalePill(label: label, percent: percent),
+                  ],
+                ),
+                const SizedBox(height: 14),
+                Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    _PresetChip(
+                      label: 'Compact',
+                      selected: value <= 0.94,
+                      onTap: () => onPreset(0.90),
+                    ),
+                    _PresetChip(
+                      label: 'Comfortable',
+                      selected: value > 0.94 && value < 1.08,
+                      onTap: () => onPreset(1.0),
+                    ),
+                    _PresetChip(
+                      label: 'Large',
+                      selected: value >= 1.08,
+                      onTap: () => onPreset(1.12),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.remove_rounded,
+                      color: PosColors.muted,
+                      size: 18,
+                    ),
+                    Expanded(
+                      child: Slider(
+                        value: value,
+                        min: PosAppController.minUiScale,
+                        max: PosAppController.maxUiScale,
+                        divisions: 15,
+                        label: '$percent%',
+                        onChanged: onChanged,
+                        onChangeEnd: onChangeEnd,
+                      ),
+                    ),
+                    const Icon(
+                      Icons.add_rounded,
+                      color: PosColors.muted,
+                      size: 18,
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ScalePill extends StatelessWidget {
+  const _ScalePill({required this.label, required this.percent});
+
+  final String label;
+  final int percent;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: Text(
+        '$label - $percent%',
+        style: const TextStyle(
+          color: PosColors.primary,
+          fontWeight: FontWeight.w900,
+          fontSize: 11.4,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
+}
+
+class _PresetChip extends StatelessWidget {
+  const _PresetChip({
+    required this.label,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final String label;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return ChoiceChip(
+      label: Text(label),
+      selected: selected,
+      onSelected: (_) => onTap(),
+      avatar: selected
+          ? const Icon(Icons.check_rounded, size: 16, color: PosColors.primary)
+          : null,
+      labelStyle: TextStyle(
+        color: selected ? PosColors.primary : PosColors.slate,
+        fontWeight: FontWeight.w900,
       ),
     );
   }

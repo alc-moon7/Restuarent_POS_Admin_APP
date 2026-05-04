@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 import '../../app_scope.dart';
 import '../../core/theme/app_theme.dart';
@@ -12,6 +13,8 @@ import '../../models/order_model.dart';
 import '../../models/order_source.dart';
 import '../../models/order_status.dart';
 
+enum _OrdersView { board, list }
+
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
@@ -22,15 +25,37 @@ class OrdersScreen extends StatefulWidget {
 class _OrdersScreenState extends State<OrdersScreen> {
   OrderStatus? _filter;
   OrderSource? _sourceFilter;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
+  _OrdersView _view = _OrdersView.board;
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    final orders = app.ordersFor(status: _filter, source: _sourceFilter);
+    final allOrders = app.ordersFor(source: _sourceFilter);
+    final query = _searchQuery.trim().toLowerCase();
+    final filtered = query.isEmpty
+        ? allOrders
+        : allOrders
+              .where((order) {
+                return order.orderNo.toLowerCase().contains(query) ||
+                    (order.customerName ?? '').toLowerCase().contains(query) ||
+                    (order.tableNo ?? '').toLowerCase().contains(query);
+              })
+              .toList(growable: false);
+    final orders = _filter == null
+        ? filtered
+        : filtered.where((o) => o.status == _filter).toList(growable: false);
 
     return AppScaffold(
       title: 'Orders',
-      subtitle: 'Manage live order flow from pending to served.',
+      subtitle: 'Live order workflow — pending to served.',
       actions: [
         PrimaryButton(
           label: 'New Order',
@@ -43,14 +68,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StatusFilters(
+          _StatusSummary(
+            allOrders: allOrders,
             selected: _filter,
-            onChanged: (status) => setState(() => _filter = status),
+            onSelect: (status) => setState(() => _filter = status),
           ),
-          const SizedBox(height: 10),
-          _SourceFilters(
-            selected: _sourceFilter,
-            onChanged: (source) => setState(() => _sourceFilter = source),
+          const SizedBox(height: 12),
+          _ToolbarRow(
+            controller: _searchController,
+            onSearchChanged: (v) => setState(() => _searchQuery = v),
+            sourceFilter: _sourceFilter,
+            onSourceChanged: (s) => setState(() => _sourceFilter = s),
+            view: _view,
+            onViewChanged: (v) => setState(() => _view = v),
           ),
           const SizedBox(height: 12),
           if (app.orders.isEmpty)
@@ -61,9 +91,16 @@ class _OrdersScreenState extends State<OrdersScreen> {
             )
           else if (orders.isEmpty)
             const EmptyState(
-              title: 'No orders in this status',
-              message: 'Select another status filter to view more orders.',
+              title: 'No orders match the filters',
+              message: 'Try clearing the search or status filter.',
               icon: Icons.filter_alt_off_outlined,
+            )
+          else if (_view == _OrdersView.board)
+            _KanbanBoard(
+              orders: orders,
+              onStatusChanged: (order, status) =>
+                  _changeStatus(context, order, status),
+              onPrintTicket: (order) => _showTicketPreview(context, order),
             )
           else
             ListView.separated(
@@ -73,17 +110,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 final order = orders[index];
                 return OrderCard(
                   order: order,
-                  onStatusChanged: (status) async {
-                    await app.updateOrderStatus(order.id, status);
-                    if (!context.mounted) return;
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'Order ${order.orderNo} marked ${status.label}',
-                        ),
-                      ),
-                    );
-                  },
+                  onStatusChanged: (status) =>
+                      _changeStatus(context, order, status),
                   onPrintTicket: () => _showTicketPreview(context, order),
                 );
               },
@@ -92,6 +120,19 @@ class _OrdersScreenState extends State<OrdersScreen> {
             ),
         ],
       ),
+    );
+  }
+
+  Future<void> _changeStatus(
+    BuildContext context,
+    OrderModel order,
+    OrderStatus status,
+  ) async {
+    final app = AppScope.of(context);
+    await app.updateOrderStatus(order.id, status);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Order ${order.orderNo} marked ${status.label}')),
     );
   }
 
@@ -155,6 +196,827 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 }
 
+class _StatusSummary extends StatelessWidget {
+  const _StatusSummary({
+    required this.allOrders,
+    required this.selected,
+    required this.onSelect,
+  });
+
+  final List<OrderModel> allOrders;
+  final OrderStatus? selected;
+  final ValueChanged<OrderStatus?> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final tiles = <_SummaryTile>[
+      _SummaryTile(
+        status: null,
+        label: 'All',
+        count: allOrders.length,
+        color: PosColors.slate,
+        icon: Icons.list_alt_rounded,
+      ),
+      ...OrderStatus.values.map(
+        (s) => _SummaryTile(
+          status: s,
+          label: s.label,
+          count: allOrders.where((o) => o.status == s).length,
+          color: _colorForStatus(s),
+          icon: _iconForStatus(s),
+        ),
+      ),
+    ];
+
+    return SizedBox(
+      height: 78,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: tiles.length,
+        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        itemBuilder: (context, index) {
+          final tile = tiles[index];
+          final isSelected = selected == tile.status;
+          return _StatusChip(
+            tile: tile,
+            selected: isSelected,
+            onTap: () => onSelect(tile.status),
+          );
+        },
+      ),
+    );
+  }
+}
+
+class _SummaryTile {
+  const _SummaryTile({
+    required this.status,
+    required this.label,
+    required this.count,
+    required this.color,
+    required this.icon,
+  });
+  final OrderStatus? status;
+  final String label;
+  final int count;
+  final Color color;
+  final IconData icon;
+}
+
+class _StatusChip extends StatelessWidget {
+  const _StatusChip({
+    required this.tile,
+    required this.selected,
+    required this.onTap,
+  });
+
+  final _SummaryTile tile;
+  final bool selected;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(PosRadii.md),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
+          decoration: BoxDecoration(
+            gradient: selected
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: [
+                      tile.color.withValues(alpha: 0.18),
+                      tile.color.withValues(alpha: 0.08),
+                    ],
+                  )
+                : null,
+            color: selected ? null : PosColors.surface,
+            borderRadius: BorderRadius.circular(PosRadii.md),
+            border: Border.all(
+              color: selected
+                  ? tile.color.withValues(alpha: 0.45)
+                  : PosColors.line,
+              width: selected ? 1.5 : 1,
+            ),
+            boxShadow: selected
+                ? [
+                    BoxShadow(
+                      color: tile.color.withValues(alpha: 0.18),
+                      blurRadius: 12,
+                      offset: const Offset(0, 6),
+                    ),
+                  ]
+                : const [
+                    BoxShadow(
+                      color: Color(0x0A0F2A1F),
+                      blurRadius: 6,
+                      offset: Offset(0, 2),
+                    ),
+                  ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 32,
+                height: 32,
+                decoration: BoxDecoration(
+                  color: tile.color.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(PosRadii.sm),
+                ),
+                child: Icon(tile.icon, color: tile.color, size: 17),
+              ),
+              const SizedBox(width: 10),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    tile.count.toString(),
+                    style: TextStyle(
+                      color: selected ? tile.color : PosColors.slate,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 17,
+                      letterSpacing: 0,
+                      height: 1.0,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    tile.label.toUpperCase(),
+                    style: TextStyle(
+                      color: selected ? tile.color : PosColors.muted,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 9.6,
+                      letterSpacing: 0.8,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+Color _colorForStatus(OrderStatus s) {
+  return switch (s) {
+    OrderStatus.pending => PosColors.warning,
+    OrderStatus.accepted => PosColors.primary,
+    OrderStatus.preparing => PosColors.info,
+    OrderStatus.ready => PosColors.purple,
+    OrderStatus.served => PosColors.success,
+    OrderStatus.cancelled => PosColors.danger,
+  };
+}
+
+IconData _iconForStatus(OrderStatus s) {
+  return switch (s) {
+    OrderStatus.pending => Icons.schedule_rounded,
+    OrderStatus.accepted => Icons.check_circle_outline,
+    OrderStatus.preparing => Icons.local_fire_department_outlined,
+    OrderStatus.ready => Icons.room_service_outlined,
+    OrderStatus.served => Icons.done_all_rounded,
+    OrderStatus.cancelled => Icons.cancel_outlined,
+  };
+}
+
+class _ToolbarRow extends StatelessWidget {
+  const _ToolbarRow({
+    required this.controller,
+    required this.onSearchChanged,
+    required this.sourceFilter,
+    required this.onSourceChanged,
+    required this.view,
+    required this.onViewChanged,
+  });
+
+  final TextEditingController controller;
+  final ValueChanged<String> onSearchChanged;
+  final OrderSource? sourceFilter;
+  final ValueChanged<OrderSource?> onSourceChanged;
+  final _OrdersView view;
+  final ValueChanged<_OrdersView> onViewChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(10),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final compact = constraints.maxWidth < 720;
+            final search = TextField(
+              controller: controller,
+              onChanged: onSearchChanged,
+              decoration: const InputDecoration(
+                prefixIcon: Icon(Icons.search_rounded),
+                hintText: 'Order #, customer, table…',
+              ),
+            );
+            final sourceMenu = _SourceDropdown(
+              value: sourceFilter,
+              onChanged: onSourceChanged,
+            );
+            final viewToggle = _ViewToggle(
+              value: view,
+              onChanged: onViewChanged,
+            );
+            if (compact) {
+              return Column(
+                children: [
+                  search,
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Expanded(child: sourceMenu),
+                      const SizedBox(width: 8),
+                      viewToggle,
+                    ],
+                  ),
+                ],
+              );
+            }
+            return Row(
+              children: [
+                Expanded(flex: 5, child: search),
+                const SizedBox(width: 10),
+                Expanded(flex: 3, child: sourceMenu),
+                const SizedBox(width: 10),
+                viewToggle,
+              ],
+            );
+          },
+        ),
+      ),
+    );
+  }
+}
+
+class _SourceDropdown extends StatelessWidget {
+  const _SourceDropdown({required this.value, required this.onChanged});
+
+  final OrderSource? value;
+  final ValueChanged<OrderSource?> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return DropdownButtonFormField<OrderSource?>(
+      initialValue: value,
+      decoration: const InputDecoration(
+        prefixIcon: Icon(Icons.merge_type_rounded),
+        labelText: 'Source',
+      ),
+      items: [
+        const DropdownMenuItem<OrderSource?>(
+          value: null,
+          child: Text('All sources'),
+        ),
+        for (final s in OrderSource.values)
+          DropdownMenuItem<OrderSource?>(value: s, child: Text(s.label)),
+      ],
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _ViewToggle extends StatelessWidget {
+  const _ViewToggle({required this.value, required this.onChanged});
+
+  final _OrdersView value;
+  final ValueChanged<_OrdersView> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return SegmentedButton<_OrdersView>(
+      style: const ButtonStyle(visualDensity: VisualDensity.compact),
+      segments: const [
+        ButtonSegment(
+          value: _OrdersView.board,
+          icon: Icon(Icons.view_kanban_rounded),
+          tooltip: 'Board',
+        ),
+        ButtonSegment(
+          value: _OrdersView.list,
+          icon: Icon(Icons.view_list_rounded),
+          tooltip: 'List',
+        ),
+      ],
+      selected: {value},
+      showSelectedIcon: false,
+      onSelectionChanged: (set) => onChanged(set.first),
+    );
+  }
+}
+
+class _KanbanBoard extends StatelessWidget {
+  const _KanbanBoard({
+    required this.orders,
+    required this.onStatusChanged,
+    required this.onPrintTicket,
+  });
+
+  final List<OrderModel> orders;
+  final void Function(OrderModel order, OrderStatus status) onStatusChanged;
+  final void Function(OrderModel order) onPrintTicket;
+
+  static const _columns = <OrderStatus>[
+    OrderStatus.pending,
+    OrderStatus.accepted,
+    OrderStatus.preparing,
+    OrderStatus.ready,
+    OrderStatus.served,
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return SizedBox(
+          height: 560,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            physics: const BouncingScrollPhysics(),
+            itemCount: _columns.length,
+            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            itemBuilder: (context, index) {
+              final status = _columns[index];
+              final lane = orders.where((o) => o.status == status).toList();
+              return SizedBox(
+                width: 320,
+                child: _Lane(
+                  status: status,
+                  orders: lane,
+                  onStatusChanged: onStatusChanged,
+                  onPrintTicket: onPrintTicket,
+                ),
+              );
+            },
+          ),
+        );
+      },
+    );
+  }
+}
+
+class _Lane extends StatelessWidget {
+  const _Lane({
+    required this.status,
+    required this.orders,
+    required this.onStatusChanged,
+    required this.onPrintTicket,
+  });
+
+  final OrderStatus status;
+  final List<OrderModel> orders;
+  final void Function(OrderModel order, OrderStatus status) onStatusChanged;
+  final void Function(OrderModel order) onPrintTicket;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = _colorForStatus(status);
+    return Container(
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.lg),
+        border: Border.all(color: PosColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x0A0F2A1F),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [
+                  color.withValues(alpha: 0.16),
+                  color.withValues(alpha: 0.04),
+                ],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(PosRadii.lg),
+              ),
+              border: const Border(bottom: BorderSide(color: PosColors.line)),
+            ),
+            child: Row(
+              children: [
+                Container(
+                  width: 30,
+                  height: 30,
+                  decoration: BoxDecoration(
+                    color: color.withValues(alpha: 0.16),
+                    borderRadius: BorderRadius.circular(PosRadii.sm),
+                  ),
+                  child: Icon(_iconForStatus(status), color: color, size: 16),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    status.label.toUpperCase(),
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12,
+                      letterSpacing: 1.0,
+                    ),
+                  ),
+                ),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 3,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.white,
+                    borderRadius: BorderRadius.circular(PosRadii.pill),
+                    border: Border.all(color: color.withValues(alpha: 0.32)),
+                  ),
+                  child: Text(
+                    orders.length.toString(),
+                    style: TextStyle(
+                      color: color,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 11.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Expanded(
+            child: orders.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            _iconForStatus(status),
+                            color: color.withValues(alpha: 0.45),
+                            size: 28,
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'No ${status.label.toLowerCase()} orders',
+                            style: const TextStyle(
+                              color: PosColors.muted,
+                              fontWeight: FontWeight.w700,
+                              fontSize: 11.6,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  )
+                : ListView.separated(
+                    padding: const EdgeInsets.all(10),
+                    itemCount: orders.length,
+                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    itemBuilder: (context, i) {
+                      final order = orders[i];
+                      return _LaneCard(
+                        order: order,
+                        accent: color,
+                        onAdvance: () {
+                          final next = _nextStatus(order.status);
+                          if (next != null) onStatusChanged(order, next);
+                        },
+                        onCancel: () =>
+                            onStatusChanged(order, OrderStatus.cancelled),
+                        onPrint: () => onPrintTicket(order),
+                      );
+                    },
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  OrderStatus? _nextStatus(OrderStatus current) {
+    switch (current) {
+      case OrderStatus.pending:
+        return OrderStatus.accepted;
+      case OrderStatus.accepted:
+        return OrderStatus.preparing;
+      case OrderStatus.preparing:
+        return OrderStatus.ready;
+      case OrderStatus.ready:
+        return OrderStatus.served;
+      case OrderStatus.served:
+      case OrderStatus.cancelled:
+        return null;
+    }
+  }
+}
+
+class _LaneCard extends StatelessWidget {
+  const _LaneCard({
+    required this.order,
+    required this.accent,
+    required this.onAdvance,
+    required this.onCancel,
+    required this.onPrint,
+  });
+
+  final OrderModel order;
+  final Color accent;
+  final VoidCallback onAdvance;
+  final VoidCallback onCancel;
+  final VoidCallback onPrint;
+
+  @override
+  Widget build(BuildContext context) {
+    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+    final time = DateFormat('h:mm a').format(order.createdAt);
+    final canAdvance =
+        order.status != OrderStatus.served &&
+        order.status != OrderStatus.cancelled;
+    final canCancel =
+        order.status != OrderStatus.served &&
+        order.status != OrderStatus.cancelled;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.md),
+        border: Border.all(color: PosColors.line),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x080F2A1F),
+            blurRadius: 6,
+            offset: Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Container(
+            height: 3,
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [accent, accent.withValues(alpha: 0.4)],
+              ),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(PosRadii.md),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                        order.orderNo,
+                        style: const TextStyle(
+                          color: PosColors.slate,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 14.5,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ),
+                    Text(
+                      time,
+                      style: const TextStyle(
+                        color: PosColors.muted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 6),
+                Wrap(
+                  spacing: 6,
+                  runSpacing: 4,
+                  children: [
+                    _MiniMeta(
+                      icon: Icons.person_outline,
+                      label: order.customerName ?? 'Walk-in',
+                    ),
+                    _MiniMeta(
+                      icon: Icons.table_restaurant_outlined,
+                      label: 'T${order.tableNo ?? '·'}',
+                    ),
+                    _MiniMeta(
+                      icon: Icons.shopping_bag_outlined,
+                      label:
+                          '${order.items.length} item${order.items.length == 1 ? '' : 's'}',
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 8,
+                  ),
+                  decoration: BoxDecoration(
+                    color: PosColors.surfaceTinted,
+                    borderRadius: BorderRadius.circular(PosRadii.sm),
+                    border: Border.all(color: PosColors.line),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      for (final item in order.items.take(3))
+                        Padding(
+                          padding: const EdgeInsets.symmetric(vertical: 1.5),
+                          child: Row(
+                            children: [
+                              Text(
+                                '${item.qty}×',
+                                style: const TextStyle(
+                                  color: PosColors.primary,
+                                  fontWeight: FontWeight.w900,
+                                  fontSize: 11.5,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(
+                                  item.name,
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: const TextStyle(
+                                    color: PosColors.slateSoft,
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      if (order.items.length > 3)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 3),
+                          child: Text(
+                            '+ ${order.items.length - 3} more',
+                            style: const TextStyle(
+                              color: PosColors.muted,
+                              fontSize: 11,
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+                Row(
+                  children: [
+                    Text(
+                      currency.format(order.total),
+                      style: const TextStyle(
+                        color: PosColors.primaryDark,
+                        fontWeight: FontWeight.w900,
+                        fontSize: 16,
+                        letterSpacing: 0,
+                      ),
+                    ),
+                    const Spacer(),
+                    _CardIconBtn(
+                      icon: Icons.print_outlined,
+                      tooltip: 'Print ticket',
+                      onTap: onPrint,
+                    ),
+                    const SizedBox(width: 6),
+                    if (canCancel)
+                      _CardIconBtn(
+                        icon: Icons.close_rounded,
+                        tooltip: 'Cancel order',
+                        onTap: onCancel,
+                        color: PosColors.danger,
+                      ),
+                  ],
+                ),
+                if (canAdvance) ...[
+                  const SizedBox(height: 10),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton.icon(
+                      onPressed: onAdvance,
+                      icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                      label: Text(
+                        _nextLabel(order.status),
+                        style: const TextStyle(fontSize: 12.5),
+                      ),
+                      style: FilledButton.styleFrom(
+                        backgroundColor: accent,
+                        padding: const EdgeInsets.symmetric(vertical: 9),
+                      ),
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _nextLabel(OrderStatus status) {
+    return switch (status) {
+      OrderStatus.pending => 'Accept',
+      OrderStatus.accepted => 'Start preparing',
+      OrderStatus.preparing => 'Mark ready',
+      OrderStatus.ready => 'Mark served',
+      _ => 'Advance',
+    };
+  }
+}
+
+class _CardIconBtn extends StatelessWidget {
+  const _CardIconBtn({
+    required this.icon,
+    required this.tooltip,
+    required this.onTap,
+    this.color,
+  });
+
+  final IconData icon;
+  final String tooltip;
+  final VoidCallback onTap;
+  final Color? color;
+
+  @override
+  Widget build(BuildContext context) {
+    final c = color ?? PosColors.slate;
+    return Tooltip(
+      message: tooltip,
+      child: Material(
+        color: c.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(PosRadii.sm),
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(PosRadii.sm),
+          child: Padding(
+            padding: const EdgeInsets.all(7),
+            child: Icon(icon, color: c, size: 16),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniMeta extends StatelessWidget {
+  const _MiniMeta({required this.icon, required this.label});
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: PosColors.surfaceTinted,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11.5, color: PosColors.muted),
+          const SizedBox(width: 4),
+          Text(
+            label,
+            style: const TextStyle(
+              color: PosColors.slateSoft,
+              fontWeight: FontWeight.w700,
+              fontSize: 10.6,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _ManualOrderForm extends StatefulWidget {
   const _ManualOrderForm({required this.menuItems});
 
@@ -187,12 +1049,21 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
 
   @override
   Widget build(BuildContext context) {
+    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+    final total = _lines.fold<double>(0, (sum, line) {
+      if (line.menuItemId == null) return sum;
+      final item = widget.menuItems.firstWhere(
+        (m) => m.id == line.menuItemId,
+        orElse: () => widget.menuItems.first,
+      );
+      return sum + item.price * line.qty;
+    });
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
     return Padding(
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
           child: Form(
             key: _formKey,
             child: Column(
@@ -201,10 +1072,38 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
               children: [
                 Row(
                   children: [
+                    Container(
+                      width: 40,
+                      height: 40,
+                      decoration: BoxDecoration(
+                        gradient: PosGradients.brand,
+                        borderRadius: BorderRadius.circular(PosRadii.sm + 2),
+                        boxShadow: PosShadows.glow,
+                      ),
+                      child: const Icon(
+                        Icons.add_shopping_cart_rounded,
+                        color: Colors.white,
+                        size: 20,
+                      ),
+                    ),
+                    const SizedBox(width: 12),
                     Expanded(
-                      child: Text(
-                        'Create Manual Order',
-                        style: Theme.of(context).textTheme.titleLarge,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Create Manual Order',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                          const Text(
+                            'Add walk-in or phone orders manually',
+                            style: TextStyle(
+                              color: PosColors.muted,
+                              fontWeight: FontWeight.w600,
+                              fontSize: 11.6,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     IconButton(
@@ -213,7 +1112,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final compact = constraints.maxWidth < 560;
@@ -223,6 +1122,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                       decoration: const InputDecoration(
                         labelText: 'Customer name',
                         hintText: 'Optional',
+                        prefixIcon: Icon(Icons.person_outline),
                       ),
                     );
                     final table = TextField(
@@ -231,6 +1131,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                       decoration: const InputDecoration(
                         labelText: 'Table number',
                         hintText: 'Optional',
+                        prefixIcon: Icon(Icons.table_restaurant_outlined),
                       ),
                     );
                     if (compact) {
@@ -254,10 +1155,33 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                   decoration: const InputDecoration(
                     labelText: 'Order note',
                     hintText: 'Optional',
+                    prefixIcon: Icon(Icons.notes_rounded),
                   ),
                 ),
-                const SizedBox(height: 12),
-                Text('Items', style: Theme.of(context).textTheme.titleMedium),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    const Icon(
+                      Icons.shopping_basket_outlined,
+                      size: 18,
+                      color: PosColors.primary,
+                    ),
+                    const SizedBox(width: 8),
+                    Text(
+                      'Items',
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${_lines.length} line${_lines.length == 1 ? '' : 's'}',
+                      style: const TextStyle(
+                        color: PosColors.muted,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 11.6,
+                      ),
+                    ),
+                  ],
+                ),
                 const SizedBox(height: 8),
                 ..._lines.asMap().entries.map((entry) {
                   return Padding(
@@ -282,7 +1206,48 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     );
                   },
                   icon: const Icon(Icons.add),
-                  label: const Text('Add item'),
+                  label: const Text('Add another item'),
+                ),
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                      colors: [
+                        PosColors.primary.withValues(alpha: 0.10),
+                        PosColors.primary.withValues(alpha: 0.02),
+                      ],
+                    ),
+                    borderRadius: BorderRadius.circular(PosRadii.md),
+                    border: Border.all(
+                      color: PosColors.primary.withValues(alpha: 0.20),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const Text(
+                        'TOTAL',
+                        style: TextStyle(
+                          color: PosColors.muted,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11.5,
+                          letterSpacing: 1.4,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        currency.format(total),
+                        style: const TextStyle(
+                          color: PosColors.primaryDark,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 22,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 14),
                 SizedBox(
@@ -348,14 +1313,18 @@ class _OrderLineEditor extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
+        color: PosColors.surfaceWarm,
         border: Border.all(color: PosColors.line),
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(PosRadii.md),
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
           final selector = DropdownButtonFormField<String>(
             initialValue: line.menuItemId,
-            decoration: const InputDecoration(labelText: 'Menu item'),
+            decoration: const InputDecoration(
+              labelText: 'Menu item',
+              prefixIcon: Icon(Icons.restaurant_menu_rounded),
+            ),
             items: menuItems
                 .map((item) {
                   return DropdownMenuItem(
@@ -383,10 +1352,12 @@ class _OrderLineEditor extends StatelessWidget {
                   onChanged();
                 },
               ),
+              const SizedBox(width: 4),
               IconButton(
                 tooltip: 'Remove item',
                 onPressed: canRemove ? onRemove : null,
                 icon: const Icon(Icons.delete_outline),
+                color: PosColors.danger,
               ),
             ],
           );
@@ -424,28 +1395,41 @@ class _QtyStepper extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        IconButton(
-          tooltip: 'Decrease',
-          onPressed: qty <= 1 ? null : () => onChanged(qty - 1),
-          icon: const Icon(Icons.remove_circle_outline),
-        ),
-        SizedBox(
-          width: 28,
-          child: Text(
-            qty.toString(),
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.titleMedium,
+    return Container(
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Decrease',
+            onPressed: qty <= 1 ? null : () => onChanged(qty - 1),
+            icon: const Icon(Icons.remove_rounded, size: 18),
           ),
-        ),
-        IconButton(
-          tooltip: 'Increase',
-          onPressed: () => onChanged(qty + 1),
-          icon: const Icon(Icons.add_circle_outline),
-        ),
-      ],
+          SizedBox(
+            width: 22,
+            child: Text(
+              qty.toString(),
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                color: PosColors.slate,
+                fontWeight: FontWeight.w900,
+                fontSize: 14,
+              ),
+            ),
+          ),
+          IconButton(
+            visualDensity: VisualDensity.compact,
+            tooltip: 'Increase',
+            onPressed: () => onChanged(qty + 1),
+            icon: const Icon(Icons.add_rounded, size: 18),
+          ),
+        ],
+      ),
     );
   }
 }
@@ -469,102 +1453,4 @@ class _ManualOrderResult {
   final String? tableNo;
   final String? note;
   final List<OrderRequestItem> items;
-}
-
-class _SourceFilters extends StatelessWidget {
-  const _SourceFilters({required this.selected, required this.onChanged});
-
-  final OrderSource? selected;
-  final ValueChanged<OrderSource?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _FilterChip(
-                label: 'All Sources',
-                selected: selected == null,
-                onTap: () => onChanged(null),
-              ),
-              for (final source in OrderSource.values)
-                _FilterChip(
-                  label: source.label,
-                  selected: selected == source,
-                  onTap: () => onChanged(source),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _StatusFilters extends StatelessWidget {
-  const _StatusFilters({required this.selected, required this.onChanged});
-
-  final OrderStatus? selected;
-  final ValueChanged<OrderStatus?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(10),
-        child: SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: Row(
-            children: [
-              _FilterChip(
-                label: 'All',
-                selected: selected == null,
-                onTap: () => onChanged(null),
-              ),
-              for (final status in OrderStatus.values)
-                _FilterChip(
-                  label: status.label,
-                  selected: selected == status,
-                  onTap: () => onChanged(status),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _FilterChip extends StatelessWidget {
-  const _FilterChip({
-    required this.label,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final String label;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8),
-      child: ChoiceChip(
-        label: Text(label),
-        selected: selected,
-        onSelected: (_) => onTap(),
-        selectedColor: PosColors.primary.withValues(alpha: 0.14),
-        labelStyle: TextStyle(
-          color: selected ? PosColors.primary : PosColors.slate,
-          fontWeight: FontWeight.w800,
-        ),
-        side: BorderSide(color: selected ? PosColors.primary : PosColors.line),
-      ),
-    );
-  }
 }

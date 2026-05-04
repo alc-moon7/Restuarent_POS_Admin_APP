@@ -11,34 +11,87 @@ class ModeIntroScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: SafeArea(
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 920),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 760;
-                  final hero = _HeroPanel(onContinue: onContinue);
-                  final cards = _CapabilityCards(wide: wide);
-                  if (!wide) {
-                    return ListView(
-                      children: [hero, const SizedBox(height: 12), cards],
-                    );
-                  }
-                  return Row(
-                    children: [
-                      Expanded(flex: 5, child: hero),
-                      const SizedBox(width: 14),
-                      Expanded(flex: 4, child: cards),
-                    ],
-                  );
-                },
+      backgroundColor: PosColors.background,
+      body: Stack(
+        children: [
+          const Positioned.fill(child: _IntroWash()),
+          SafeArea(
+            child: Center(
+              child: ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 980),
+                child: Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: LayoutBuilder(
+                    builder: (context, constraints) {
+                      final wide = constraints.maxWidth >= 760;
+                      final hero = _HeroPanel(onContinue: onContinue);
+                      final cards = _CapabilityCards(wide: wide);
+                      if (!wide) {
+                        return ListView(
+                          children: [hero, const SizedBox(height: 14), cards],
+                        );
+                      }
+                      return Row(
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        children: [
+                          Expanded(flex: 5, child: hero),
+                          const SizedBox(width: 18),
+                          Expanded(flex: 4, child: cards),
+                        ],
+                      );
+                    },
+                  ),
+                ),
               ),
             ),
           ),
-        ),
+        ],
+      ),
+    );
+  }
+}
+
+class _IntroWash extends StatelessWidget {
+  const _IntroWash();
+
+  @override
+  Widget build(BuildContext context) {
+    return IgnorePointer(
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    PosColors.primarySoft,
+                    PosColors.background,
+                    PosColors.accentSoft.withValues(alpha: 0.4),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Positioned(
+            top: -80,
+            right: -60,
+            child: Container(
+              width: 280,
+              height: 280,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                gradient: RadialGradient(
+                  colors: [
+                    PosColors.primaryGlow.withValues(alpha: 0.20),
+                    PosColors.primaryGlow.withValues(alpha: 0),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -53,40 +106,63 @@ class _HeroPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 52,
-              height: 52,
+              width: 60,
+              height: 60,
               decoration: BoxDecoration(
-                color: PosColors.primary.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(16),
+                gradient: PosGradients.brand,
+                borderRadius: BorderRadius.circular(PosRadii.lg),
+                boxShadow: PosShadows.glow,
               ),
               child: const Icon(
-                Icons.admin_panel_settings_outlined,
-                color: PosColors.primary,
-                size: 28,
+                Icons.admin_panel_settings_rounded,
+                color: Colors.white,
+                size: 30,
               ),
             ),
-            const SizedBox(height: 16),
-            Text(
-              'Run your restaurant from the cloud',
-              style: Theme.of(context).textTheme.displaySmall,
+            const SizedBox(height: 20),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              decoration: BoxDecoration(
+                color: PosColors.primarySoft,
+                borderRadius: BorderRadius.circular(PosRadii.pill),
+                border: Border.all(color: PosColors.line),
+              ),
+              child: const Text(
+                '✦  CLOUD ADMIN',
+                style: TextStyle(
+                  color: PosColors.primary,
+                  fontWeight: FontWeight.w900,
+                  fontSize: 10.6,
+                  letterSpacing: 1.4,
+                ),
+              ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 14),
             Text(
-              'Manage menu, orders, and status updates through the cloud API with realtime sync across customer websites.',
+              'Run your restaurant\nfrom the cloud.',
               style: Theme.of(
                 context,
-              ).textTheme.bodyLarge?.copyWith(color: PosColors.muted),
+              ).textTheme.displaySmall?.copyWith(fontSize: 32, height: 1.08),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 12),
+            Text(
+              'Manage menu, orders, and status updates through a secure cloud API with realtime sync across customer websites.',
+              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
+                color: PosColors.muted,
+                fontSize: 14.5,
+                height: 1.55,
+              ),
+            ),
+            const SizedBox(height: 22),
             PrimaryButton(
               label: 'Configure Cloud Admin',
-              icon: Icons.arrow_forward,
+              icon: Icons.arrow_forward_rounded,
               onPressed: () => onContinue(),
             ),
           ],
@@ -105,21 +181,25 @@ class _CapabilityCards extends StatelessWidget {
   Widget build(BuildContext context) {
     final cards = [
       const _Capability(
-        icon: Icons.cloud_done_outlined,
+        icon: Icons.cloud_done_rounded,
         title: 'Cloud APIs',
         message:
             'Supabase Edge Function endpoints for customer websites and admin sync.',
+        color: PosColors.primary,
       ),
       const _Capability(
-        icon: Icons.restaurant_menu,
+        icon: Icons.restaurant_menu_rounded,
         title: 'Live Menu',
-        message: 'Availability changes sync to customer websites through cloud.',
+        message:
+            'Availability changes sync to customer websites through cloud.',
+        color: PosColors.accent,
       ),
       const _Capability(
-        icon: Icons.receipt_long,
+        icon: Icons.receipt_long_rounded,
         title: 'Order Workflow',
         message:
             'Accept, prepare, ready, serve, or cancel orders from one dashboard.',
+        color: PosColors.info,
       ),
     ];
 
@@ -127,8 +207,10 @@ class _CapabilityCards extends StatelessWidget {
       mainAxisSize: wide ? MainAxisSize.min : MainAxisSize.max,
       children: cards
           .map(
-            (card) =>
-                Padding(padding: const EdgeInsets.only(bottom: 8), child: card),
+            (card) => Padding(
+              padding: const EdgeInsets.only(bottom: 10),
+              child: card,
+            ),
           )
           .toList(growable: false),
     );
@@ -140,29 +222,39 @@ class _Capability extends StatelessWidget {
     required this.icon,
     required this.title,
     required this.message,
+    required this.color,
   });
 
   final IconData icon;
   final String title;
   final String message;
+  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: const EdgeInsets.all(16),
         child: Row(
           children: [
             Container(
-              width: 40,
-              height: 40,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
-                color: PosColors.accent.withValues(alpha: 0.14),
-                borderRadius: BorderRadius.circular(12),
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    color.withValues(alpha: 0.20),
+                    color.withValues(alpha: 0.08),
+                  ],
+                ),
+                borderRadius: BorderRadius.circular(PosRadii.md),
+                border: Border.all(color: color.withValues(alpha: 0.22)),
               ),
-              child: Icon(icon, color: PosColors.accent),
+              child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,

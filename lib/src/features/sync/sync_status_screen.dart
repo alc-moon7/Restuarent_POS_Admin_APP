@@ -113,24 +113,67 @@ class _SyncSummaryGrid extends StatelessWidget {
           children: values
               .map(
                 (value) => Card(
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(value.icon, color: value.color),
-                        const Spacer(),
-                        Text(
-                          value.value,
-                          style: Theme.of(context).textTheme.titleLarge,
+                  clipBehavior: Clip.antiAlias,
+                  child: Stack(
+                    children: [
+                      Positioned.fill(
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            gradient: PosGradients.cardTint(value.color),
+                          ),
                         ),
-                        const SizedBox(height: 3),
-                        Text(
-                          value.label,
-                          style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                      Padding(
+                        padding: const EdgeInsets.all(14),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Container(
+                              width: 38,
+                              height: 38,
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topLeft,
+                                  end: Alignment.bottomRight,
+                                  colors: [
+                                    value.color.withValues(alpha: 0.22),
+                                    value.color.withValues(alpha: 0.08),
+                                  ],
+                                ),
+                                borderRadius: BorderRadius.circular(
+                                  PosRadii.md,
+                                ),
+                                border: Border.all(
+                                  color: value.color.withValues(alpha: 0.22),
+                                ),
+                              ),
+                              child: Icon(
+                                value.icon,
+                                color: value.color,
+                                size: 19,
+                              ),
+                            ),
+                            const Spacer(),
+                            Text(
+                              value.value,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.titleLarge,
+                            ),
+                            const SizedBox(height: 3),
+                            Text(
+                              value.label.toUpperCase(),
+                              style: const TextStyle(
+                                color: PosColors.muted,
+                                fontWeight: FontWeight.w800,
+                                fontSize: 10.4,
+                                letterSpacing: 1.1,
+                              ),
+                            ),
+                          ],
                         ),
-                      ],
-                    ),
+                      ),
+                    ],
                   ),
                 ),
               )

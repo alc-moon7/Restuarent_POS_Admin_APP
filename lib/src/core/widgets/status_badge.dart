@@ -10,6 +10,7 @@ class StatusBadge extends StatelessWidget {
     required this.label,
     required this.color,
     this.icon,
+    this.dense = false,
     super.key,
   });
 
@@ -48,29 +49,41 @@ class StatusBadge extends StatelessWidget {
   final String label;
   final Color color;
   final IconData? icon;
+  final bool dense;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5.5),
+      padding: EdgeInsets.symmetric(
+        horizontal: dense ? 8 : 10,
+        vertical: dense ? 4.5 : 6,
+      ),
       decoration: BoxDecoration(
-        color: color.withValues(alpha: 0.11),
-        borderRadius: BorderRadius.circular(999),
-        border: Border.all(color: color.withValues(alpha: 0.24)),
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            color.withValues(alpha: 0.16),
+            color.withValues(alpha: 0.08),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+        border: Border.all(color: color.withValues(alpha: 0.32)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 14, color: color),
+            Icon(icon, size: dense ? 12.5 : 14, color: color),
             const SizedBox(width: 5),
           ],
           Text(
             label,
             style: TextStyle(
               color: color,
-              fontWeight: FontWeight.w800,
-              fontSize: 11.2,
+              fontWeight: FontWeight.w900,
+              fontSize: dense ? 10.6 : 11.4,
+              letterSpacing: 0.2,
             ),
           ),
         ],
