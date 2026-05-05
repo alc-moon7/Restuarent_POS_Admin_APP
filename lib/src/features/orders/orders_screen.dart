@@ -190,6 +190,24 @@ class _OrdersScreenState extends State<OrdersScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Close'),
           ),
+          FilledButton.icon(
+            onPressed: () async {
+              final ok = await app.printOrderTicket(order);
+              if (!context.mounted) return;
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    ok
+                        ? 'Ticket sent to printer'
+                        : app.printerState.lastError ?? 'Print failed',
+                  ),
+                ),
+              );
+            },
+            icon: const Icon(Icons.print_outlined),
+            label: const Text('Print'),
+          ),
         ],
       ),
     );

@@ -7,6 +7,7 @@ import '../../core/constants/cloud_defaults.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../services/printer_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -196,6 +197,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
+            _PrinterSettingsCard(
+              state: app.printerState,
+              devices: app.pairedPrinters,
+              onAutoPrintChanged: app.setAutoPrintOrders,
+              onRefresh: _refreshPrinters,
+              onConnect: _connectPrinter,
+              onDisconnect: _disconnectPrinter,
+              onTestPrint: _testPrinter,
+            ),
             const SizedBox(height: 12),
             _DangerCard(onClear: _confirmClearData),
           ],
@@ -227,6 +237,60 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _updateDisplayScale(double value) async {
     final app = AppScope.of(context);
     await app.updateUiScale(value);
+  }
+
+  Future<void> _refreshPrinters() async {
+    final app = AppScope.of(context);
+    final printers = await app.refreshPairedPrinters();
+    if (!mounted) return;
+    final error = app.printerState.lastError;
+    final message =
+        error ??
+        (printers.isEmpty
+            ? 'No paired Bluetooth printers found'
+            : '${printers.length} paired printer found');
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
+  }
+
+  Future<void> _connectPrinter(BluetoothPrinterDevice printer) async {
+    final app = AppScope.of(context);
+    final ok = await app.connectPrinter(printer);
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok
+              ? 'Connected to ${printer.label}'
+              : app.printerState.lastError ?? 'Printer connection failed',
+        ),
+      ),
+    );
+  }
+
+  Future<void> _disconnectPrinter() async {
+    final app = AppScope.of(context);
+    final ok = await app.disconnectPrinter();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(ok ? 'Printer disconnected' : 'Disconnect failed'),
+      ),
+    );
+  }
+
+  Future<void> _testPrinter() async {
+    final app = AppScope.of(context);
+    final ok = await app.testPrinter();
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          ok ? 'Test ticket sent' : app.printerState.lastError ?? 'Test failed',
+        ),
+      ),
+    );
   }
 
   Future<void> _confirmClearData() async {
@@ -594,6 +658,222 @@ class _CloudSecretsNotice extends StatelessWidget {
                 ),
               ],
             ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrinterSettingsCard extends StatelessWidget {
+  const _PrinterSettingsCard({
+    required this.state,
+    required this.devices,
+    required this.onAutoPrintChanged,
+    required this.onRefresh,
+    required this.onConnect,
+    required this.onDisconnect,
+    required this.onTestPrint,
+  });
+
+  final PrinterRuntimeState state;
+  final List<BluetoothPrinterDevice> devices;
+  final ValueChanged<bool> onAutoPrintChanged;
+  final Future<void> Function() onRefresh;
+  final Future<void> Function(BluetoothPrinterDevice printer) onConnect;
+  final Future<void> Function() onDisconnect;
+  final Future<void> Function() onTestPrint;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: 'Receipt Printer',
+      subtitle: 'Deli ES421 Bluetooth ticket printing for new orders.',
+      icon: Icons.print_outlined,
+      children: [
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: state.connected
+                ? PosColors.success.withValues(alpha: 0.09)
+                : PosColors.mutedSoft,
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: state.connected
+                  ? PosColors.success.withValues(alpha: 0.24)
+                  : PosColors.line,
+            ),
+          ),
+          child: Row(
+            children: [
+              Icon(
+                state.connected
+                    ? Icons.print_rounded
+                    : Icons.print_disabled_outlined,
+                color: state.connected ? PosColors.success : PosColors.muted,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      state.selectedPrinterLabel,
+                      style: Theme.of(context).textTheme.titleMedium,
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      state.connected
+                          ? 'Connected. New orders will print automatically.'
+                          : 'Pair the ES421 in Android Bluetooth settings, then connect here.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        const SizedBox(height: 8),
+        SwitchListTile.adaptive(
+          value: state.autoPrintEnabled,
+          onChanged: state.busy ? null : onAutoPrintChanged,
+          contentPadding: EdgeInsets.zero,
+          title: const Text('Auto print new orders'),
+          subtitle: const Text(
+            'When a cloud/manual order reaches this admin device, the kitchen ticket prints automatically.',
+          ),
+        ),
+        if (state.lastError != null) ...[
+          const SizedBox(height: 8),
+          _PrinterErrorBanner(message: state.lastError!),
+        ],
+        const SizedBox(height: 10),
+        Wrap(
+          spacing: 8,
+          runSpacing: 8,
+          children: [
+            OutlinedButton.icon(
+              onPressed: state.busy ? null : onRefresh,
+              icon: const Icon(Icons.bluetooth_searching_rounded),
+              label: const Text('Refresh paired printers'),
+            ),
+            OutlinedButton.icon(
+              onPressed: state.busy || !state.hasSelectedPrinter
+                  ? null
+                  : onTestPrint,
+              icon: const Icon(Icons.receipt_long_outlined),
+              label: const Text('Test print'),
+            ),
+            if (state.connected)
+              OutlinedButton.icon(
+                onPressed: state.busy ? null : onDisconnect,
+                icon: const Icon(Icons.link_off_rounded),
+                label: const Text('Disconnect'),
+              ),
+          ],
+        ),
+        if (devices.isNotEmpty) ...[
+          const SizedBox(height: 12),
+          ...devices.map(
+            (printer) => _PrinterDeviceTile(
+              printer: printer,
+              selected: printer.address == state.selectedPrinterAddress,
+              busy: state.busy,
+              onConnect: () => onConnect(printer),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+}
+
+class _PrinterDeviceTile extends StatelessWidget {
+  const _PrinterDeviceTile({
+    required this.printer,
+    required this.selected,
+    required this.busy,
+    required this.onConnect,
+  });
+
+  final BluetoothPrinterDevice printer;
+  final bool selected;
+  final bool busy;
+  final Future<void> Function() onConnect;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: selected
+            ? PosColors.primary.withValues(alpha: 0.08)
+            : PosColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: selected
+              ? PosColors.primary.withValues(alpha: 0.24)
+              : PosColors.line,
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            selected ? Icons.check_circle_rounded : Icons.bluetooth_rounded,
+            color: selected ? PosColors.primary : PosColors.muted,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  printer.label,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  printer.address,
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
+              ],
+            ),
+          ),
+          FilledButton.tonal(
+            onPressed: busy ? null : onConnect,
+            child: Text(selected ? 'Reconnect' : 'Connect'),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _PrinterErrorBanner extends StatelessWidget {
+  const _PrinterErrorBanner({required this.message});
+
+  final String message;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: PosColors.danger.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: PosColors.danger.withValues(alpha: 0.22)),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Icon(Icons.error_outline_rounded, color: PosColors.danger),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
           ),
         ],
       ),

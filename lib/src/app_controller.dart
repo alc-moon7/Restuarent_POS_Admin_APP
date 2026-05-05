@@ -55,6 +55,8 @@ class PosAppController extends ChangeNotifier {
 
   final Uuid _uuid = const Uuid();
   final List<StreamSubscription<Object?>> _subscriptions = [];
+  final Set<String> _knownOrderIds = <String>{};
+  final Set<String> _autoPrintInFlight = <String>{};
 
   bool initialized = false;
   bool busy = false;
@@ -67,6 +69,12 @@ class PosAppController extends ChangeNotifier {
   List<MenuItem> menuItems = const [];
   List<OrderModel> orders = const [];
   List<SyncEvent> syncEvents = const [];
+  List<BluetoothPrinterDevice> pairedPrinters = const [];
+  PrinterRuntimeState printerState = const PrinterRuntimeState(
+    autoPrintEnabled: true,
+    connected: false,
+    busy: false,
+  );
   SyncRuntimeState syncState = const SyncRuntimeState(
     isSyncing: false,
     cloudConnected: false,
@@ -144,10 +152,18 @@ class PosAppController extends ChangeNotifier {
         autoSyncIntervalSeconds: preferences.getInt(_autoSyncIntervalKey) ?? 30,
       );
 
+      await printerService.initialize();
+      printerState = printerService.state;
       _subscriptions.add(
         database.changes.listen((_) {
-          unawaited(reloadData());
+          unawaited(_handleDatabaseChanged());
           unawaited(syncService.refreshSummary());
+        }),
+      );
+      _subscriptions.add(
+        printerService.stateStream.listen((state) {
+          printerState = state;
+          notifyListeners();
         }),
       );
       _subscriptions.add(
@@ -163,6 +179,9 @@ class PosAppController extends ChangeNotifier {
         serverConfig: serverConfig,
       );
       await reloadData();
+      _knownOrderIds
+        ..clear()
+        ..addAll(orders.map((order) => order.id));
       if (isTenantReady && cloudConfig.canSync) {
         unawaited(syncService.syncNow());
       }
@@ -284,6 +303,15 @@ class PosAppController extends ChangeNotifier {
     orders = await database.getOrders();
     syncEvents = await database.getSyncEvents(statuses: null, limit: 100);
     notifyListeners();
+  }
+
+  Future<void> _handleDatabaseChanged() async {
+    final previousOrderIds = Set<String>.from(_knownOrderIds);
+    await reloadData();
+    _knownOrderIds
+      ..clear()
+      ..addAll(orders.map((order) => order.id));
+    await _autoPrintNewOrders(previousOrderIds);
   }
 
   Future<bool> saveSettings({
@@ -458,7 +486,80 @@ class PosAppController extends ChangeNotifier {
   }
 
   Future<String> printTicketPreview(OrderModel order) {
-    return printerService.previewTicket(order);
+    return printerService.previewTicket(
+      order,
+      restaurantName: restaurantName,
+      outletName: outletName,
+    );
+  }
+
+  Future<List<BluetoothPrinterDevice>> refreshPairedPrinters() async {
+    pairedPrinters = await printerService.refreshPairedPrinters();
+    notifyListeners();
+    return pairedPrinters;
+  }
+
+  Future<bool> connectPrinter(BluetoothPrinterDevice printer) async {
+    final ok = await printerService.connect(printer);
+    printerState = printerService.state;
+    if (ok) {
+      await refreshPairedPrinters();
+    } else {
+      notifyListeners();
+    }
+    return ok;
+  }
+
+  Future<bool> disconnectPrinter() async {
+    final ok = await printerService.disconnect();
+    printerState = printerService.state;
+    notifyListeners();
+    return ok;
+  }
+
+  Future<void> setAutoPrintOrders(bool value) async {
+    await printerService.setAutoPrintEnabled(value);
+    printerState = printerService.state;
+    notifyListeners();
+  }
+
+  Future<bool> testPrinter() {
+    return printerService.testPrint(
+      restaurantName: restaurantName,
+      outletName: outletName,
+    );
+  }
+
+  Future<bool> printOrderTicket(OrderModel order) {
+    return printerService.printOrderTicket(
+      order,
+      restaurantName: restaurantName,
+      outletName: outletName,
+    );
+  }
+
+  Future<void> _autoPrintNewOrders(Set<String> previousOrderIds) async {
+    if (!printerState.autoPrintEnabled || !printerState.hasSelectedPrinter) {
+      return;
+    }
+    final newOrders =
+        orders
+            .where((order) {
+              return !previousOrderIds.contains(order.id) &&
+                  !printerService.hasPrintedOrder(order.id) &&
+                  !_autoPrintInFlight.contains(order.id);
+            })
+            .toList(growable: false)
+          ..sort((a, b) => a.createdAt.compareTo(b.createdAt));
+
+    for (final order in newOrders) {
+      _autoPrintInFlight.add(order.id);
+      try {
+        await printOrderTicket(order);
+      } finally {
+        _autoPrintInFlight.remove(order.id);
+      }
+    }
   }
 
   List<OrderModel> ordersFor({OrderStatus? status, OrderSource? source}) {
@@ -477,6 +578,7 @@ class PosAppController extends ChangeNotifier {
       unawaited(subscription.cancel());
     }
     unawaited(syncService.dispose());
+    unawaited(printerService.dispose());
     cloudApiService.close();
     unawaited(database.close());
     super.dispose();

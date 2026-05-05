@@ -28,6 +28,10 @@
 	<true/>
 	<key>NSPhotoLibraryUsageDescription</key>
 	<string>REs Admin lets you choose menu item photos from your gallery.</string>
+	<key>NSBluetoothAlwaysUsageDescription</key>
+	<string>REs Admin uses Bluetooth to connect 58mm thermal receipt printers.</string>
+	<key>NSBluetoothPeripheralUsageDescription</key>
+	<string>REs Admin uses Bluetooth to print restaurant order tickets.</string>
 	<key>UIApplicationSceneManifest</key>
 	<dict>
 		<key>UIApplicationSupportsMultipleScenes</key>
