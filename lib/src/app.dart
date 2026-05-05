@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 import 'app_controller.dart';
 import 'app_scope.dart';
+import 'core/localization/app_strings.dart';
 import 'core/theme/app_theme.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/menu/menu_management_screen.dart';
@@ -49,9 +51,19 @@ class _LocalPosAppState extends State<LocalPosApp> {
         animation: _controller,
         builder: (context, _) {
           final uiScale = _controller.uiScale;
+          final text = _controller.strings;
           return MaterialApp(
-            title: 'REs Admin',
+            title: text.appTitle,
             debugShowCheckedModeBanner: false,
+            locale: _controller.language.locale,
+            supportedLocales: AppLanguage.values
+                .map((language) => language.locale)
+                .toList(growable: false),
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
             theme: AppTheme.light().copyWith(
               visualDensity: _visualDensityFor(uiScale),
             ),
@@ -143,15 +155,6 @@ class MainShell extends StatefulWidget {
 class _MainShellState extends State<MainShell> {
   late int _selectedIndex;
 
-  static const List<_Destination> _destinations = [
-    _Destination('Dashboard', Icons.dashboard_outlined, Icons.dashboard),
-    _Destination('Menu', Icons.restaurant_menu_outlined, Icons.restaurant_menu),
-    _Destination('Orders', Icons.receipt_long_outlined, Icons.receipt_long),
-    _Destination('Reports', Icons.assessment_outlined, Icons.assessment),
-    _Destination('Sync', Icons.cloud_sync_outlined, Icons.cloud_done),
-    _Destination('Settings', Icons.tune_outlined, Icons.tune),
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -160,6 +163,8 @@ class _MainShellState extends State<MainShell> {
 
   @override
   Widget build(BuildContext context) {
+    final text = AppScope.of(context).strings;
+    final destinations = _destinations(text);
     final pages = [
       DashboardScreen(onNavigate: _setIndex),
       const MenuManagementScreen(),
@@ -176,7 +181,7 @@ class _MainShellState extends State<MainShell> {
           return Scaffold(
             body: IndexedStack(index: _selectedIndex, children: pages),
             bottomNavigationBar: _FloatingBottomNav(
-              destinations: _destinations,
+              destinations: destinations,
               selectedIndex: _selectedIndex,
               onChanged: _setIndex,
             ),
@@ -213,7 +218,7 @@ class _MainShellState extends State<MainShell> {
                     padding: const EdgeInsets.fromLTRB(12, 18, 12, 22),
                     child: _RailFooter(extended: extended),
                   ),
-                  destinations: _destinations
+                  destinations: destinations
                       .map((destination) {
                         return NavigationRailDestination(
                           icon: Icon(destination.icon),
@@ -237,6 +242,21 @@ class _MainShellState extends State<MainShell> {
   void _setIndex(int index) {
     setState(() => _selectedIndex = index);
   }
+
+  List<_Destination> _destinations(AppStrings text) {
+    return [
+      _Destination(text.dashboard, Icons.dashboard_outlined, Icons.dashboard),
+      _Destination(
+        text.menu,
+        Icons.restaurant_menu_outlined,
+        Icons.restaurant_menu,
+      ),
+      _Destination(text.orders, Icons.receipt_long_outlined, Icons.receipt_long),
+      _Destination(text.reports, Icons.assessment_outlined, Icons.assessment),
+      _Destination(text.sync, Icons.cloud_sync_outlined, Icons.cloud_done),
+      _Destination(text.settings, Icons.tune_outlined, Icons.tune),
+    ];
+  }
 }
 
 class _Destination {
@@ -254,6 +274,7 @@ class _RailLogo extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = AppScope.of(context).strings;
     final mark = Container(
       width: 46,
       height: 46,
@@ -280,22 +301,22 @@ class _RailLogo extends StatelessWidget {
       children: [
         mark,
         const SizedBox(width: 12),
-        const Column(
+        Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'REs Admin',
-              style: TextStyle(
+              text.appTitle,
+              style: const TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
                 fontSize: 16.5,
                 letterSpacing: 0,
               ),
             ),
-            SizedBox(height: 2),
+            const SizedBox(height: 2),
             Text(
-              'Cloud POS Suite',
-              style: TextStyle(
+              text.cloudSuite,
+              style: const TextStyle(
                 color: PosColors.muted,
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
@@ -455,6 +476,7 @@ class _RailFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final text = AppScope.of(context).strings;
     if (!extended) {
       return Container(
         padding: const EdgeInsets.all(8),
@@ -484,31 +506,31 @@ class _RailFooter extends StatelessWidget {
         borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
       ),
-      child: const Row(
+      child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.verified_user_outlined,
             color: PosColors.primary,
             size: 20,
           ),
-          SizedBox(width: 10),
+          const SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
-                  'Secure tenant',
-                  style: TextStyle(
+                  text.secureTenant,
+                  style: const TextStyle(
                     color: PosColors.primaryDark,
                     fontWeight: FontWeight.w900,
                     fontSize: 12.5,
                   ),
                 ),
-                SizedBox(height: 2),
+                const SizedBox(height: 2),
                 Text(
-                  'Token verified',
-                  style: TextStyle(
+                  text.tokenVerified,
+                  style: const TextStyle(
                     color: PosColors.muted,
                     fontWeight: FontWeight.w700,
                     fontSize: 10.5,

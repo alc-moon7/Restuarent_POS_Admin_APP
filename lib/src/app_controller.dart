@@ -6,6 +6,7 @@ import 'package:uuid/uuid.dart';
 
 import 'core/constants/cloud_defaults.dart';
 import 'core/constants/payment_defaults.dart';
+import 'core/localization/app_strings.dart';
 import 'models/bkash_payment_session.dart';
 import 'models/dashboard_metrics.dart';
 import 'models/menu_item.dart';
@@ -64,6 +65,7 @@ class PosAppController extends ChangeNotifier {
   bool bkashPaymentVerified = false;
   String? lastBkashPaymentId;
   String? lastBkashTransactionId;
+  AppLanguage language = AppLanguage.bn;
   double uiScale = 1.0;
   String? lastError;
   List<MenuItem> menuItems = const [];
@@ -99,14 +101,16 @@ class PosAppController extends ChangeNotifier {
 
   String get restaurantName => serverConfig.restaurantName;
   String get outletName => serverConfig.outletName;
+  AppStrings get strings => AppStrings.of(language);
   bool get requiresBkashPayment {
     return PaymentDefaults.requireBkashGate && !bkashPaymentVerified;
   }
 
   String get uiScaleLabel {
-    if (uiScale <= 0.94) return 'Compact';
-    if (uiScale >= 1.08) return 'Large';
-    return 'Comfortable';
+    final text = strings;
+    if (uiScale <= 0.94) return text.compact;
+    if (uiScale >= 1.08) return text.large;
+    return text.comfortable;
   }
 
   bool get isTenantReady {
@@ -127,6 +131,7 @@ class PosAppController extends ChangeNotifier {
           !PaymentDefaults.requireBkashGate;
       lastBkashPaymentId = preferences.getString(_bkashPaymentIdKey);
       lastBkashTransactionId = preferences.getString(_bkashTransactionIdKey);
+      language = AppLanguage.parse(preferences.getString(_languageKey));
       uiScale = (preferences.getDouble(_uiScaleKey) ?? 1.0)
           .clamp(minUiScale, maxUiScale)
           .toDouble();
@@ -251,14 +256,16 @@ class PosAppController extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<BkashPaymentSession> createBkashSandboxPayment() {
+  Future<BkashPaymentSession> createBkashSandboxPayment({
+    required double amount,
+  }) {
     cloudApiService.configure(
       cloudConfig: cloudConfig,
       serverConfig: serverConfig,
     );
     return cloudApiService.createBkashSandboxPayment(
       serverId: serverConfig.serverId,
-      amount: PaymentDefaults.sandboxAmount,
+      amount: amount,
     );
   }
 
@@ -480,6 +487,14 @@ class PosAppController extends ChangeNotifier {
     await preferences.setDouble(_uiScaleKey, uiScale);
   }
 
+  Future<void> updateLanguage(AppLanguage value) async {
+    if (language == value) return;
+    language = value;
+    notifyListeners();
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_languageKey, value.code);
+  }
+
   Future<void> clearLocalData() async {
     await database.clearLocalData();
     await reloadData();
@@ -613,6 +628,7 @@ class PosAppController extends ChangeNotifier {
     await preferences.setString(_cloudApiUrlKey, cloudConfig.baseUrl);
     await preferences.setBool(_cloudSyncEnabledKey, cloudConfig.enabled);
     await preferences.setString(_deviceTokenKey, cloudConfig.deviceToken);
+    await preferences.setString(_languageKey, language.code);
     await preferences.setDouble(_uiScaleKey, uiScale);
     await preferences.setInt(
       _autoSyncIntervalKey,
@@ -664,6 +680,7 @@ class PosAppController extends ChangeNotifier {
   static const String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
   static const String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
   static const String _uiScaleKey = 'local_pos_ui_scale';
+  static const String _languageKey = 'local_pos_language';
   static const String _bkashPaymentVerifiedKey =
       'local_pos_bkash_payment_verified';
   static const String _bkashPaymentIdKey = 'local_pos_bkash_payment_id';

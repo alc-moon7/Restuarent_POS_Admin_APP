@@ -30,6 +30,10 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
+    final text = app.strings;
+    if (_outletController.text == 'Main Outlet') {
+      _outletController.text = text.isBn ? 'প্রধান আউটলেট' : 'Main Outlet';
+    }
     return AnimatedBuilder(
       animation: app,
       builder: (context, _) {
@@ -79,7 +83,7 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                             CrossAxisAlignment.start,
                                         children: [
                                           Text(
-                                            'Create Restaurant Cloud',
+                                            text.createRestaurantCloud,
                                             style: Theme.of(context)
                                                 .textTheme
                                                 .displaySmall
@@ -94,17 +98,19 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                 ),
                                 const SizedBox(height: 16),
                                 Text(
-                                  'Set up this restaurant once. The app will create a private restaurant/outlet identity in the cloud automatically.',
+                                  text.setupRestaurantDescription,
                                   style: Theme.of(context).textTheme.bodyLarge,
                                 ),
                                 const SizedBox(height: 20),
                                 TextFormField(
                                   controller: _restaurantController,
                                   textInputAction: TextInputAction.next,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Restaurant name',
-                                    hintText: 'Example: Moon Bistro',
-                                    prefixIcon: Icon(Icons.restaurant_outlined),
+                                  decoration: InputDecoration(
+                                    labelText: text.restaurantName,
+                                    hintText: text.restaurantNameHint,
+                                    prefixIcon: const Icon(
+                                      Icons.restaurant_outlined,
+                                    ),
                                   ),
                                   validator: _required,
                                 ),
@@ -112,10 +118,12 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                 TextFormField(
                                   controller: _outletController,
                                   textInputAction: TextInputAction.done,
-                                  decoration: const InputDecoration(
-                                    labelText: 'Outlet name',
-                                    hintText: 'Example: Dhanmondi Branch',
-                                    prefixIcon: Icon(Icons.storefront_outlined),
+                                  decoration: InputDecoration(
+                                    labelText: text.outletName,
+                                    hintText: text.outletNameHint,
+                                    prefixIcon: const Icon(
+                                      Icons.storefront_outlined,
+                                    ),
                                   ),
                                   validator: _required,
                                   onFieldSubmitted: (_) => _submit(),
@@ -132,7 +140,7 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                 SizedBox(
                                   width: double.infinity,
                                   child: PrimaryButton(
-                                    label: 'Create Cloud Restaurant',
+                                    label: text.createRestaurantCloud,
                                     icon: Icons.cloud_done_outlined,
                                     busy: app.busy,
                                     onPressed: app.busy ? null : _submit,
@@ -167,12 +175,14 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
       return;
     }
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(app.lastError ?? 'Cloud setup failed')),
+      SnackBar(content: Text(app.lastError ?? app.strings.cloudSetupFailed)),
     );
   }
 
   String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) {
+      return AppScope.of(context).strings.requiredField;
+    }
     return null;
   }
 }

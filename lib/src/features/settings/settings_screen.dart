@@ -4,6 +4,7 @@ import 'package:flutter/services.dart';
 import '../../app_controller.dart';
 import '../../app_scope.dart';
 import '../../core/constants/cloud_defaults.dart';
+import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/primary_button.dart';
@@ -59,12 +60,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
+    final text = app.strings;
     return AppScaffold(
-      title: 'Settings',
-      subtitle: 'Restaurant profile, cloud identity, and sync settings.',
+      title: text.settings,
+      subtitle: text.settingsSubtitle,
       actions: [
         PrimaryButton(
-          label: 'Save',
+          label: text.save,
           icon: Icons.save_outlined,
           busy: app.busy,
           onPressed: _save,
@@ -78,6 +80,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             _DisplaySizeCard(
               value: _displayScale,
               label: app.uiScaleLabel,
+              text: text,
               onChanged: (value) => setState(() => _displayScale = value),
               onChangeEnd: _updateDisplayScale,
               onPreset: (value) {
@@ -85,26 +88,31 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 _updateDisplayScale(value);
               },
             ),
+            _LanguageCard(
+              selected: app.language,
+              text: text,
+              onChanged: app.updateLanguage,
+            ),
             _SectionCard(
-              title: 'Restaurant',
-              subtitle: 'Public identity for this outlet.',
+              title: text.restaurantSection,
+              subtitle: text.restaurantSubtitle,
               icon: Icons.storefront_outlined,
               children: [
                 _ResponsiveFields(
                   children: [
                     TextFormField(
                       controller: _restaurantController,
-                      decoration: const InputDecoration(
-                        labelText: 'Restaurant name',
-                        prefixIcon: Icon(Icons.restaurant_outlined),
+                      decoration: InputDecoration(
+                        labelText: text.restaurantName,
+                        prefixIcon: const Icon(Icons.restaurant_outlined),
                       ),
                       validator: _required,
                     ),
                     TextFormField(
                       controller: _outletController,
-                      decoration: const InputDecoration(
-                        labelText: 'Outlet name',
-                        prefixIcon: Icon(Icons.location_on_outlined),
+                      decoration: InputDecoration(
+                        labelText: text.outletName,
+                        prefixIcon: const Icon(Icons.location_on_outlined),
                       ),
                       validator: _required,
                     ),
@@ -116,20 +124,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     TextFormField(
                       controller: _restaurantIdController,
                       readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Restaurant ID',
-                        prefixIcon: Icon(Icons.badge_outlined),
-                        helperText: 'Created automatically by the cloud.',
+                      decoration: InputDecoration(
+                        labelText: text.restaurantId,
+                        prefixIcon: const Icon(Icons.badge_outlined),
+                        helperText: text.restaurantIdHelper,
                       ),
                       validator: _required,
                     ),
                     TextFormField(
                       controller: _outletIdController,
                       readOnly: true,
-                      decoration: const InputDecoration(
-                        labelText: 'Outlet ID',
-                        prefixIcon: Icon(Icons.pin_drop_outlined),
-                        helperText: 'Share this ID with the customer web app.',
+                      decoration: InputDecoration(
+                        labelText: text.outletId,
+                        prefixIcon: const Icon(Icons.pin_drop_outlined),
+                        helperText: text.outletIdHelper,
                       ),
                       validator: _required,
                     ),
@@ -138,19 +146,18 @@ class _SettingsScreenState extends State<SettingsScreen> {
               ],
             ),
             _SectionCard(
-              title: 'Cloud Sync',
-              subtitle: 'Cloud connection stays automatic for staff.',
+              title: text.cloudSync,
+              subtitle: text.cloudSyncSubtitle,
               icon: Icons.cloud_sync_outlined,
               children: [
                 TextFormField(
                   controller: _cloudUrlController,
-                  decoration: const InputDecoration(
-                    labelText: 'Cloud API URL override',
+                  decoration: InputDecoration(
+                    labelText: text.cloudApiUrlOverride,
                     hintText:
                         'https://project-ref.supabase.co/functions/v1/pos-api',
-                    prefixIcon: Icon(Icons.link),
-                    helperText:
-                        'Leave as default after the Supabase URL is built into the APK.',
+                    prefixIcon: const Icon(Icons.link),
+                    helperText: text.cloudApiUrlHelper,
                   ),
                 ),
                 const SizedBox(height: 10),
@@ -159,11 +166,10 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
                 if (!CloudDefaults.hasConfiguredBaseUrl) ...[
                   const SizedBox(height: 10),
-                  const _CloudSecretsNotice(
+                  _CloudSecretsNotice(
                     warning: true,
-                    title: 'Supabase URL not built in yet',
-                    message:
-                        'Build the APK with POS_CLOUD_API_URL so admins do not need to edit this field.',
+                    title: text.supabaseUrlMissing,
+                    message: text.supabaseUrlMissingMessage,
                   ),
                 ],
                 const SizedBox(height: 10),
@@ -171,15 +177,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   controller: _syncIntervalController,
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: const InputDecoration(
-                    labelText: 'Auto sync interval',
-                    hintText: 'Seconds',
-                    prefixIcon: Icon(Icons.timer_outlined),
+                  decoration: InputDecoration(
+                    labelText: text.autoSyncInterval,
+                    hintText: text.seconds,
+                    prefixIcon: const Icon(Icons.timer_outlined),
                   ),
                   validator: (value) {
                     final seconds = int.tryParse(value ?? '');
                     if (seconds == null || seconds < 10) {
-                      return 'Use at least 10 seconds';
+                      return text.minTenSeconds;
                     }
                     return null;
                   },
@@ -190,14 +196,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   onChanged: (value) =>
                       setState(() => _cloudSyncEnabled = value),
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Enable cloud sync'),
-                  subtitle: const Text(
-                    'Changes queue safely when the cloud is temporarily unavailable.',
-                  ),
+                  title: Text(text.enableCloudSync),
+                  subtitle: Text(text.cloudQueueSafe),
                 ),
               ],
             ),
             _PrinterSettingsCard(
+              text: text,
               state: app.printerState,
               devices: app.pairedPrinters,
               onAutoPrintChanged: app.setAutoPrintOrders,
@@ -207,7 +212,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
               onTestPrint: _testPrinter,
             ),
             const SizedBox(height: 12),
-            _DangerCard(onClear: _confirmClearData),
+            _DangerCard(text: text, onClear: _confirmClearData),
           ],
         ),
       ),
@@ -217,6 +222,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   Future<void> _save() async {
     if (!_formKey.currentState!.validate()) return;
     final app = AppScope.of(context);
+    final text = app.strings;
     final ok = await app.saveSettings(
       restaurantName: _restaurantController.text,
       outletName: _outletController.text,
@@ -229,7 +235,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? 'Settings saved' : app.lastError ?? 'Save failed'),
+        content: Text(ok ? text.settingsSaved : app.lastError ?? text.saveFailed),
       ),
     );
   }
@@ -241,14 +247,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _refreshPrinters() async {
     final app = AppScope.of(context);
+    final text = app.strings;
     final printers = await app.refreshPairedPrinters();
     if (!mounted) return;
     final error = app.printerState.lastError;
     final message =
         error ??
         (printers.isEmpty
-            ? 'No paired Bluetooth printers found'
-            : '${printers.length} paired printer found');
+            ? text.noPairedPrintersFound
+            : text.pairedPrinterFound(printers.length));
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
@@ -256,14 +263,15 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _connectPrinter(BluetoothPrinterDevice printer) async {
     final app = AppScope.of(context);
+    final text = app.strings;
     final ok = await app.connectPrinter(printer);
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           ok
-              ? 'Connected to ${printer.label}'
-              : app.printerState.lastError ?? 'Printer connection failed',
+              ? text.connectedTo(printer.label)
+              : app.printerState.lastError ?? text.printerConnectionFailed,
         ),
       ),
     );
@@ -271,23 +279,25 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _disconnectPrinter() async {
     final app = AppScope.of(context);
+    final text = app.strings;
     final ok = await app.disconnectPrinter();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? 'Printer disconnected' : 'Disconnect failed'),
+        content: Text(ok ? text.printerDisconnected : text.disconnectFailed),
       ),
     );
   }
 
   Future<void> _testPrinter() async {
     final app = AppScope.of(context);
+    final text = app.strings;
     final ok = await app.testPrinter();
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? 'Test ticket sent' : app.printerState.lastError ?? 'Test failed',
+          ok ? text.testTicketSent : app.printerState.lastError ?? text.testFailed,
         ),
       ),
     );
@@ -295,21 +305,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
 
   Future<void> _confirmClearData() async {
     final app = AppScope.of(context);
+    final text = app.strings;
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Clear cached data?'),
-        content: const Text(
-          'Orders, menu items, and sync events will be cleared from this device. No demo menu will be added again.',
-        ),
+        title: Text(text.clearCachedData),
+        content: Text(text.clearCachedDataMessage),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(text.cancel),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Clear Data'),
+            child: Text(text.clearData),
           ),
         ],
       ),
@@ -319,11 +328,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
     if (!mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Cached data cleared')));
+    ).showSnackBar(SnackBar(content: Text(text.cachedDataCleared)));
   }
 
   String? _required(String? value) {
-    if (value == null || value.trim().isEmpty) return 'Required';
+    if (value == null || value.trim().isEmpty) {
+      return AppScope.of(context).strings.requiredField;
+    }
     return null;
   }
 }
@@ -399,6 +410,7 @@ class _DisplaySizeCard extends StatelessWidget {
   const _DisplaySizeCard({
     required this.value,
     required this.label,
+    required this.text,
     required this.onChanged,
     required this.onChangeEnd,
     required this.onPreset,
@@ -406,6 +418,7 @@ class _DisplaySizeCard extends StatelessWidget {
 
   final double value;
   final String label;
+  final AppStrings text;
   final ValueChanged<double> onChanged;
   final ValueChanged<double> onChangeEnd;
   final ValueChanged<double> onPreset;
@@ -452,12 +465,12 @@ class _DisplaySizeCard extends StatelessWidget {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Text(
-                            'Display Size',
+                            text.displaySize,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
                           const SizedBox(height: 3),
                           Text(
-                            'Adjust the whole app for compact counters, tablets, or large text comfort.',
+                            text.displaySizeSubtitle,
                             style: Theme.of(context).textTheme.bodyMedium,
                           ),
                         ],
@@ -472,17 +485,17 @@ class _DisplaySizeCard extends StatelessWidget {
                   runSpacing: 8,
                   children: [
                     _PresetChip(
-                      label: 'Compact',
+                      label: text.compact,
                       selected: value <= 0.94,
                       onTap: () => onPreset(0.90),
                     ),
                     _PresetChip(
-                      label: 'Comfortable',
+                      label: text.comfortable,
                       selected: value > 0.94 && value < 1.08,
                       onTap: () => onPreset(1.0),
                     ),
                     _PresetChip(
-                      label: 'Large',
+                      label: text.large,
                       selected: value >= 1.08,
                       onTap: () => onPreset(1.12),
                     ),
@@ -519,6 +532,46 @@ class _DisplaySizeCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+class _LanguageCard extends StatelessWidget {
+  const _LanguageCard({
+    required this.selected,
+    required this.text,
+    required this.onChanged,
+  });
+
+  final AppLanguage selected;
+  final AppStrings text;
+  final ValueChanged<AppLanguage> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: text.languageLabel,
+      subtitle: text.languageSubtitle,
+      icon: Icons.translate_rounded,
+      children: [
+        SegmentedButton<AppLanguage>(
+          segments: [
+            ButtonSegment<AppLanguage>(
+              value: AppLanguage.bn,
+              label: Text(text.bangla),
+              icon: const Text('অ'),
+            ),
+            ButtonSegment<AppLanguage>(
+              value: AppLanguage.en,
+              label: Text(text.english),
+              icon: const Text('A'),
+            ),
+          ],
+          selected: {selected},
+          showSelectedIcon: true,
+          onSelectionChanged: (values) => onChanged(values.first),
+        ),
+      ],
     );
   }
 }
@@ -615,19 +668,21 @@ class _CloudSecretsNotice extends StatelessWidget {
   const _CloudSecretsNotice({
     this.hasDeviceToken = false,
     this.warning = false,
-    this.title = 'No manual API key required',
-    this.message =
-        'Supabase secrets stay inside the Edge Function. This app stores only its private restaurant device token.',
+    this.title,
+    this.message,
   });
 
   final bool hasDeviceToken;
   final bool warning;
-  final String title;
-  final String message;
+  final String? title;
+  final String? message;
 
   @override
   Widget build(BuildContext context) {
     final color = warning ? PosColors.warning : PosColors.success;
+    final text = AppScope.of(context).strings;
+    final resolvedTitle = title ?? text.noManualApiKey;
+    final resolvedMessage = message ?? text.noManualApiKeyMessage;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(12),
@@ -648,12 +703,15 @@ class _CloudSecretsNotice extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  resolvedTitle,
+                  style: Theme.of(context).textTheme.titleMedium,
+                ),
                 const SizedBox(height: 3),
                 Text(
                   hasDeviceToken
-                      ? 'This device is authorized for the current restaurant/outlet. The token is hidden and managed automatically.'
-                      : message,
+                      ? text.deviceAuthorized
+                      : resolvedMessage,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -667,6 +725,7 @@ class _CloudSecretsNotice extends StatelessWidget {
 
 class _PrinterSettingsCard extends StatelessWidget {
   const _PrinterSettingsCard({
+    required this.text,
     required this.state,
     required this.devices,
     required this.onAutoPrintChanged,
@@ -676,6 +735,7 @@ class _PrinterSettingsCard extends StatelessWidget {
     required this.onTestPrint,
   });
 
+  final AppStrings text;
   final PrinterRuntimeState state;
   final List<BluetoothPrinterDevice> devices;
   final ValueChanged<bool> onAutoPrintChanged;
@@ -687,8 +747,8 @@ class _PrinterSettingsCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return _SectionCard(
-      title: 'Receipt Printer',
-      subtitle: 'Deli ES421 Bluetooth ticket printing for new orders.',
+      title: text.receiptPrinter,
+      subtitle: text.receiptPrinterSubtitle,
       icon: Icons.print_outlined,
       children: [
         Container(
@@ -719,14 +779,16 @@ class _PrinterSettingsCard extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      state.selectedPrinterLabel,
+                      state.hasSelectedPrinter
+                          ? state.selectedPrinterLabel
+                          : text.noPrinterSelected,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                     const SizedBox(height: 2),
                     Text(
                       state.connected
-                          ? 'Connected. New orders will print automatically.'
-                          : 'Pair the ES421 in Android Bluetooth settings, then connect here.',
+                          ? text.printerConnectedAuto
+                          : text.pairPrinterInstruction,
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ],
@@ -740,10 +802,8 @@ class _PrinterSettingsCard extends StatelessWidget {
           value: state.autoPrintEnabled,
           onChanged: state.busy ? null : onAutoPrintChanged,
           contentPadding: EdgeInsets.zero,
-          title: const Text('Auto print new orders'),
-          subtitle: const Text(
-            'When a cloud/manual order reaches this admin device, the kitchen ticket prints automatically.',
-          ),
+          title: Text(text.autoPrintNewOrders),
+          subtitle: Text(text.autoPrintNewOrdersSubtitle),
         ),
         if (state.lastError != null) ...[
           const SizedBox(height: 8),
@@ -757,20 +817,20 @@ class _PrinterSettingsCard extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: state.busy ? null : onRefresh,
               icon: const Icon(Icons.bluetooth_searching_rounded),
-              label: const Text('Refresh paired printers'),
+              label: Text(text.refreshPairedPrinters),
             ),
             OutlinedButton.icon(
               onPressed: state.busy || !state.hasSelectedPrinter
                   ? null
                   : onTestPrint,
               icon: const Icon(Icons.receipt_long_outlined),
-              label: const Text('Test print'),
+              label: Text(text.testPrint),
             ),
             if (state.connected)
               OutlinedButton.icon(
                 onPressed: state.busy ? null : onDisconnect,
                 icon: const Icon(Icons.link_off_rounded),
-                label: const Text('Disconnect'),
+                label: Text(text.disconnect),
               ),
           ],
         ),
@@ -781,6 +841,7 @@ class _PrinterSettingsCard extends StatelessWidget {
               printer: printer,
               selected: printer.address == state.selectedPrinterAddress,
               busy: state.busy,
+              text: text,
               onConnect: () => onConnect(printer),
             ),
           ),
@@ -795,12 +856,14 @@ class _PrinterDeviceTile extends StatelessWidget {
     required this.printer,
     required this.selected,
     required this.busy,
+    required this.text,
     required this.onConnect,
   });
 
   final BluetoothPrinterDevice printer;
   final bool selected;
   final bool busy;
+  final AppStrings text;
   final Future<void> Function() onConnect;
 
   @override
@@ -844,7 +907,7 @@ class _PrinterDeviceTile extends StatelessWidget {
           ),
           FilledButton.tonal(
             onPressed: busy ? null : onConnect,
-            child: Text(selected ? 'Reconnect' : 'Connect'),
+            child: Text(selected ? text.reconnect : text.connect),
           ),
         ],
       ),
@@ -882,8 +945,9 @@ class _PrinterErrorBanner extends StatelessWidget {
 }
 
 class _DangerCard extends StatelessWidget {
-  const _DangerCard({required this.onClear});
+  const _DangerCard({required this.text, required this.onClear});
 
+  final AppStrings text;
   final VoidCallback onClear;
 
   @override
@@ -900,12 +964,12 @@ class _DangerCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'App cache',
+                    text.appCache,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Clear cached menu, orders, and sync queue from this device.',
+                    text.clearCacheSubtitle,
                     style: Theme.of(context).textTheme.bodyMedium,
                   ),
                 ],
@@ -914,7 +978,7 @@ class _DangerCard extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: onClear,
               icon: const Icon(Icons.delete_outline),
-              label: const Text('Clear cache'),
+              label: Text(text.clearCache),
             ),
           ],
         ),
