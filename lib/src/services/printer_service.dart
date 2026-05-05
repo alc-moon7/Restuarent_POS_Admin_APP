@@ -104,12 +104,16 @@ class PrinterService {
     _printedOrderIds
       ..clear()
       ..addAll(preferences.getStringList(_printedOrderIdsKey) ?? const []);
+    // Do not touch the Bluetooth plugin during app boot. Some Android devices
+    // wait on the native connection-status call until Bluetooth permission/state
+    // is ready, which can keep the splash screen open. We check live status only
+    // when the user opens printer actions or when printing.
     _emit(
       _state.copyWith(
         autoPrintEnabled: preferences.getBool(_autoPrintKey) ?? true,
         selectedPrinterName: preferences.getString(_printerNameKey),
         selectedPrinterAddress: preferences.getString(_printerAddressKey),
-        connected: await _readConnectionStatus(),
+        connected: false,
         clearLastError: true,
       ),
     );
@@ -443,7 +447,9 @@ class PrinterService {
 
   Future<bool> _readConnectionStatus() async {
     try {
-      return PrintBluetoothThermal.connectionStatus;
+      return await PrintBluetoothThermal.connectionStatus.timeout(
+        const Duration(milliseconds: 900),
+      );
     } catch (_) {
       return false;
     }
