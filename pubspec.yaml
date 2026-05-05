@@ -2,7 +2,7 @@ name: local_pos
 description: "Cloud Restaurant POS Admin app."
 publish_to: 'none'
 
-version: 1.1.4+4
+version: 1.1.5+5
 
 environment:
   sdk: ^3.11.5
