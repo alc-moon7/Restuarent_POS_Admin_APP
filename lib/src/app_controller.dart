@@ -258,6 +258,27 @@ class PosAppController extends ChangeNotifier {
     return ok && verified;
   }
 
+  Future<void> markTemporaryBkashPaymentVerified({
+    required String plan,
+    required double amount,
+  }) async {
+    final preferences = await SharedPreferences.getInstance();
+    final paymentId =
+        'temporary_${plan}_${DateTime.now().millisecondsSinceEpoch}';
+    bkashPaymentVerified = true;
+    lastBkashPaymentId = paymentId;
+    lastBkashTransactionId = 'temporary_bkash_sandbox';
+    hasSeenIntro = true;
+    await preferences.setBool(_bkashPaymentVerifiedKey, true);
+    await preferences.setString(_bkashPaymentIdKey, paymentId);
+    await preferences.setString(
+      _bkashTransactionIdKey,
+      'temporary_bkash_sandbox_${amount.toStringAsFixed(0)}',
+    );
+    await preferences.setBool(_seenIntroKey, true);
+    notifyListeners();
+  }
+
   Future<void> reloadData() async {
     menuItems = await database.getMenuItems();
     orders = await database.getOrders();

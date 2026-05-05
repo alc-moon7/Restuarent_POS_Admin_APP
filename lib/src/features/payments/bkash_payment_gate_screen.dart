@@ -1,12 +1,11 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
 import '../../app_scope.dart';
 import '../../core/constants/payment_defaults.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/primary_button.dart';
-import '../../models/bkash_payment_session.dart';
 
 class BkashPaymentGateScreen extends StatefulWidget {
   const BkashPaymentGateScreen({required this.onVerified, super.key});
@@ -18,585 +17,237 @@ class BkashPaymentGateScreen extends StatefulWidget {
 }
 
 class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
-  final NumberFormat _currency = NumberFormat.currency(
-    symbol: '৳',
-    decimalDigits: 2,
-  );
-
-  BkashPaymentSession? _session;
   WebViewController? _webViewController;
-  bool _creating = false;
-  bool _verifying = false;
-  bool _callbackSeen = false;
-  String? _error;
+  _Plan? _selectedPlan;
+  bool _isCompletingPayment = false;
 
   @override
   Widget build(BuildContext context) {
-    final app = AppScope.of(context);
-    final amount = PaymentDefaults.sandboxAmount;
+    final controller = _webViewController;
+    if (controller != null) {
+      return _BkashCheckoutPopup(controller: controller);
+    }
+
     return Scaffold(
-      backgroundColor: PosColors.background,
+      backgroundColor: Colors.white,
       body: SafeArea(
-        child: Stack(
-          children: [
-            const _PaymentWash(),
-            Center(
-              child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 980),
-                child: Padding(
-                  padding: const EdgeInsets.all(18),
-                  child: LayoutBuilder(
-                    builder: (context, constraints) {
-                      final wide = constraints.maxWidth >= 820;
-                      final intro = _ActivationCard(
-                        amount: _currency.format(amount),
-                        creating: _creating,
-                        verifying: _verifying || app.busy,
-                        paymentId: _session?.paymentId,
-                        error: _error,
-                        onCreatePayment: _createPayment,
-                        onVerify: _session == null
-                            ? null
-                            : () => _verifyPayment(_session!.paymentId),
-                      );
-                      final checkout = _CheckoutPanel(
-                        controller: _webViewController,
-                        callbackSeen: _callbackSeen,
-                      );
-                      if (!wide) {
-                        return Column(
-                          children: [
-                            intro,
-                            const SizedBox(height: 12),
-                            Expanded(child: checkout),
-                          ],
-                        );
-                      }
-                      return Row(
-                        children: [
-                          Expanded(flex: 4, child: intro),
-                          const SizedBox(width: 14),
-                          Expanded(flex: 6, child: checkout),
-                        ],
-                      );
-                    },
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Future<void> _createPayment() async {
-    if (_creating || _verifying) return;
-    final app = AppScope.of(context);
-    setState(() {
-      _creating = true;
-      _error = null;
-      _callbackSeen = false;
-    });
-    try {
-      final session = await app.createBkashSandboxPayment();
-      final controller = WebViewController()
-        ..setJavaScriptMode(JavaScriptMode.unrestricted)
-        ..setNavigationDelegate(
-          NavigationDelegate(
-            onNavigationRequest: (request) {
-              if (_isCallbackUrl(request.url)) {
-                _callbackSeen = true;
-              }
-              return NavigationDecision.navigate;
-            },
-            onPageFinished: (url) {
-              if (_isCallbackUrl(url)) {
-                _callbackSeen = true;
-                _verifyPayment(session.paymentId);
-              }
-            },
-            onWebResourceError: (error) {
-              if (!mounted) return;
-              setState(() {
-                _error =
-                    'bKash checkout could not load. Check internet and try again.';
-              });
-            },
-          ),
-        )
-        ..loadRequest(Uri.parse(session.checkoutUrl));
-      if (!mounted) return;
-      setState(() {
-        _session = session;
-        _webViewController = controller;
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _creating = false);
-    }
-  }
-
-  Future<void> _verifyPayment(String paymentId) async {
-    if (_verifying) return;
-    final app = AppScope.of(context);
-    setState(() {
-      _verifying = true;
-      _error = null;
-    });
-    try {
-      final ok = await app.verifyBkashSandboxPayment(paymentId);
-      if (!mounted) return;
-      if (ok) {
-        widget.onVerified();
-        return;
-      }
-      setState(() {
-        _error = app.lastError ?? 'Payment is not completed yet.';
-      });
-    } catch (error) {
-      if (!mounted) return;
-      setState(() => _error = error.toString());
-    } finally {
-      if (mounted) setState(() => _verifying = false);
-    }
-  }
-
-  bool _isCallbackUrl(String url) {
-    final uri = Uri.tryParse(url);
-    return uri != null && uri.path.contains('/payments/bkash/callback');
-  }
-}
-
-class _ActivationCard extends StatelessWidget {
-  const _ActivationCard({
-    required this.amount,
-    required this.creating,
-    required this.verifying,
-    required this.paymentId,
-    required this.error,
-    required this.onCreatePayment,
-    required this.onVerify,
-  });
-
-  final String amount;
-  final bool creating;
-  final bool verifying;
-  final String? paymentId;
-  final String? error;
-  final VoidCallback onCreatePayment;
-  final VoidCallback? onVerify;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: PosGradients.cardTint(const Color(0xFFE2136E)),
-              ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.all(22),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 64,
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE2136E),
-                    borderRadius: BorderRadius.circular(PosRadii.lg),
-                    boxShadow: [
-                      BoxShadow(
-                        color: const Color(0xFFE2136E).withValues(alpha: 0.30),
-                        blurRadius: 24,
-                        offset: const Offset(0, 12),
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 420),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      _BrandAssetLogo(
+                        assetPath: 'assets/brand/terabyte_ai.png',
+                        size: 112,
+                      ),
+                      SizedBox(width: 18),
+                      _BrandAssetLogo(
+                        assetPath: 'assets/brand/bkash.png',
+                        size: 112,
                       ),
                     ],
                   ),
-                  child: const Icon(
-                    Icons.account_balance_wallet_rounded,
-                    color: Colors.white,
-                    size: 31,
+                  const SizedBox(height: 30),
+                  Text(
+                    'To use this App Pay with Bkash',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: PosColors.slate,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 18),
-                const _SandboxBadge(),
-                const SizedBox(height: 14),
-                Text(
-                  'Activate your\nrestaurant admin.',
-                  style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                    fontSize: 31,
-                    height: 1.08,
+                  const SizedBox(height: 20),
+                  _PlanButton(
+                    title: 'Monthly',
+                    amount: '৳800',
+                    onTap: () => _openCheckout(_Plan.monthly),
                   ),
-                ),
-                const SizedBox(height: 10),
-                Text(
-                  'Complete the bKash sandbox checkout first. After successful verification, restaurant setup will open automatically.',
-                  style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    color: PosColors.muted,
-                    height: 1.5,
+                  const SizedBox(height: 12),
+                  _PlanButton(
+                    title: 'Annual',
+                    amount: '৳9600',
+                    onTap: () => _openCheckout(_Plan.annual),
                   ),
-                ),
-                const SizedBox(height: 16),
-                _AmountCard(amount: amount),
-                const SizedBox(height: 10),
-                const _SandboxTestCard(),
-                if (paymentId != null) ...[
-                  const SizedBox(height: 10),
-                  _PaymentIdCard(paymentId: paymentId!),
                 ],
-                if (error != null) ...[
-                  const SizedBox(height: 10),
-                  _InlineError(message: error!),
-                ],
-                const SizedBox(height: 16),
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    label: paymentId == null
-                        ? 'Pay with bKash Sandbox'
-                        : 'Create New Payment',
-                    icon: Icons.payment_rounded,
-                    busy: creating,
-                    onPressed: creating || verifying ? null : onCreatePayment,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                SizedBox(
-                  width: double.infinity,
-                  child: PrimaryButton(
-                    label: 'Verify Payment',
-                    icon: Icons.verified_rounded,
-                    secondary: true,
-                    busy: verifying,
-                    onPressed: verifying ? null : onVerify,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CheckoutPanel extends StatelessWidget {
-  const _CheckoutPanel({required this.controller, required this.callbackSeen});
-
-  final WebViewController? controller;
-  final bool callbackSeen;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Column(
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
-            decoration: const BoxDecoration(
-              color: PosColors.surface,
-              border: Border(bottom: BorderSide(color: PosColors.line)),
-            ),
-            child: Row(
-              children: [
-                Icon(
-                  callbackSeen ? Icons.verified_rounded : Icons.shield_outlined,
-                  color: callbackSeen ? PosColors.success : PosColors.primary,
-                  size: 20,
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    callbackSeen
-                        ? 'bKash callback received'
-                        : 'Secure sandbox checkout',
-                    style: Theme.of(context).textTheme.titleMedium,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Expanded(
-            child: controller == null
-                ? const _CheckoutPlaceholder()
-                : WebViewWidget(controller: controller!),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _CheckoutPlaceholder extends StatelessWidget {
-  const _CheckoutPlaceholder();
-
-  @override
-  Widget build(BuildContext context) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(22),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: PosColors.primarySoft,
-                borderRadius: BorderRadius.circular(PosRadii.xl),
-              ),
-              child: const Icon(
-                Icons.lock_outline_rounded,
-                color: PosColors.primary,
-                size: 34,
               ),
             ),
-            const SizedBox(height: 14),
-            Text(
-              'Checkout will appear here',
-              style: Theme.of(context).textTheme.titleLarge,
-            ),
-            const SizedBox(height: 6),
-            Text(
-              'Tap Pay with bKash Sandbox to open the test checkout securely.',
-              textAlign: TextAlign.center,
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-          ],
+          ),
         ),
       ),
     );
   }
+
+  void _openCheckout(_Plan plan) {
+    _selectedPlan = plan;
+    final controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onNavigationRequest: _handleNavigationRequest,
+          onPageFinished: _completeIfSuccessful,
+        ),
+      )
+      ..loadRequest(Uri.parse(PaymentDefaults.temporaryBkashCheckoutUrl));
+    setState(() => _webViewController = controller);
+  }
+
+  NavigationDecision _handleNavigationRequest(NavigationRequest request) {
+    if (_isSuccessfulCallback(request.url)) {
+      unawaited(_completePayment());
+      return NavigationDecision.prevent;
+    }
+    return NavigationDecision.navigate;
+  }
+
+  Future<void> _completeIfSuccessful(String url) async {
+    if (!_isSuccessfulCallback(url)) return;
+    await _completePayment();
+  }
+
+  bool _isSuccessfulCallback(String url) {
+    final uri = Uri.tryParse(url);
+    final status = uri?.queryParameters['status']?.toLowerCase();
+    return status == 'success';
+  }
+
+  Future<void> _completePayment() async {
+    if (_isCompletingPayment) return;
+    _isCompletingPayment = true;
+    final plan = _selectedPlan ?? _Plan.monthly;
+    final app = AppScope.of(context);
+    await app.markTemporaryBkashPaymentVerified(
+      plan: plan.name,
+      amount: plan.amount,
+    );
+    if (!mounted) return;
+    widget.onVerified();
+  }
 }
 
-class _SandboxBadge extends StatelessWidget {
-  const _SandboxBadge();
+class _BkashCheckoutPopup extends StatelessWidget {
+  const _BkashCheckoutPopup({required this.controller});
+
+  final WebViewController controller;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE2136E).withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(
-          color: const Color(0xFFE2136E).withValues(alpha: 0.22),
-        ),
-      ),
-      child: const Text(
-        'BKASH SANDBOX',
-        style: TextStyle(
-          color: Color(0xFFE2136E),
-          fontSize: 10.6,
-          fontWeight: FontWeight.w900,
-          letterSpacing: 1.1,
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F5F0),
+      body: SafeArea(
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final horizontalMargin = constraints.maxWidth < 420 ? 12.0 : 24.0;
+            final verticalMargin = constraints.maxHeight < 720 ? 12.0 : 24.0;
+            return Center(
+              child: Container(
+                width: constraints.maxWidth - (horizontalMargin * 2),
+                height: constraints.maxHeight - (verticalMargin * 2),
+                constraints: const BoxConstraints(
+                  maxWidth: 520,
+                  maxHeight: 760,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(24),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.16),
+                      blurRadius: 30,
+                      offset: const Offset(0, 18),
+                    ),
+                  ],
+                ),
+                clipBehavior: Clip.antiAlias,
+                child: WebViewWidget(controller: controller),
+              ),
+            );
+          },
         ),
       ),
     );
   }
 }
 
-class _AmountCard extends StatelessWidget {
-  const _AmountCard({required this.amount});
+enum _Plan {
+  monthly(PaymentDefaults.monthlyPlanAmount),
+  annual(PaymentDefaults.annualPlanAmount);
 
+  const _Plan(this.amount);
+  final double amount;
+}
+
+class _PlanButton extends StatelessWidget {
+  const _PlanButton({
+    required this.title,
+    required this.amount,
+    required this.onTap,
+  });
+
+  final String title;
   final String amount;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: PosColors.surface,
-        borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(color: PosColors.line),
-      ),
-      child: Row(
-        children: [
-          const Icon(Icons.payments_rounded, color: PosColors.primary),
-          const SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              'Sandbox activation fee',
-              style: Theme.of(context).textTheme.titleMedium,
-            ),
-          ),
-          Text(
-            amount,
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(color: PosColors.primaryDark),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _SandboxTestCard extends StatelessWidget {
-  const _SandboxTestCard();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: const Color(0xFFE2136E).withValues(alpha: 0.07),
-        borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(
-          color: const Color(0xFFE2136E).withValues(alpha: 0.18),
-        ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            'Sandbox test values',
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              color: const Color(0xFFE2136E),
-            ),
-          ),
-          const SizedBox(height: 8),
-          const _TestValueRow(
-            label: 'Wallet',
-            value: PaymentDefaults.bkashSandboxWallet,
-          ),
-          const _TestValueRow(
-            label: 'OTP',
-            value: PaymentDefaults.bkashSandboxOtp,
-          ),
-          const _TestValueRow(
-            label: 'PIN',
-            value: PaymentDefaults.bkashSandboxPin,
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _TestValueRow extends StatelessWidget {
-  const _TestValueRow({required this.label, required this.value});
-
-  final String label;
-  final String value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(top: 3),
-      child: Row(
-        children: [
-          SizedBox(
-            width: 58,
-            child: Text(
-              label,
-              style: const TextStyle(
-                color: PosColors.muted,
-                fontSize: 12,
-                fontWeight: FontWeight.w800,
+    return Material(
+      color: const Color(0xFFE2136E),
+      borderRadius: BorderRadius.circular(18),
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontSize: 17,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
               ),
-            ),
-          ),
-          Text(
-            value,
-            style: const TextStyle(
-              color: PosColors.slate,
-              fontSize: 12.5,
-              fontWeight: FontWeight.w900,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-class _PaymentIdCard extends StatelessWidget {
-  const _PaymentIdCard({required this.paymentId});
-
-  final String paymentId;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: PosColors.mutedSoft,
-        borderRadius: BorderRadius.circular(PosRadii.md),
-      ),
-      child: Text(
-        'Payment ID: $paymentId',
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: const TextStyle(
-          color: PosColors.slate,
-          fontSize: 12,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _InlineError extends StatelessWidget {
-  const _InlineError({required this.message});
-
-  final String message;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: PosColors.danger.withValues(alpha: 0.09),
-        borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(color: PosColors.danger.withValues(alpha: 0.22)),
-      ),
-      child: Text(
-        message,
-        style: const TextStyle(
-          color: PosColors.danger,
-          fontSize: 12.4,
-          fontWeight: FontWeight.w700,
-        ),
-      ),
-    );
-  }
-}
-
-class _PaymentWash extends StatelessWidget {
-  const _PaymentWash();
-
-  @override
-  Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              const Color(0xFFE2136E).withValues(alpha: 0.08),
-              PosColors.primarySoft,
-              PosColors.background,
+              Text(
+                amount,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
             ],
           ),
         ),
-        child: const SizedBox.expand(),
+      ),
+    );
+  }
+}
+
+class _BrandAssetLogo extends StatelessWidget {
+  const _BrandAssetLogo({required this.assetPath, required this.size});
+
+  final String assetPath;
+  final double size;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: Image.asset(
+        assetPath,
+        width: size,
+        height: size,
+        fit: BoxFit.cover,
       ),
     );
   }
