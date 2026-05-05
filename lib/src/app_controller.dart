@@ -5,6 +5,8 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:uuid/uuid.dart';
 
 import 'core/constants/cloud_defaults.dart';
+import 'core/constants/payment_defaults.dart';
+import 'models/bkash_payment_session.dart';
 import 'models/dashboard_metrics.dart';
 import 'models/menu_item.dart';
 import 'models/order_item.dart';
@@ -57,6 +59,9 @@ class PosAppController extends ChangeNotifier {
   bool initialized = false;
   bool busy = false;
   bool hasSeenIntro = false;
+  bool bkashPaymentVerified = false;
+  String? lastBkashPaymentId;
+  String? lastBkashTransactionId;
   double uiScale = 1.0;
   String? lastError;
   List<MenuItem> menuItems = const [];
@@ -86,6 +91,10 @@ class PosAppController extends ChangeNotifier {
 
   String get restaurantName => serverConfig.restaurantName;
   String get outletName => serverConfig.outletName;
+  bool get requiresBkashPayment {
+    return PaymentDefaults.requireBkashGate && !bkashPaymentVerified;
+  }
+
   String get uiScaleLabel {
     if (uiScale <= 0.94) return 'Compact';
     if (uiScale >= 1.08) return 'Large';
@@ -105,6 +114,11 @@ class PosAppController extends ChangeNotifier {
     try {
       final preferences = await SharedPreferences.getInstance();
       hasSeenIntro = preferences.getBool(_seenIntroKey) ?? false;
+      bkashPaymentVerified =
+          preferences.getBool(_bkashPaymentVerifiedKey) ??
+          !PaymentDefaults.requireBkashGate;
+      lastBkashPaymentId = preferences.getString(_bkashPaymentIdKey);
+      lastBkashTransactionId = preferences.getString(_bkashTransactionIdKey);
       uiScale = (preferences.getDouble(_uiScaleKey) ?? 1.0)
           .clamp(minUiScale, maxUiScale)
           .toDouble();
@@ -216,6 +230,32 @@ class PosAppController extends ChangeNotifier {
     await preferences.setBool(_seenIntroKey, true);
     hasSeenIntro = true;
     notifyListeners();
+  }
+
+  Future<BkashPaymentSession> createBkashSandboxPayment() {
+    cloudApiService.configure(
+      cloudConfig: cloudConfig,
+      serverConfig: serverConfig,
+    );
+    return cloudApiService.createBkashSandboxPayment(
+      serverId: serverConfig.serverId,
+      amount: PaymentDefaults.sandboxAmount,
+    );
+  }
+
+  Future<bool> verifyBkashSandboxPayment(String paymentId) async {
+    var verified = false;
+    final ok = await _runBusy(() async {
+      final session = await cloudApiService.verifyBkashPayment(paymentId);
+      verified = session.paid;
+      if (!verified) {
+        throw CloudApiException(
+          session.lastError ?? 'bKash payment is not completed yet.',
+        );
+      }
+      await _persistBkashPayment(session);
+    });
+    return ok && verified;
   }
 
   Future<void> reloadData() async {
@@ -457,6 +497,22 @@ class PosAppController extends ChangeNotifier {
     );
   }
 
+  Future<void> _persistBkashPayment(BkashPaymentSession session) async {
+    final preferences = await SharedPreferences.getInstance();
+    bkashPaymentVerified = true;
+    lastBkashPaymentId = session.paymentId;
+    lastBkashTransactionId = session.transactionId;
+    hasSeenIntro = true;
+    await preferences.setBool(_bkashPaymentVerifiedKey, true);
+    await preferences.setString(_bkashPaymentIdKey, session.paymentId);
+    await preferences.setBool(_seenIntroKey, true);
+    final transactionId = session.transactionId?.trim();
+    if (transactionId != null && transactionId.isNotEmpty) {
+      await preferences.setString(_bkashTransactionIdKey, transactionId);
+    }
+    notifyListeners();
+  }
+
   Future<String> _getOrCreatePreference(
     SharedPreferences preferences,
     String key,
@@ -485,6 +541,10 @@ class PosAppController extends ChangeNotifier {
   static const String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
   static const String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
   static const String _uiScaleKey = 'local_pos_ui_scale';
+  static const String _bkashPaymentVerifiedKey =
+      'local_pos_bkash_payment_verified';
+  static const String _bkashPaymentIdKey = 'local_pos_bkash_payment_id';
+  static const String _bkashTransactionIdKey = 'local_pos_bkash_transaction_id';
   static const double minUiScale = 0.86;
   static const double maxUiScale = 1.16;
 }

@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../core/constants/cloud_defaults.dart';
+import '../models/bkash_payment_session.dart';
 import '../models/menu_item.dart';
 import '../models/order_model.dart';
 import '../models/order_status.dart';
@@ -160,6 +161,47 @@ class CloudApiService {
       idempotencyKey: 'tenant-bootstrap-$serverId',
     );
     return TenantBootstrapResult.fromJson(response);
+  }
+
+  Future<BkashPaymentSession> createBkashSandboxPayment({
+    required String serverId,
+    required double amount,
+  }) async {
+    final uri = _uri('/payments/bkash/create');
+    if (uri == null) {
+      throw const CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    final response = await _sendJson(
+      'POST',
+      uri,
+      body: {
+        'serverId': serverId,
+        'amount': amount,
+        'currency': 'BDT',
+        'purpose': 'admin_activation',
+      },
+      idempotencyKey:
+          'bkash-activation-$serverId-${DateTime.now().millisecondsSinceEpoch}',
+    );
+    return BkashPaymentSession.fromJson(response);
+  }
+
+  Future<BkashPaymentSession> verifyBkashPayment(String paymentId) async {
+    final uri = _uri('/payments/bkash/$paymentId/verify');
+    if (uri == null) {
+      throw const CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    final response = await _sendJson('POST', uri);
+    return BkashPaymentSession.fromJson(response);
+  }
+
+  Future<BkashPaymentSession> getBkashPaymentStatus(String paymentId) async {
+    final uri = _uri('/payments/bkash/$paymentId/status');
+    if (uri == null) {
+      throw const CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    final response = await _sendJson('GET', uri);
+    return BkashPaymentSession.fromJson(response);
   }
 
   Future<Map<String, Object?>> registerDevice() async {

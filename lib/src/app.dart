@@ -6,6 +6,7 @@ import 'core/theme/app_theme.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/menu/menu_management_screen.dart';
 import 'features/orders/orders_screen.dart';
+import 'features/payments/bkash_payment_gate_screen.dart';
 import 'features/reports/reports_screen.dart';
 import 'features/setup/tenant_setup_screen.dart';
 import 'features/settings/settings_screen.dart';
@@ -91,6 +92,16 @@ class _LocalPosAppState extends State<LocalPosApp> {
             _showSplash = false;
             _showIntro = !_controller.hasSeenIntro;
             _initialShellIndex = _showIntro ? 5 : 0;
+          });
+        },
+      );
+    }
+    if (_controller.requiresBkashPayment) {
+      return BkashPaymentGateScreen(
+        onVerified: () {
+          setState(() {
+            _showIntro = false;
+            _initialShellIndex = 0;
           });
         },
       );

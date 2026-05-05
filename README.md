@@ -6,10 +6,18 @@ management through Supabase Edge Functions.
 ## Multi-Restaurant Flow
 
 This APK is built for selling to many restaurants. On first launch, each
-restaurant enters only its restaurant and outlet name. The app calls
-`POST /tenants/bootstrap`, creates a separate cloud restaurant/outlet identity,
-and stores a private device token internally. Restaurant owners do not manually
-paste Supabase keys, API keys, IP addresses, or ports.
+restaurant first completes the bKash sandbox activation gate. After the backend
+verifies the payment, the restaurant enters only its restaurant and outlet name.
+The app calls `POST /tenants/bootstrap`, creates a separate cloud
+restaurant/outlet identity, and stores a private device token internally.
+Restaurant owners do not manually paste Supabase keys, API keys, IP addresses,
+or ports.
+
+First launch flow:
+
+```txt
+Splash -> bKash Sandbox Payment -> Restaurant Setup -> Dashboard
+```
 
 ## Run
 
@@ -51,6 +59,19 @@ flutter build apk --release \
   --dart-define=POS_CLOUD_SYNC_ENABLED=true
 ```
 
+For internal testing without the bKash gate:
+
+```sh
+flutter run --dart-define=POS_REQUIRE_BKASH_GATE=false
+```
+
+To change the sandbox activation amount at build time:
+
+```sh
+flutter build apk --release \
+  --dart-define=POS_BKASH_SANDBOX_AMOUNT=10
+```
+
 The app reads Supabase Realtime config from `GET /health`, so no manual Device
 token/API key is required in Settings. The private device token is issued by the
 backend during the first restaurant setup.
@@ -68,6 +89,30 @@ First-run setup endpoint:
 ```txt
 POST /tenants/bootstrap
 ```
+
+bKash sandbox payment endpoints are handled by the same Supabase Edge Function:
+
+```txt
+POST /payments/bkash/create
+GET /payments/bkash/:paymentId/status
+POST /payments/bkash/:paymentId/verify
+GET /payments/bkash/callback
+```
+
+bKash app key, app secret, username, and password must be configured as
+Supabase Function secrets in the backend repo. They are not stored in the APK.
+
+Sandbox checkout test values:
+
+```txt
+Wallet: 01770618575
+OTP: 123456
+PIN: 12121
+```
+
+Do not hardcode a generated bKash checkout URL in the app. Each activation
+payment must receive a fresh `bkashURL` from the backend after merchant sandbox
+credentials are configured.
 
 Menu images selected from the Admin gallery are uploaded to Supabase Storage and
 saved as public HTTPS URLs on menu items, so customer web menus can render them
