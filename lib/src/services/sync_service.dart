@@ -16,7 +16,7 @@ import 'connectivity_service.dart';
 import 'local_database_service.dart';
 
 class SyncLogEntry {
-  const SyncLogEntry({
+  SyncLogEntry({
     required this.message,
     required this.createdAt,
     this.isError = false,
@@ -28,7 +28,7 @@ class SyncLogEntry {
 }
 
 class SyncRuntimeState {
-  const SyncRuntimeState({
+  SyncRuntimeState({
     required this.isSyncing,
     required this.cloudConnected,
     required this.pendingCount,
@@ -99,14 +99,14 @@ class SyncService {
   );
   bool _online = false;
   DateTime? _lastCloudPullAt;
-  ServerConfig _serverConfig = const ServerConfig(
+  ServerConfig _serverConfig = ServerConfig(
     serverId: '',
     restaurantId: '',
     outletId: '',
     restaurantName: '',
     outletName: '',
   );
-  SyncRuntimeState _state = const SyncRuntimeState(
+  SyncRuntimeState _state = SyncRuntimeState(
     isSyncing: false,
     cloudConnected: false,
     pendingCount: 0,
@@ -304,7 +304,7 @@ class SyncService {
       case 'order_status':
         final status = OrderStatus.tryParse(payload['status']?.toString());
         if (status == null) {
-          throw const CloudApiException('Order status payload is invalid.');
+          throw CloudApiException('Order status payload is invalid.');
         }
         await _cloudApi.pushOrderStatus(event.entityId, status);
         return;
@@ -359,7 +359,7 @@ class SyncService {
       }
     }
 
-    _lastCloudPullAt = DateTime.now().subtract(const Duration(seconds: 2));
+    _lastCloudPullAt = DateTime.now().subtract(Duration(seconds: 2));
     return imported;
   }
 
@@ -434,7 +434,7 @@ class SyncService {
               .whereType<Map>()
               .map((item) => OrderItem.fromMap(Map<String, Object?>.from(item)))
               .toList(growable: false)
-        : const <OrderItem>[];
+        : <OrderItem>[];
     final now = DateTime.now().toIso8601String();
     final normalized = Map<String, Object?>.from(payload);
     normalized['orderNo'] ??= 'WEB-${normalized['id'] ?? now.hashCode}';

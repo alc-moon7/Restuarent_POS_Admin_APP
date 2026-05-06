@@ -4,7 +4,7 @@ import 'order_status.dart';
 import 'sync_status.dart';
 
 class OrderModel {
-  const OrderModel({
+  OrderModel({
     required this.id,
     required this.orderNo,
     required this.status,

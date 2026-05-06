@@ -38,13 +38,13 @@ class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
       body: SafeArea(
         child: Center(
           child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(horizontal: 22, vertical: 18),
+            padding: EdgeInsets.symmetric(horizontal: 22, vertical: 18),
             child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 420),
+              constraints: BoxConstraints(maxWidth: 420),
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  const Row(
+                  Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       _BrandAssetLogo(
@@ -58,7 +58,7 @@ class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
                       ),
                     ],
                   ),
-                  const SizedBox(height: 30),
+                  SizedBox(height: 30),
                   Text(
                     text.payWithBkash,
                     textAlign: TextAlign.center,
@@ -68,7 +68,7 @@ class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
                       color: PosColors.slate,
                     ),
                   ),
-                  const SizedBox(height: 20),
+                  SizedBox(height: 20),
                   _PlanButton(
                     title: text.monthly,
                     amount: '৳800',
@@ -76,7 +76,7 @@ class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
                     disabled: _creatingSession,
                     onTap: () => _openCheckout(_Plan.monthly),
                   ),
-                  const SizedBox(height: 12),
+                  SizedBox(height: 12),
                   _PlanButton(
                     title: text.annual,
                     amount: '৳9600',
@@ -85,7 +85,7 @@ class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
                     onTap: () => _openCheckout(_Plan.annual),
                   ),
                   if (_error != null) ...[
-                    const SizedBox(height: 14),
+                    SizedBox(height: 14),
                     _PaymentError(message: _error!),
                   ],
                 ],
@@ -191,7 +191,7 @@ class _BkashPaymentGateScreenState extends State<BkashPaymentGateScreen> {
         amount: plan.amount,
       );
     } else {
-      await Future<void>.delayed(const Duration(milliseconds: 900));
+      await Future<void>.delayed(Duration(milliseconds: 900));
       final verified = await app.verifyBkashSandboxPayment(paymentId);
       if (!verified) {
         if (!mounted) return;
@@ -216,7 +216,7 @@ class _BkashCheckoutPopup extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF8F5F0),
+      backgroundColor: Color(0xFFF8F5F0),
       body: SafeArea(
         child: LayoutBuilder(
           builder: (context, constraints) {
@@ -226,10 +226,7 @@ class _BkashCheckoutPopup extends StatelessWidget {
               child: Container(
                 width: constraints.maxWidth - (horizontalMargin * 2),
                 height: constraints.maxHeight - (verticalMargin * 2),
-                constraints: const BoxConstraints(
-                  maxWidth: 520,
-                  maxHeight: 760,
-                ),
+                constraints: BoxConstraints(maxWidth: 520, maxHeight: 760),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(24),
@@ -237,7 +234,7 @@ class _BkashCheckoutPopup extends StatelessWidget {
                     BoxShadow(
                       color: Colors.black.withValues(alpha: 0.16),
                       blurRadius: 30,
-                      offset: const Offset(0, 18),
+                      offset: Offset(0, 18),
                     ),
                   ],
                 ),
@@ -275,10 +272,10 @@ class _DemoBkashPaymentDialog extends StatelessWidget {
       _Plan.annual => text.annual,
     };
     return Dialog(
-      insetPadding: const EdgeInsets.symmetric(horizontal: 18, vertical: 24),
+      insetPadding: EdgeInsets.symmetric(horizontal: 18, vertical: 24),
       backgroundColor: Colors.transparent,
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 390),
+        constraints: BoxConstraints(maxWidth: 390),
         child: DecoratedBox(
           decoration: BoxDecoration(
             color: Colors.white,
@@ -287,20 +284,17 @@ class _DemoBkashPaymentDialog extends StatelessWidget {
               BoxShadow(
                 color: Colors.black.withValues(alpha: 0.18),
                 blurRadius: 32,
-                offset: const Offset(0, 18),
+                offset: Offset(0, 18),
               ),
             ],
           ),
           child: Padding(
-            padding: const EdgeInsets.fromLTRB(22, 22, 22, 18),
+            padding: EdgeInsets.fromLTRB(22, 22, 22, 18),
             child: Column(
               mainAxisSize: MainAxisSize.min,
               children: [
-                const _BrandAssetLogo(
-                  assetPath: 'assets/brand/bkash.png',
-                  size: 74,
-                ),
-                const SizedBox(height: 16),
+                _BrandAssetLogo(assetPath: 'assets/brand/bkash.png', size: 74),
+                SizedBox(height: 16),
                 Text(
                   text.bkashDemoPayment,
                   textAlign: TextAlign.center,
@@ -309,17 +303,17 @@ class _DemoBkashPaymentDialog extends StatelessWidget {
                     color: PosColors.slate,
                   ),
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Text(
                   text.planLine(planTitle, plan.displayAmount),
                   textAlign: TextAlign.center,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Color(0xFFE2136E),
                     fontWeight: FontWeight.w900,
                     fontSize: 15,
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 _DemoValueRow(
                   label: text.wallet,
                   value: PaymentDefaults.bkashSandboxWallet,
@@ -332,14 +326,14 @@ class _DemoBkashPaymentDialog extends StatelessWidget {
                   label: text.pin,
                   value: PaymentDefaults.bkashSandboxPin,
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton(
                     style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFFE2136E),
+                      backgroundColor: Color(0xFFE2136E),
                       foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      padding: EdgeInsets.symmetric(vertical: 14),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(16),
                       ),
@@ -347,11 +341,11 @@ class _DemoBkashPaymentDialog extends StatelessWidget {
                     onPressed: () => Navigator.pop(context, true),
                     child: Text(
                       text.completeDemoPayment,
-                      style: const TextStyle(fontWeight: FontWeight.w900),
+                      style: TextStyle(fontWeight: FontWeight.w900),
                     ),
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 TextButton(
                   onPressed: () => Navigator.pop(context, false),
                   child: Text(text.cancel),
@@ -374,8 +368,8 @@ class _DemoValueRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.symmetric(horizontal: 12, vertical: 10),
       decoration: BoxDecoration(
         color: PosColors.mutedSoft,
         borderRadius: BorderRadius.circular(14),
@@ -387,7 +381,7 @@ class _DemoValueRow extends StatelessWidget {
             width: 72,
             child: Text(
               label,
-              style: const TextStyle(
+              style: TextStyle(
                 color: PosColors.muted,
                 fontWeight: FontWeight.w800,
               ),
@@ -397,7 +391,7 @@ class _DemoValueRow extends StatelessWidget {
             child: Text(
               value,
               textAlign: TextAlign.right,
-              style: const TextStyle(
+              style: TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
                 fontSize: 15,
@@ -428,20 +422,20 @@ class _PlanButton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: const Color(0xFFE2136E),
+      color: Color(0xFFE2136E),
       borderRadius: BorderRadius.circular(18),
       child: InkWell(
         onTap: disabled ? null : onTap,
         borderRadius: BorderRadius.circular(18),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+          padding: EdgeInsets.symmetric(horizontal: 18, vertical: 16),
           child: Row(
             children: [
               Expanded(
                 child: Text(
                   title,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 17,
                     fontWeight: FontWeight.w900,
@@ -449,7 +443,7 @@ class _PlanButton extends StatelessWidget {
                 ),
               ),
               if (busy)
-                const SizedBox(
+                SizedBox(
                   width: 18,
                   height: 18,
                   child: CircularProgressIndicator(
@@ -460,7 +454,7 @@ class _PlanButton extends StatelessWidget {
               else
                 Text(
                   amount,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w900,
@@ -483,7 +477,7 @@ class _PaymentError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: PosColors.danger.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
@@ -492,7 +486,7 @@ class _PaymentError extends StatelessWidget {
       child: Text(
         message,
         textAlign: TextAlign.center,
-        style: const TextStyle(
+        style: TextStyle(
           color: PosColors.danger,
           fontWeight: FontWeight.w800,
           fontSize: 12.5,

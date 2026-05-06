@@ -10,6 +10,9 @@ class AppScaffold extends StatelessWidget {
     this.subtitle,
     this.actions = const [],
     this.floatingActionButton,
+    this.showDatePill = true,
+    this.showBackButton = false,
+    this.pinHeader = false,
     super.key,
   });
 
@@ -18,6 +21,9 @@ class AppScaffold extends StatelessWidget {
   final Widget child;
   final List<Widget> actions;
   final Widget? floatingActionButton;
+  final bool showDatePill;
+  final bool showBackButton;
+  final bool pinHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -26,39 +32,81 @@ class AppScaffold extends StatelessWidget {
       backgroundColor: PosColors.background,
       floatingActionButton: floatingActionButton,
       body: SafeArea(
-        child: Stack(
-          children: [
-            const _TopWash(),
-            CustomScrollView(
-              slivers: [
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    _horizontalPadding(context),
-                    18 * spacingScale,
-                    _horizontalPadding(context),
-                    14 * spacingScale,
+        child: pinHeader
+            ? Stack(
+                children: [
+                  _TopWash(),
+                  Column(
+                    children: [
+                      Padding(
+                        padding: EdgeInsets.fromLTRB(
+                          _horizontalPadding(context),
+                          18 * spacingScale,
+                          _horizontalPadding(context),
+                          14 * spacingScale,
+                        ),
+                        child: _Header(
+                          title: title,
+                          subtitle: subtitle,
+                          actions: actions,
+                          showDatePill: showDatePill,
+                          showBackButton: showBackButton,
+                        ),
+                      ),
+                      Expanded(
+                        child: CustomScrollView(
+                          slivers: [
+                            SliverPadding(
+                              padding: EdgeInsets.fromLTRB(
+                                _horizontalPadding(context),
+                                0,
+                                _horizontalPadding(context),
+                                24 * spacingScale,
+                              ),
+                              sliver: SliverToBoxAdapter(child: child),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
                   ),
-                  sliver: SliverToBoxAdapter(
-                    child: _Header(
-                      title: title,
-                      subtitle: subtitle,
-                      actions: actions,
-                    ),
+                ],
+              )
+            : Stack(
+                children: [
+                  _TopWash(),
+                  CustomScrollView(
+                    slivers: [
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          _horizontalPadding(context),
+                          18 * spacingScale,
+                          _horizontalPadding(context),
+                          14 * spacingScale,
+                        ),
+                        sliver: SliverToBoxAdapter(
+                          child: _Header(
+                            title: title,
+                            subtitle: subtitle,
+                            actions: actions,
+                            showDatePill: showDatePill,
+                            showBackButton: showBackButton,
+                          ),
+                        ),
+                      ),
+                      SliverPadding(
+                        padding: EdgeInsets.fromLTRB(
+                          _horizontalPadding(context),
+                          0,
+                          _horizontalPadding(context),
+                          24 * spacingScale,
+                        ),
+                        sliver: SliverToBoxAdapter(child: child),
+                      ),
+                    ],
                   ),
-                ),
-                SliverPadding(
-                  padding: EdgeInsets.fromLTRB(
-                    _horizontalPadding(context),
-                    0,
-                    _horizontalPadding(context),
-                    24 * spacingScale,
-                  ),
-                  sliver: SliverToBoxAdapter(child: child),
-                ),
-              ],
-            ),
-          ],
-        ),
+                ],
+              ),
       ),
     );
   }
@@ -95,11 +143,19 @@ class _TopWash extends StatelessWidget {
 }
 
 class _Header extends StatelessWidget {
-  const _Header({required this.title, required this.actions, this.subtitle});
+  const _Header({
+    required this.title,
+    required this.actions,
+    required this.showDatePill,
+    required this.showBackButton,
+    this.subtitle,
+  });
 
   final String title;
   final String? subtitle;
   final List<Widget> actions;
+  final bool showDatePill;
+  final bool showBackButton;
 
   @override
   Widget build(BuildContext context) {
@@ -111,11 +167,13 @@ class _Header extends StatelessWidget {
         final titleColumn = Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _DatePill(label: dateLabel),
-            const SizedBox(height: 12),
+            if (showDatePill) ...[
+              _DatePill(label: dateLabel),
+              SizedBox(height: 12),
+            ],
             Text(title, style: textTheme.headlineMedium),
             if (subtitle != null) ...[
-              const SizedBox(height: 6),
+              SizedBox(height: 6),
               Text(
                 subtitle!,
                 style: textTheme.bodyMedium?.copyWith(
@@ -125,13 +183,34 @@ class _Header extends StatelessWidget {
             ],
           ],
         );
-        if (actions.isEmpty) return titleColumn;
+        final titleArea = showBackButton
+            ? Row(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  Padding(
+                    padding: EdgeInsets.only(right: 8),
+                    child: SizedBox(
+                      width: 40,
+                      height: 40,
+                      child: IconButton(
+                        tooltip: 'Back',
+                        padding: EdgeInsets.zero,
+                        icon: Icon(Icons.arrow_back_rounded),
+                        onPressed: () => Navigator.of(context).maybePop(),
+                      ),
+                    ),
+                  ),
+                  Expanded(child: titleColumn),
+                ],
+              )
+            : titleColumn;
+        if (actions.isEmpty) return titleArea;
         if (compact) {
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              titleColumn,
-              const SizedBox(height: 12),
+              titleArea,
+              SizedBox(height: 12),
               Wrap(spacing: 8, runSpacing: 8, children: actions),
             ],
           );
@@ -139,8 +218,8 @@ class _Header extends StatelessWidget {
         return Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: titleColumn),
-            const SizedBox(width: 12),
+            Expanded(child: titleArea),
+            SizedBox(width: 12),
             Wrap(spacing: 8, runSpacing: 8, children: actions),
           ],
         );
@@ -175,14 +254,14 @@ class _DatePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.pill),
         border: Border.all(color: PosColors.line),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x0A0F2A1F),
+            color: Color(0x4A000000),
             blurRadius: 8,
             offset: Offset(0, 3),
           ),
@@ -194,22 +273,22 @@ class _DatePill extends StatelessWidget {
           Container(
             width: 8,
             height: 8,
-            decoration: const BoxDecoration(
+            decoration: BoxDecoration(
               color: PosColors.primary,
               shape: BoxShape.circle,
               boxShadow: [
                 BoxShadow(
-                  color: Color(0x66008C76),
+                  color: Color(0x88FFC107),
                   blurRadius: 8,
                   spreadRadius: 1,
                 ),
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: PosColors.slate,
               fontSize: 11.5,
               fontWeight: FontWeight.w900,

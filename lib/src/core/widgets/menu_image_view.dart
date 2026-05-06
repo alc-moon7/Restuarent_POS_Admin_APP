@@ -6,11 +6,7 @@ import 'package:flutter/material.dart';
 import '../theme/app_theme.dart';
 
 class MenuImageView extends StatelessWidget {
-  const MenuImageView({
-    required this.imageUrl,
-    this.fit = BoxFit.cover,
-    super.key,
-  });
+  const MenuImageView({required this.imageUrl, this.fit = BoxFit.cover, super.key});
 
   final String? imageUrl;
   final BoxFit fit;
@@ -18,21 +14,21 @@ class MenuImageView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final image = imageUrl?.trim();
-    if (image == null || image.isEmpty) return const _ImagePlaceholder();
+    if (image == null || image.isEmpty) return _ImagePlaceholder();
 
     final data = _tryDecodeDataUrl(image);
     if (data != null) {
       return Image.memory(
         data,
         fit: fit,
-        errorBuilder: (context, error, stackTrace) => const _BrokenImage(),
+        errorBuilder: (context, error, stackTrace) => _BrokenImage(),
       );
     }
 
     return Image.network(
       image,
       fit: fit,
-      errorBuilder: (context, error, stackTrace) => const _BrokenImage(),
+      errorBuilder: (context, error, stackTrace) => _BrokenImage(),
     );
   }
 
@@ -57,11 +53,7 @@ class _ImagePlaceholder extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: PosColors.primary.withValues(alpha: 0.08),
-      child: const Icon(
-        Icons.restaurant_menu,
-        color: PosColors.primary,
-        size: 28,
-      ),
+      child: Icon(Icons.restaurant_menu, color: PosColors.primary, size: 28),
     );
   }
 }
@@ -73,7 +65,7 @@ class _BrokenImage extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       color: PosColors.primary.withValues(alpha: 0.08),
-      child: const Icon(Icons.broken_image_outlined, color: PosColors.muted),
+      child: Icon(Icons.broken_image_outlined, color: PosColors.muted),
     );
   }
 }

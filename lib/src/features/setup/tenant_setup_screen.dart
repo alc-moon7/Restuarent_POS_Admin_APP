@@ -42,16 +42,16 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
           body: SafeArea(
             child: Stack(
               children: [
-                const _SetupWash(),
+                _SetupWash(),
                 Center(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.all(20),
+                    padding: EdgeInsets.all(20),
                     child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 620),
+                      constraints: BoxConstraints(maxWidth: 620),
                       child: Card(
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
-                          padding: const EdgeInsets.all(24),
+                          padding: EdgeInsets.all(24),
                           child: Form(
                             key: _formKey,
                             child: Column(
@@ -70,13 +70,13 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                         ),
                                         boxShadow: PosShadows.glow,
                                       ),
-                                      child: const Icon(
+                                      child: Icon(
                                         Icons.verified_rounded,
                                         color: Colors.white,
                                         size: 32,
                                       ),
                                     ),
-                                    const SizedBox(width: 16),
+                                    SizedBox(width: 16),
                                     Expanded(
                                       child: Column(
                                         crossAxisAlignment:
@@ -89,54 +89,50 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                                                 .displaySmall
                                                 ?.copyWith(fontSize: 26),
                                           ),
-                                          const SizedBox(height: 6),
-                                          const _SetupBadge(),
+                                          SizedBox(height: 6),
+                                          _SetupBadge(),
                                         ],
                                       ),
                                     ),
                                   ],
                                 ),
-                                const SizedBox(height: 16),
+                                SizedBox(height: 16),
                                 Text(
                                   text.setupRestaurantDescription,
                                   style: Theme.of(context).textTheme.bodyLarge,
                                 ),
-                                const SizedBox(height: 20),
+                                SizedBox(height: 20),
                                 TextFormField(
                                   controller: _restaurantController,
                                   textInputAction: TextInputAction.next,
                                   decoration: InputDecoration(
                                     labelText: text.restaurantName,
                                     hintText: text.restaurantNameHint,
-                                    prefixIcon: const Icon(
-                                      Icons.restaurant_outlined,
-                                    ),
+                                    prefixIcon: Icon(Icons.restaurant_outlined),
                                   ),
                                   validator: _required,
                                 ),
-                                const SizedBox(height: 12),
+                                SizedBox(height: 12),
                                 TextFormField(
                                   controller: _outletController,
                                   textInputAction: TextInputAction.done,
                                   decoration: InputDecoration(
                                     labelText: text.outletName,
                                     hintText: text.outletNameHint,
-                                    prefixIcon: const Icon(
-                                      Icons.storefront_outlined,
-                                    ),
+                                    prefixIcon: Icon(Icons.storefront_outlined),
                                   ),
                                   validator: _required,
                                   onFieldSubmitted: (_) => _submit(),
                                 ),
-                                const SizedBox(height: 14),
+                                SizedBox(height: 14),
                                 _SecurityNotice(
                                   hasToken: app.cloudConfig.hasDeviceToken,
                                 ),
                                 if (app.lastError != null) ...[
-                                  const SizedBox(height: 12),
+                                  SizedBox(height: 12),
                                   _InlineError(message: app.lastError!),
                                 ],
-                                const SizedBox(height: 18),
+                                SizedBox(height: 18),
                                 SizedBox(
                                   width: double.infinity,
                                   child: PrimaryButton(
@@ -208,7 +204,7 @@ class _SetupWash extends StatelessWidget {
                   ],
                 ),
               ),
-              child: const SizedBox.expand(),
+              child: SizedBox.expand(),
             ),
           ),
           Positioned(
@@ -257,13 +253,13 @@ class _SetupBadge extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
       decoration: BoxDecoration(
         color: PosColors.primarySoft,
         borderRadius: BorderRadius.circular(PosRadii.pill),
         border: Border.all(color: PosColors.line),
       ),
-      child: const Row(
+      child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(Icons.lock_clock_rounded, size: 12, color: PosColors.primary),
@@ -292,7 +288,7 @@ class _SecurityNotice extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: PosColors.success.withValues(alpha: 0.1),
         border: Border.all(color: PosColors.success.withValues(alpha: 0.25)),
@@ -301,8 +297,8 @@ class _SecurityNotice extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.lock_outline, color: PosColors.success),
-          const SizedBox(width: 10),
+          Icon(Icons.lock_outline, color: PosColors.success),
+          SizedBox(width: 10),
           Expanded(
             child: Text(
               hasToken
@@ -326,7 +322,7 @@ class _InlineError extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: PosColors.danger.withValues(alpha: 0.08),
         border: Border.all(color: PosColors.danger.withValues(alpha: 0.25)),

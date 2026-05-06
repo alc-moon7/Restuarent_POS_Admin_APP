@@ -35,7 +35,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
       onEnter: (_) => setState(() => _hovering = true),
       onExit: (_) => setState(() => _hovering = false),
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
+        duration: Duration(milliseconds: 180),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(PosRadii.lg),
           boxShadow: _hovering ? PosShadows.raised : PosShadows.card,
@@ -51,7 +51,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
             ),
           ),
           child: Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -64,7 +64,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                       children: [
                         AnimatedScale(
                           scale: _hovering ? 1.04 : 1.0,
-                          duration: const Duration(milliseconds: 320),
+                          duration: Duration(milliseconds: 320),
                           curve: Curves.easeOut,
                           child: ColorFiltered(
                             colorFilter: ColorFilter.mode(
@@ -114,7 +114,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                               borderRadius: BorderRadius.circular(
                                 PosRadii.pill,
                               ),
-                              boxShadow: const [
+                              boxShadow: [
                                 BoxShadow(
                                   color: Color(0x1A0F2A1F),
                                   blurRadius: 10,
@@ -123,13 +123,13 @@ class _MenuItemCardState extends State<MenuItemCard> {
                               ],
                             ),
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                 horizontal: 12,
                                 vertical: 7,
                               ),
                               child: Text(
                                 currency.format(widget.item.price),
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: PosColors.primaryDark,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 12.5,
@@ -143,7 +143,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                     ),
                   ),
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 Text(
                   widget.item.name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
@@ -154,14 +154,14 @@ class _MenuItemCardState extends State<MenuItemCard> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 Text(
                   widget.item.description,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Wrap(
                   spacing: 6,
                   runSpacing: 6,
@@ -183,10 +183,10 @@ class _MenuItemCardState extends State<MenuItemCard> {
                     ),
                   ],
                 ),
-                const Spacer(),
-                const SizedBox(height: 10),
-                const Divider(height: 1),
-                const SizedBox(height: 6),
+                Spacer(),
+                SizedBox(height: 10),
+                Divider(height: 1),
+                SizedBox(height: 6),
                 Row(
                   children: [
                     Expanded(
@@ -213,7 +213,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                       onPressed: widget.onEdit,
                       color: PosColors.primary,
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     _IconAction(
                       icon: Icons.delete_outline,
                       tooltip: 'Delete menu item',
@@ -255,7 +255,7 @@ class _IconAction extends StatelessWidget {
           onTap: onPressed,
           borderRadius: BorderRadius.circular(PosRadii.sm),
           child: Padding(
-            padding: const EdgeInsets.all(8),
+            padding: EdgeInsets.all(8),
             child: Icon(icon, color: color, size: 19),
           ),
         ),
@@ -273,7 +273,7 @@ class _SmallPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: PosColors.surfaceTinted,
         borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -283,10 +283,10 @@ class _SmallPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 13, color: PosColors.muted),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: PosColors.slateSoft,
               fontWeight: FontWeight.w700,
               fontSize: 11,

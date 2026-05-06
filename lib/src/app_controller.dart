@@ -24,6 +24,25 @@ import 'services/local_database_service.dart';
 import 'services/printer_service.dart';
 import 'services/sync_service.dart';
 
+enum AppThemePreference {
+  black('black'),
+  white('white'),
+  device('device');
+
+  const AppThemePreference(this.code);
+  final String code;
+
+  static AppThemePreference parse(String? value) {
+    final normalized = value?.trim().toLowerCase();
+    for (final mode in AppThemePreference.values) {
+      if (mode.code == normalized || mode.name == normalized) {
+        return mode;
+      }
+    }
+    return AppThemePreference.black;
+  }
+}
+
 class PosAppController extends ChangeNotifier {
   PosAppController({
     LocalDatabaseService? database,
@@ -54,7 +73,7 @@ class PosAppController extends ChangeNotifier {
   final ConnectivityService connectivityService;
   late final SyncService syncService;
 
-  final Uuid _uuid = const Uuid();
+  final Uuid _uuid = Uuid();
   final List<StreamSubscription<Object?>> _subscriptions = [];
   final Set<String> _knownOrderIds = <String>{};
   final Set<String> _autoPrintInFlight = <String>{};
@@ -66,18 +85,19 @@ class PosAppController extends ChangeNotifier {
   String? lastBkashPaymentId;
   String? lastBkashTransactionId;
   AppLanguage language = AppLanguage.bn;
-  double uiScale = 1.0;
+  AppThemePreference themePreference = AppThemePreference.black;
+  double uiScale = 0.9;
   String? lastError;
-  List<MenuItem> menuItems = const [];
-  List<OrderModel> orders = const [];
-  List<SyncEvent> syncEvents = const [];
-  List<BluetoothPrinterDevice> pairedPrinters = const [];
-  PrinterRuntimeState printerState = const PrinterRuntimeState(
+  List<MenuItem> menuItems = [];
+  List<OrderModel> orders = [];
+  List<SyncEvent> syncEvents = [];
+  List<BluetoothPrinterDevice> pairedPrinters = [];
+  PrinterRuntimeState printerState = PrinterRuntimeState(
     autoPrintEnabled: true,
     connected: false,
     busy: false,
   );
-  SyncRuntimeState syncState = const SyncRuntimeState(
+  SyncRuntimeState syncState = SyncRuntimeState(
     isSyncing: false,
     cloudConnected: false,
     pendingCount: 0,
@@ -85,7 +105,7 @@ class PosAppController extends ChangeNotifier {
     logs: [],
   );
 
-  ServerConfig serverConfig = const ServerConfig(
+  ServerConfig serverConfig = ServerConfig(
     serverId: '',
     restaurantId: '',
     outletId: '',
@@ -108,8 +128,8 @@ class PosAppController extends ChangeNotifier {
 
   String get uiScaleLabel {
     final text = strings;
-    if (uiScale <= 0.94) return text.compact;
-    if (uiScale >= 1.08) return text.large;
+    if (uiScale <= 0.88) return text.compact;
+    if (uiScale >= 0.98) return text.large;
     return text.comfortable;
   }
 
@@ -132,7 +152,10 @@ class PosAppController extends ChangeNotifier {
       lastBkashPaymentId = preferences.getString(_bkashPaymentIdKey);
       lastBkashTransactionId = preferences.getString(_bkashTransactionIdKey);
       language = AppLanguage.parse(preferences.getString(_languageKey));
-      uiScale = (preferences.getDouble(_uiScaleKey) ?? 1.0)
+      themePreference = AppThemePreference.parse(
+        preferences.getString(_themePreferenceKey),
+      );
+      uiScale = (preferences.getDouble(_uiScaleKey) ?? 0.9)
           .clamp(minUiScale, maxUiScale)
           .toDouble();
       serverConfig = ServerConfig(
@@ -209,8 +232,8 @@ class PosAppController extends ChangeNotifier {
         })
         .toList(growable: false);
     final todayStart = DateTime(now.year, now.month, now.day);
-    final sevenDayStart = todayStart.subtract(const Duration(days: 6));
-    final thirtyDayStart = todayStart.subtract(const Duration(days: 29));
+    final sevenDayStart = todayStart.subtract(Duration(days: 6));
+    final thirtyDayStart = todayStart.subtract(Duration(days: 29));
 
     return DashboardMetrics(
       todayOrders: todaysOrders.length,
@@ -478,6 +501,43 @@ class PosAppController extends ChangeNotifier {
     return _runBusy(syncService.retryFailed);
   }
 
+  Future<bool> pushRestaurantInfo({
+    required String title,
+    required String phone,
+    required String email,
+    required String address,
+    required String website,
+    required String description,
+  }) async {
+    return _runBusy(() async {
+      final payload = <String, Object?>{
+        'serverId': serverConfig.serverId,
+        'restaurantId': serverConfig.restaurantId,
+        'outletId': serverConfig.outletId,
+        'restaurantName': serverConfig.restaurantName,
+        'outletName': serverConfig.outletName,
+        'infoTitle': title.trim(),
+        'phone': phone.trim(),
+        'email': email.trim(),
+        'address': address.trim(),
+        'website': website.trim(),
+        'description': description.trim(),
+        'updatedAt': DateTime.now().toIso8601String(),
+      };
+      await database.queueServerConfigSync(
+        serverId: serverConfig.serverId,
+        payload: payload,
+      );
+      syncService.configure(
+        cloudConfig: cloudConfig,
+        serverConfig: serverConfig,
+      );
+      if (cloudConfig.canSync) {
+        await syncService.syncNow();
+      }
+    });
+  }
+
   Future<void> updateUiScale(double value) async {
     final next = value.clamp(minUiScale, maxUiScale).toDouble();
     if ((uiScale - next).abs() < 0.001) return;
@@ -493,6 +553,14 @@ class PosAppController extends ChangeNotifier {
     notifyListeners();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_languageKey, value.code);
+  }
+
+  Future<void> updateThemePreference(AppThemePreference value) async {
+    if (themePreference == value) return;
+    themePreference = value;
+    notifyListeners();
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_themePreferenceKey, value.code);
   }
 
   Future<void> clearLocalData() async {
@@ -629,6 +697,7 @@ class PosAppController extends ChangeNotifier {
     await preferences.setBool(_cloudSyncEnabledKey, cloudConfig.enabled);
     await preferences.setString(_deviceTokenKey, cloudConfig.deviceToken);
     await preferences.setString(_languageKey, language.code);
+    await preferences.setString(_themePreferenceKey, themePreference.code);
     await preferences.setDouble(_uiScaleKey, uiScale);
     await preferences.setInt(
       _autoSyncIntervalKey,
@@ -669,22 +738,22 @@ class PosAppController extends ChangeNotifier {
     return trimmed;
   }
 
-  static const String _seenIntroKey = 'local_pos_seen_intro';
-  static const String _restaurantNameKey = 'local_pos_restaurant_name';
-  static const String _outletNameKey = 'local_pos_outlet_name';
-  static const String _serverIdKey = 'local_pos_server_id';
-  static const String _restaurantIdKey = 'local_pos_restaurant_id';
-  static const String _outletIdKey = 'local_pos_outlet_id';
-  static const String _cloudApiUrlKey = 'local_pos_cloud_api_url';
-  static const String _deviceTokenKey = 'local_pos_device_token';
-  static const String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
-  static const String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
-  static const String _uiScaleKey = 'local_pos_ui_scale';
-  static const String _languageKey = 'local_pos_language';
-  static const String _bkashPaymentVerifiedKey =
-      'local_pos_bkash_payment_verified';
-  static const String _bkashPaymentIdKey = 'local_pos_bkash_payment_id';
-  static const String _bkashTransactionIdKey = 'local_pos_bkash_transaction_id';
-  static const double minUiScale = 0.86;
-  static const double maxUiScale = 1.16;
+  static final String _seenIntroKey = 'local_pos_seen_intro';
+  static final String _restaurantNameKey = 'local_pos_restaurant_name';
+  static final String _outletNameKey = 'local_pos_outlet_name';
+  static final String _serverIdKey = 'local_pos_server_id';
+  static final String _restaurantIdKey = 'local_pos_restaurant_id';
+  static final String _outletIdKey = 'local_pos_outlet_id';
+  static final String _cloudApiUrlKey = 'local_pos_cloud_api_url';
+  static final String _deviceTokenKey = 'local_pos_device_token';
+  static final String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
+  static final String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
+  static final String _uiScaleKey = 'local_pos_ui_scale';
+  static final String _languageKey = 'local_pos_language';
+  static final String _themePreferenceKey = 'local_pos_theme_preference';
+  static final String _bkashPaymentVerifiedKey = 'local_pos_bkash_payment_verified';
+  static final String _bkashPaymentIdKey = 'local_pos_bkash_payment_id';
+  static final String _bkashTransactionIdKey = 'local_pos_bkash_transaction_id';
+  static double minUiScale = 0.78;
+  static double maxUiScale = 1.08;
 }

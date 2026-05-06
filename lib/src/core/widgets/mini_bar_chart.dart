@@ -6,7 +6,7 @@ class MiniBarChart extends StatelessWidget {
   const MiniBarChart({
     required this.values,
     required this.labels,
-    this.color = PosColors.primary,
+    this.color,
     this.height = 86,
     this.formatValue,
     this.highlightLast = true,
@@ -15,14 +15,15 @@ class MiniBarChart extends StatelessWidget {
 
   final List<double> values;
   final List<String> labels;
-  final Color color;
+  final Color? color;
   final double height;
   final String Function(double)? formatValue;
   final bool highlightLast;
 
   @override
   Widget build(BuildContext context) {
-    if (values.isEmpty) return const SizedBox.shrink();
+    final color = this.color ?? PosColors.primary;
+    if (values.isEmpty) return SizedBox.shrink();
     final maxValue = values.fold<double>(0, (m, v) => v > m ? v : m);
     final safeMax = maxValue == 0 ? 1 : maxValue;
     return SizedBox(
@@ -35,7 +36,7 @@ class MiniBarChart extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               for (var i = 0; i < values.length; i++) ...[
-                if (i > 0) const SizedBox(width: 6),
+                if (i > 0) SizedBox(width: 6),
                 _Bar(
                   width: barWidth.clamp(8, 40).toDouble(),
                   height: height - 22,
@@ -83,7 +84,7 @@ class _Bar extends StatelessWidget {
       children: [
         if (topLabel != null)
           Padding(
-            padding: const EdgeInsets.only(bottom: 3),
+            padding: EdgeInsets.only(bottom: 3),
             child: Text(
               topLabel!,
               style: TextStyle(
@@ -95,7 +96,7 @@ class _Bar extends StatelessWidget {
           ),
         TweenAnimationBuilder<double>(
           tween: Tween(begin: 0, end: ratio.clamp(0, 1).toDouble()),
-          duration: const Duration(milliseconds: 700),
+          duration: Duration(milliseconds: 700),
           curve: Curves.easeOutCubic,
           builder: (context, value, _) {
             return Container(
@@ -113,7 +114,7 @@ class _Bar extends StatelessWidget {
                         BoxShadow(
                           color: color.withValues(alpha: 0.32),
                           blurRadius: 8,
-                          offset: const Offset(0, 4),
+                          offset: Offset(0, 4),
                         ),
                       ]
                     : null,
@@ -121,7 +122,7 @@ class _Bar extends StatelessWidget {
             );
           },
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         Text(
           label,
           style: TextStyle(

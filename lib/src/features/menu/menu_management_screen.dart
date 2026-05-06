@@ -70,12 +70,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
             stats: stats,
             currency: NumberFormat.compactCurrency(symbol: r'$'),
           ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           _MenuToolbar(
             searchController: _searchController,
             onSearchChanged: (_) => setState(() {}),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (app.menuItems.isNotEmpty)
             _CategoryStrip(
               categories: categories,
@@ -85,7 +85,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   : app.menuItems.where((i) => i.category == cat).length,
               onSelected: (value) => setState(() => _selectedCategory = value),
             ),
-          const SizedBox(height: 14),
+          SizedBox(height: 14),
           if (app.menuItems.isEmpty)
             EmptyState(
               title: 'No menu items yet',
@@ -99,7 +99,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
               ),
             )
           else if (items.isEmpty)
-            const EmptyState(
+            EmptyState(
               title: 'No items found',
               message: 'Try another search term or category filter.',
               icon: Icons.search_off,
@@ -152,18 +152,18 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete menu item?'),
+        title: Text('Delete menu item?'),
         content: Text(
           '${item.name} will be removed from the admin app and future API responses.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text('Cancel'),
           ),
           FilledButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text('Delete'),
           ),
         ],
       ),
@@ -173,15 +173,12 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Menu item deleted')));
+    ).showSnackBar(SnackBar(content: Text('Menu item deleted')));
   }
 }
 
 class _MenuToolbar extends StatelessWidget {
-  const _MenuToolbar({
-    required this.searchController,
-    required this.onSearchChanged,
-  });
+  const _MenuToolbar({required this.searchController, required this.onSearchChanged});
 
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
@@ -190,11 +187,11 @@ class _MenuToolbar extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         child: TextField(
           controller: searchController,
           onChanged: onSearchChanged,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             prefixIcon: Icon(Icons.search_rounded),
             hintText: 'Search by item, description, or category',
           ),
@@ -251,7 +248,7 @@ class _StatsStrip extends StatelessWidget {
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           childAspectRatio: columns == 1 ? 3.6 : 2.65,
@@ -283,7 +280,7 @@ class _MenuStatTile extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             child: Row(
               children: [
                 Container(
@@ -298,7 +295,7 @@ class _MenuStatTile extends StatelessWidget {
                   ),
                   child: Icon(value.icon, color: value.color, size: 19),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -310,12 +307,12 @@ class _MenuStatTile extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
-                      const SizedBox(height: 2),
+                      SizedBox(height: 2),
                       Text(
                         value.label.toUpperCase(),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: PosColors.muted,
                           fontWeight: FontWeight.w900,
                           fontSize: 10,
@@ -354,7 +351,7 @@ class _CategoryStrip extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => SizedBox(width: 8),
         itemBuilder: (context, index) {
           final category = categories[index];
           final selected = category == selectedCategory;
@@ -363,11 +360,7 @@ class _CategoryStrip extends StatelessWidget {
             label: Text('$category (${countOf(category)})'),
             onSelected: (_) => onSelected(category),
             avatar: selected
-                ? const Icon(
-                    Icons.check_rounded,
-                    size: 16,
-                    color: PosColors.primary,
-                  )
+                ? Icon(Icons.check_rounded, size: 16, color: PosColors.primary)
                 : null,
           );
         },
@@ -377,7 +370,7 @@ class _CategoryStrip extends StatelessWidget {
 }
 
 class _StatValue {
-  const _StatValue({
+  _StatValue({
     required this.label,
     required this.value,
     required this.icon,
@@ -391,7 +384,7 @@ class _StatValue {
 }
 
 class _MenuStats {
-  const _MenuStats({
+  _MenuStats({
     required this.total,
     required this.available,
     required this.categories,
@@ -444,7 +437,7 @@ class _MenuGrid extends StatelessWidget {
         return GridView.builder(
           itemCount: items.length,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: columns,
             crossAxisSpacing: 10,
@@ -531,7 +524,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 18),
+          padding: EdgeInsets.fromLTRB(16, 14, 16, 18),
           child: Form(
             key: _formKey,
             child: Column(
@@ -550,15 +543,15 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
-                const SizedBox(height: 12),
+                SizedBox(height: 12),
                 TextFormField(
                   controller: _nameController,
                   textInputAction: TextInputAction.next,
-                  decoration: const InputDecoration(labelText: 'Item name'),
+                  decoration: InputDecoration(labelText: 'Item name'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Item name is required';
@@ -566,11 +559,11 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _descriptionController,
                   maxLines: 3,
-                  decoration: const InputDecoration(labelText: 'Description'),
+                  decoration: InputDecoration(labelText: 'Description'),
                   validator: (value) {
                     if (value == null || value.trim().isEmpty) {
                       return 'Description is required';
@@ -578,13 +571,13 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final compact = constraints.maxWidth < 560;
                     final category = TextFormField(
                       controller: _categoryController,
-                      decoration: const InputDecoration(labelText: 'Category'),
+                      decoration: InputDecoration(labelText: 'Category'),
                       validator: (value) {
                         if (value == null || value.trim().isEmpty) {
                           return 'Category is required';
@@ -594,8 +587,8 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     );
                     final price = TextFormField(
                       controller: _priceController,
-                      decoration: const InputDecoration(labelText: 'Price'),
-                      keyboardType: const TextInputType.numberWithOptions(
+                      decoration: InputDecoration(labelText: 'Price'),
+                      keyboardType: TextInputType.numberWithOptions(
                         decimal: true,
                       ),
                       inputFormatters: [
@@ -613,19 +606,19 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     );
                     if (compact) {
                       return Column(
-                        children: [category, const SizedBox(height: 10), price],
+                        children: [category, SizedBox(height: 10), price],
                       );
                     }
                     return Row(
                       children: [
                         Expanded(child: category),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(child: price),
                       ],
                     );
                   },
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _ImagePickerField(
                   controller: _imageController,
                   busy: _imageBusy,
@@ -637,7 +630,7 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                   onChanged: (_) => setState(() {}),
                 ),
                 if (_imageController.text.trim().isNotEmpty) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   ClipRRect(
                     borderRadius: BorderRadius.circular(16),
                     child: AspectRatio(
@@ -648,50 +641,50 @@ class _MenuItemFormState extends State<_MenuItemForm> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 TextFormField(
                   controller: _prepController,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Preparation time',
                     hintText: 'Minutes, optional',
                   ),
                   keyboardType: TextInputType.number,
                   inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 SwitchListTile.adaptive(
                   value: _isAvailable,
                   onChanged: (value) => setState(() => _isAvailable = value),
                   contentPadding: EdgeInsets.zero,
-                  title: const Text('Available for ordering'),
+                  title: Text('Available for ordering'),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Wrap(
                   spacing: 8,
                   children: [
                     FilterChip(
-                      label: const Text('Veg'),
+                      label: Text('Veg'),
                       selected: _tags.contains('veg'),
                       onSelected: (selected) => _toggleTag('veg', selected),
                     ),
                     FilterChip(
-                      label: const Text('Spicy'),
+                      label: Text('Spicy'),
                       selected: _tags.contains('spicy'),
                       onSelected: (selected) => _toggleTag('spicy', selected),
                     ),
                     FilterChip(
-                      label: const Text('Popular'),
+                      label: Text('Popular'),
                       selected: _tags.contains('popular'),
                       onSelected: (selected) => _toggleTag('popular', selected),
                     ),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _submit,
-                    icon: const Icon(Icons.save_outlined),
+                    icon: Icon(Icons.save_outlined),
                     label: Text(
                       widget.initialItem == null ? 'Create Item' : 'Save Item',
                     ),
@@ -794,7 +787,7 @@ class _ImagePickerField extends StatelessWidget {
         TextFormField(
           controller: controller,
           onChanged: onChanged,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Image URL or gallery image',
             hintText: 'Optional',
             prefixIcon: Icon(Icons.image_outlined),
@@ -802,7 +795,7 @@ class _ImagePickerField extends StatelessWidget {
           minLines: 1,
           maxLines: 2,
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Wrap(
           spacing: 10,
           runSpacing: 8,
@@ -810,17 +803,17 @@ class _ImagePickerField extends StatelessWidget {
             OutlinedButton.icon(
               onPressed: busy ? null : onPick,
               icon: busy
-                  ? const SizedBox.square(
+                  ? SizedBox.square(
                       dimension: 16,
                       child: CircularProgressIndicator(strokeWidth: 2),
                     )
-                  : const Icon(Icons.photo_library_outlined),
-              label: const Text('Choose from gallery'),
+                  : Icon(Icons.photo_library_outlined),
+              label: Text('Choose from gallery'),
             ),
             OutlinedButton.icon(
               onPressed: controller.text.trim().isEmpty ? null : onClear,
-              icon: const Icon(Icons.clear),
-              label: const Text('Clear image'),
+              icon: Icon(Icons.clear),
+              label: Text('Clear image'),
             ),
           ],
         ),
@@ -830,7 +823,7 @@ class _ImagePickerField extends StatelessWidget {
 }
 
 class _MenuFormResult {
-  const _MenuFormResult({
+  _MenuFormResult({
     required this.name,
     required this.description,
     required this.category,

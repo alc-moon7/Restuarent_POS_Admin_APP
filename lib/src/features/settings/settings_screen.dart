@@ -1,5 +1,8 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:intl/intl.dart';
 
 import '../../app_controller.dart';
 import '../../app_scope.dart';
@@ -8,7 +11,9 @@ import '../../core/localization/app_strings.dart';
 import '../../core/theme/app_theme.dart';
 import '../../core/widgets/app_scaffold.dart';
 import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/sync_event_tile.dart';
 import '../../services/printer_service.dart';
+import '../../services/sync_service.dart';
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({super.key});
@@ -19,12 +24,21 @@ class SettingsScreen extends StatefulWidget {
 
 class _SettingsScreenState extends State<SettingsScreen> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _restaurantInfoFormKey = GlobalKey<FormState>();
   final TextEditingController _restaurantController = TextEditingController();
   final TextEditingController _outletController = TextEditingController();
   final TextEditingController _cloudUrlController = TextEditingController();
   final TextEditingController _restaurantIdController = TextEditingController();
   final TextEditingController _outletIdController = TextEditingController();
   final TextEditingController _syncIntervalController = TextEditingController();
+  final TextEditingController _infoTitleController = TextEditingController();
+  final TextEditingController _infoPhoneController = TextEditingController();
+  final TextEditingController _infoEmailController = TextEditingController();
+  final TextEditingController _infoAddressController = TextEditingController();
+  final TextEditingController _infoWebsiteController = TextEditingController();
+  final TextEditingController _infoDescriptionController =
+      TextEditingController();
+  Timer? _autoSaveDebounce;
   bool _cloudSyncEnabled = false;
   double _displayScale = 1.0;
   bool _hydrated = false;
@@ -43,17 +57,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
         .toString();
     _cloudSyncEnabled = app.cloudConfig.enabled;
     _displayScale = app.uiScale;
+    _restaurantController.addListener(_scheduleAutoSave);
+    _outletController.addListener(_scheduleAutoSave);
+    _cloudUrlController.addListener(_scheduleAutoSave);
+    _syncIntervalController.addListener(_scheduleAutoSave);
     _hydrated = true;
   }
 
   @override
   void dispose() {
+    _autoSaveDebounce?.cancel();
     _restaurantController.dispose();
     _outletController.dispose();
     _cloudUrlController.dispose();
     _restaurantIdController.dispose();
     _outletIdController.dispose();
     _syncIntervalController.dispose();
+    _infoTitleController.dispose();
+    _infoPhoneController.dispose();
+    _infoEmailController.dispose();
+    _infoAddressController.dispose();
+    _infoWebsiteController.dispose();
+    _infoDescriptionController.dispose();
     super.dispose();
   }
 
@@ -63,37 +88,159 @@ class _SettingsScreenState extends State<SettingsScreen> {
     final text = app.strings;
     return AppScaffold(
       title: text.settings,
-      subtitle: text.settingsSubtitle,
-      actions: [
-        PrimaryButton(
-          label: text.save,
-          icon: Icons.save_outlined,
-          busy: app.busy,
-          onPressed: _save,
+      showDatePill: false,
+      pinHeader: true,
+      child: Column(
+        children: [
+          _SettingsNavTile(
+            title: text.restaurantSection,
+            subtitle: text.restaurantSubtitle,
+            icon: Icons.storefront_outlined,
+            onTap: _openRestaurantInfo,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.receiptPrinter,
+            subtitle: text.receiptPrinterSubtitle,
+            icon: Icons.print_outlined,
+            onTap: _openReceiptPrinter,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.cloudSync,
+            subtitle: text.cloudSyncSubtitle,
+            icon: Icons.cloud_sync_outlined,
+            onTap: _openCloudSync,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.themeMode,
+            subtitle: text.themeModeSubtitle,
+            icon: Icons.palette_outlined,
+            onTap: _openThemeMode,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.displaySize,
+            subtitle: text.displaySizeSubtitle,
+            icon: Icons.tune_rounded,
+            onTap: _openDisplaySettings,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.languageLabel,
+            subtitle: text.languageSubtitle,
+            icon: Icons.translate_rounded,
+            onTap: _openLanguageSettings,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.appCache,
+            subtitle: text.clearCacheSubtitle,
+            icon: Icons.cleaning_services_outlined,
+            onTap: _openAppCache,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.yourRestaurantInfo,
+            subtitle: text.yourRestaurantInfoSubtitle,
+            icon: Icons.business_outlined,
+            onTap: _openYourRestaurantInfo,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.aboutUs,
+            subtitle: 'Product and company details',
+            icon: Icons.info_outline_rounded,
+            onTap: _openAboutUs,
+          ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: text.privacyPolicy,
+            subtitle: 'How we handle data and privacy',
+            icon: Icons.privacy_tip_outlined,
+            onTap: _openPrivacyPolicy,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _openDisplaySettings() async {
+    final app = AppScope.of(context);
+    final text = app.strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.displaySize,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _DisplaySizeCard(
+                value: _displayScale,
+                label: app.uiScaleLabel,
+                text: text,
+                onChanged: (value) => setState(() => _displayScale = value),
+                onChangeEnd: _updateDisplayScale,
+                onPreset: (value) {
+                  setState(() => _displayScale = value);
+                  _updateDisplayScale(value);
+                },
+              ),
+            ],
+          ),
         ),
-      ],
-      child: Form(
-        key: _formKey,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            _DisplaySizeCard(
-              value: _displayScale,
-              label: app.uiScaleLabel,
-              text: text,
-              onChanged: (value) => setState(() => _displayScale = value),
-              onChangeEnd: _updateDisplayScale,
-              onPreset: (value) {
-                setState(() => _displayScale = value);
-                _updateDisplayScale(value);
-              },
-            ),
-            _LanguageCard(
-              selected: app.language,
-              text: text,
-              onChanged: app.updateLanguage,
-            ),
-            _SectionCard(
+      ),
+    );
+  }
+
+  Future<void> _openThemeMode() async {
+    final app = AppScope.of(context);
+    final text = app.strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.themeMode,
+          child: Column(
+            children: [
+              _ThemeModeCard(
+                selected: app.themePreference,
+                text: text,
+                onChanged: app.updateThemePreference,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openLanguageSettings() async {
+    final app = AppScope.of(context);
+    final text = app.strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.languageLabel,
+          child: _LanguageCard(
+            selected: app.language,
+            text: text,
+            onChanged: app.updateLanguage,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openRestaurantInfo() async {
+    final text = AppScope.of(context).strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.restaurantSection,
+          child: Form(
+            key: _formKey,
+            child: _SectionCard(
               title: text.restaurantSection,
               subtitle: text.restaurantSubtitle,
               icon: Icons.storefront_outlined,
@@ -104,7 +251,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: _restaurantController,
                       decoration: InputDecoration(
                         labelText: text.restaurantName,
-                        prefixIcon: const Icon(Icons.restaurant_outlined),
+                        prefixIcon: Icon(Icons.restaurant_outlined),
                       ),
                       validator: _required,
                     ),
@@ -112,13 +259,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       controller: _outletController,
                       decoration: InputDecoration(
                         labelText: text.outletName,
-                        prefixIcon: const Icon(Icons.location_on_outlined),
+                        prefixIcon: Icon(Icons.location_on_outlined),
                       ),
                       validator: _required,
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 _ResponsiveFields(
                   children: [
                     TextFormField(
@@ -126,7 +273,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       readOnly: true,
                       decoration: InputDecoration(
                         labelText: text.restaurantId,
-                        prefixIcon: const Icon(Icons.badge_outlined),
+                        prefixIcon: Icon(Icons.badge_outlined),
                         helperText: text.restaurantIdHelper,
                       ),
                       validator: _required,
@@ -136,7 +283,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
                       readOnly: true,
                       decoration: InputDecoration(
                         labelText: text.outletId,
-                        prefixIcon: const Icon(Icons.pin_drop_outlined),
+                        prefixIcon: Icon(Icons.pin_drop_outlined),
                         helperText: text.outletIdHelper,
                       ),
                       validator: _required,
@@ -145,85 +292,302 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 ),
               ],
             ),
-            _SectionCard(
-              title: text.cloudSync,
-              subtitle: text.cloudSyncSubtitle,
-              icon: Icons.cloud_sync_outlined,
-              children: [
-                TextFormField(
-                  controller: _cloudUrlController,
-                  decoration: InputDecoration(
-                    labelText: text.cloudApiUrlOverride,
-                    hintText:
-                        'https://project-ref.supabase.co/functions/v1/pos-api',
-                    prefixIcon: const Icon(Icons.link),
-                    helperText: text.cloudApiUrlHelper,
-                  ),
-                ),
-                const SizedBox(height: 10),
-                _CloudSecretsNotice(
-                  hasDeviceToken: app.cloudConfig.hasDeviceToken,
-                ),
-                if (!CloudDefaults.hasConfiguredBaseUrl) ...[
-                  const SizedBox(height: 10),
-                  _CloudSecretsNotice(
-                    warning: true,
-                    title: text.supabaseUrlMissing,
-                    message: text.supabaseUrlMissingMessage,
-                  ),
-                ],
-                const SizedBox(height: 10),
-                TextFormField(
-                  controller: _syncIntervalController,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: InputDecoration(
-                    labelText: text.autoSyncInterval,
-                    hintText: text.seconds,
-                    prefixIcon: const Icon(Icons.timer_outlined),
-                  ),
-                  validator: (value) {
-                    final seconds = int.tryParse(value ?? '');
-                    if (seconds == null || seconds < 10) {
-                      return text.minTenSeconds;
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 8),
-                SwitchListTile.adaptive(
-                  value: _cloudSyncEnabled,
-                  onChanged: (value) =>
-                      setState(() => _cloudSyncEnabled = value),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text(text.enableCloudSync),
-                  subtitle: Text(text.cloudQueueSafe),
-                ),
-              ],
-            ),
-            _PrinterSettingsCard(
-              text: text,
-              state: app.printerState,
-              devices: app.pairedPrinters,
-              onAutoPrintChanged: app.setAutoPrintOrders,
-              onRefresh: _refreshPrinters,
-              onConnect: _connectPrinter,
-              onDisconnect: _disconnectPrinter,
-              onTestPrint: _testPrinter,
-            ),
-            const SizedBox(height: 12),
-            _DangerCard(text: text, onClear: _confirmClearData),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  Future<void> _save() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _openCloudSync() async {
     final app = AppScope.of(context);
     final text = app.strings;
-    final ok = await app.saveSettings(
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.cloudSync,
+          child: Form(
+            key: _formKey,
+            child: Column(
+              children: [
+                Card(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    child: SwitchListTile.adaptive(
+                      value: _cloudSyncEnabled,
+                      onChanged: (value) {
+                        setState(() => _cloudSyncEnabled = value);
+                        _scheduleAutoSave();
+                      },
+                      dense: true,
+                      visualDensity: VisualDensity.compact,
+                      materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                      contentPadding: EdgeInsets.zero,
+                      title: Text(text.enableCloudSync),
+                    ),
+                  ),
+                ),
+                SizedBox(height: 10),
+                _SectionCard(
+                  title: 'Sync Status',
+                  subtitle: 'Queue, retry, logs, and cloud health in one place.',
+                  icon: Icons.cloud_sync_outlined,
+                  children: [
+                    _InlineSyncStatus(app: app),
+                    SizedBox(height: 10),
+                    Text(
+                      'Auto Sync Interval',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    SizedBox(height: 6),
+                    TextFormField(
+                      controller: _syncIntervalController,
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
+                        hintText: text.seconds,
+                        prefixIcon: Icon(Icons.timer_outlined),
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                      ),
+                      validator: (value) {
+                        final seconds = int.tryParse(value ?? '');
+                        if (seconds == null || seconds < 10) {
+                          return text.minTenSeconds;
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'Override Cloud API URL',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    SizedBox(height: 6),
+                    TextFormField(
+                      controller: _cloudUrlController,
+                      decoration: InputDecoration(
+                        hintText:
+                            'https://project-ref.supabase.co/functions/v1/pos-api',
+                        prefixIcon: Icon(Icons.link),
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
+                      'No Manual API Key',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    SizedBox(height: 6),
+                    _CloudSecretsNotice(
+                      hasDeviceToken: app.cloudConfig.hasDeviceToken,
+                    ),
+                    if (!CloudDefaults.hasConfiguredBaseUrl) ...[
+                      SizedBox(height: 10),
+                      _CloudSecretsNotice(
+                        warning: true,
+                        title: text.supabaseUrlMissing,
+                        message: text.supabaseUrlMissingMessage,
+                      ),
+                    ],
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openReceiptPrinter() async {
+    final app = AppScope.of(context);
+    final text = app.strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.receiptPrinter,
+          child: _PrinterSettingsCard(
+            text: text,
+            state: app.printerState,
+            devices: app.pairedPrinters,
+            onAutoPrintChanged: app.setAutoPrintOrders,
+            onRefresh: _refreshPrinters,
+            onConnect: _connectPrinter,
+            onDisconnect: _disconnectPrinter,
+            onTestPrint: _testPrinter,
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAppCache() async {
+    final text = AppScope.of(context).strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.appCache,
+          child: _DangerCard(text: text, onClear: _confirmClearData),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openYourRestaurantInfo() async {
+    final app = AppScope.of(context);
+    final text = app.strings;
+    _infoTitleController.text = app.serverConfig.restaurantName;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.yourRestaurantInfo,
+          child: Form(
+            key: _restaurantInfoFormKey,
+            child: _SectionCard(
+              title: text.yourRestaurantInfo,
+              subtitle: text.yourRestaurantInfoSubtitle,
+              icon: Icons.business_outlined,
+              children: [
+                TextFormField(
+                  controller: _infoTitleController,
+                  decoration: InputDecoration(
+                    labelText: text.restaurantName,
+                    prefixIcon: Icon(Icons.store_mall_directory_outlined),
+                  ),
+                  validator: _required,
+                ),
+                SizedBox(height: 10),
+                _ResponsiveFields(
+                  children: [
+                    TextFormField(
+                      controller: _infoPhoneController,
+                      decoration: InputDecoration(
+                        labelText: text.contactPhone,
+                        prefixIcon: Icon(Icons.phone_outlined),
+                      ),
+                    ),
+                    TextFormField(
+                      controller: _infoEmailController,
+                      decoration: InputDecoration(
+                        labelText: text.contactEmail,
+                        prefixIcon: Icon(Icons.email_outlined),
+                      ),
+                    ),
+                  ],
+                ),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _infoAddressController,
+                  decoration: InputDecoration(
+                    labelText: text.contactAddress,
+                    prefixIcon: Icon(Icons.location_on_outlined),
+                  ),
+                ),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _infoWebsiteController,
+                  decoration: InputDecoration(
+                    labelText: text.website,
+                    prefixIcon: Icon(Icons.language_outlined),
+                  ),
+                ),
+                SizedBox(height: 10),
+                TextFormField(
+                  controller: _infoDescriptionController,
+                  minLines: 3,
+                  maxLines: 5,
+                  decoration: InputDecoration(
+                    labelText: text.description,
+                    alignLabelWithHint: true,
+                    prefixIcon: Icon(Icons.notes_outlined),
+                  ),
+                ),
+                SizedBox(height: 14),
+                SizedBox(
+                  width: double.infinity,
+                  child: FilledButton.icon(
+                    onPressed: _pushRestaurantInfo,
+                    icon: Icon(Icons.cloud_upload_outlined),
+                    label: Text(text.pushToCloud),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAboutUs() async {
+    final text = AppScope.of(context).strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.aboutUs,
+          child: _SectionCard(
+            title: text.aboutUs,
+            subtitle: 'Terabyte AI Premium POS',
+            icon: Icons.info_outline_rounded,
+            children: [
+              Text(
+                'Hybrid POS Admin is built for modern restaurants that need both offline speed and cloud visibility. '
+                'This app gives teams one reliable control center for menu, orders, reporting, and day-to-day operations.',
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Product: Terabyte AI\nEmail: support@terabyteai.example\nWebsite: www.terabyteai.example',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openPrivacyPolicy() async {
+    final text = AppScope.of(context).strings;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => _SettingsSectionPage(
+          title: text.privacyPolicy,
+          child: _SectionCard(
+            title: text.privacyPolicy,
+            subtitle: 'Data handling and protection',
+            icon: Icons.privacy_tip_outlined,
+            children: [
+              Text(
+                '1. Operational data is stored locally on the admin device so service remains available even without internet.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '2. When cloud sync is enabled, menu/order updates are sent to the configured backend using secure tokens.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '3. Sensitive secrets must stay in backend services. Do not store merchant keys directly in client apps.',
+              ),
+              SizedBox(height: 8),
+              Text(
+                '4. Restaurant owners are responsible for legal compliance on customer data retention and notices.',
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _scheduleAutoSave() {
+    if (!_hydrated) return;
+    _autoSaveDebounce?.cancel();
+    _autoSaveDebounce = Timer(Duration(milliseconds: 450), _saveSilently);
+  }
+
+  Future<void> _saveSilently() async {
+    if (!mounted) return;
+    if (!_isValidAutoSavePayload()) return;
+    final app = AppScope.of(context);
+    await app.saveSettings(
       restaurantName: _restaurantController.text,
       outletName: _outletController.text,
       cloudApiUrl: _cloudUrlController.text,
@@ -232,12 +596,36 @@ class _SettingsScreenState extends State<SettingsScreen> {
       cloudSyncEnabled: _cloudSyncEnabled,
       autoSyncIntervalSeconds: int.parse(_syncIntervalController.text),
     );
+  }
+
+  Future<void> _pushRestaurantInfo() async {
+    if (!_restaurantInfoFormKey.currentState!.validate()) return;
+    final app = AppScope.of(context);
+    final text = app.strings;
+    final ok = await app.pushRestaurantInfo(
+      title: _infoTitleController.text,
+      phone: _infoPhoneController.text,
+      email: _infoEmailController.text,
+      address: _infoAddressController.text,
+      website: _infoWebsiteController.text,
+      description: _infoDescriptionController.text,
+    );
     if (!mounted) return;
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(ok ? text.settingsSaved : app.lastError ?? text.saveFailed),
+        content: Text(
+          ok ? text.detailsPushed : (app.lastError ?? text.saveFailed),
+        ),
       ),
     );
+  }
+
+  bool _isValidAutoSavePayload() {
+    if (_restaurantController.text.trim().isEmpty) return false;
+    if (_outletController.text.trim().isEmpty) return false;
+    final seconds = int.tryParse(_syncIntervalController.text.trim());
+    if (seconds == null || seconds < 10) return false;
+    return true;
   }
 
   Future<void> _updateDisplayScale(double value) async {
@@ -297,7 +685,9 @@ class _SettingsScreenState extends State<SettingsScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          ok ? text.testTicketSent : app.printerState.lastError ?? text.testFailed,
+          ok
+              ? text.testTicketSent
+              : app.printerState.lastError ?? text.testFailed,
         ),
       ),
     );
@@ -339,6 +729,512 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
+class _InlineSyncStatus extends StatelessWidget {
+  const _InlineSyncStatus({required this.app});
+
+  final PosAppController app;
+
+  @override
+  Widget build(BuildContext context) {
+    final sync = app.syncState;
+    final lastSync = sync.lastSyncAt == null
+        ? 'Never'
+        : DateFormat('MMM d, h:mm a').format(sync.lastSyncAt!);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _InlineSyncSummary(
+          pending: sync.pendingCount,
+          failed: sync.failedCount,
+          lastSync: lastSync,
+          cloudEnabled: app.cloudConfig.enabled,
+        ),
+        SizedBox(height: 10),
+        Row(
+          children: [
+            Expanded(
+              child: PrimaryButton(
+                label: 'Sync Now',
+                icon: Icons.sync,
+                busy: sync.isSyncing,
+                onPressed: app.busy
+                    ? null
+                    : () async {
+                        final ok = await app.syncNow();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok ? 'Sync completed' : 'Sync failed',
+                            ),
+                          ),
+                        );
+                      },
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: PrimaryButton(
+                label: 'Retry Failed',
+                icon: Icons.restart_alt,
+                secondary: true,
+                onPressed: app.busy
+                    ? null
+                    : () async {
+                        final ok = await app.retryFailedSync();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok ? 'Retry queued' : 'Retry failed',
+                            ),
+                          ),
+                        );
+                      },
+              ),
+            ),
+            SizedBox(width: 8),
+            Expanded(
+              child: PrimaryButton(
+                label: 'Test Cloud',
+                icon: Icons.health_and_safety_outlined,
+                secondary: true,
+                onPressed: app.busy
+                    ? null
+                    : () async {
+                        final ok = await app.testCloud();
+                        if (!context.mounted) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(
+                              ok ? 'Cloud API reachable' : 'Cloud API failed',
+                            ),
+                          ),
+                        );
+                      },
+              ),
+            ),
+          ],
+        ),
+        SizedBox(height: 10),
+        Text(
+          'Sync Events',
+          style: Theme.of(context).textTheme.titleSmall,
+        ),
+        SizedBox(height: 6),
+        if (sync.logs.isNotEmpty) ...[
+          _InlineSyncLogs(logs: sync.logs),
+          SizedBox(height: 8),
+        ],
+        if (app.syncEvents.isEmpty && sync.logs.isEmpty)
+          Container(
+            width: double.infinity,
+            padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+            decoration: BoxDecoration(
+              color: PosColors.surface,
+              borderRadius: BorderRadius.circular(PosRadii.md),
+              border: Border.all(color: PosColors.line),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(
+                      Icons.cloud_sync_outlined,
+                      size: 16,
+                      color: PosColors.primary,
+                    ),
+                    SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'No sync events',
+                            style: Theme.of(context).textTheme.titleSmall,
+                          ),
+                          SizedBox(height: 2),
+                          Text(
+                            'Queued local changes will appear here before cloud push.',
+                            style: Theme.of(context).textTheme.bodySmall,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          )
+        else
+          Column(
+            children: app.syncEvents
+                .take(20)
+                .map((event) => SyncEventTile(event: event))
+                .toList(growable: false),
+          ),
+      ],
+    );
+  }
+}
+
+class _InlineSyncSummary extends StatelessWidget {
+  const _InlineSyncSummary({
+    required this.pending,
+    required this.failed,
+    required this.lastSync,
+    required this.cloudEnabled,
+  });
+
+  final int pending;
+  final int failed;
+  final String lastSync;
+  final bool cloudEnabled;
+
+  @override
+  Widget build(BuildContext context) {
+    final topValues = [
+      _InlineSyncValue('Pending', pending.toString(), Icons.sync),
+      _InlineSyncValue('Failed', failed.toString(), Icons.error_outline),
+      _InlineSyncValue('Cloud', '', Icons.cloud_outlined),
+    ];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(flex: 3, child: _InlineSyncChip(value: topValues[0])),
+            SizedBox(width: 6),
+            Expanded(flex: 3, child: _InlineSyncChip(value: topValues[1])),
+            SizedBox(width: 6),
+            Expanded(flex: 5, child: _CloudSyncChip(enabled: cloudEnabled)),
+          ],
+        ),
+        SizedBox(height: 6),
+        _InlineSyncChip(
+          value: _InlineSyncValue('Last sync', lastSync, Icons.history),
+          fullWidth: true,
+        ),
+      ],
+    );
+  }
+}
+
+class _InlineSyncChip extends StatelessWidget {
+  const _InlineSyncChip({required this.value, this.fullWidth = false});
+
+  final _InlineSyncValue value;
+  final bool fullWidth;
+
+  @override
+  Widget build(BuildContext context) {
+    final isLastSync = fullWidth && value.label.toLowerCase() == 'last sync';
+    final parts = isLastSync ? value.value.split(',') : const <String>[];
+    final hasDateTimeSplit = parts.length >= 2;
+    final dateText = hasDateTimeSplit ? parts.first.trim() : value.value;
+    final timeText = hasDateTimeSplit
+        ? parts.sublist(1).join(',').trim()
+        : value.value;
+
+    final isPending = value.label.toLowerCase() == 'pending';
+    final chip = Container(
+      padding: EdgeInsets.fromLTRB(isPending ? 1 : 6, 9, 8, 9),
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.sm),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: isLastSync
+          ? Row(
+              children: [
+                Icon(value.icon, color: PosColors.primary, size: 13),
+                SizedBox(width: 5),
+                Text(
+                  value.label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(
+                        color: PosColors.slate.withValues(alpha: 0.28),
+                        offset: Offset(0, 0),
+                        blurRadius: 0.2,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 5),
+                Expanded(
+                  child: Text(
+                    dateText,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: 12.2,
+                      fontWeight: FontWeight.w900,
+                      shadows: [
+                        Shadow(
+                          color: PosColors.slate.withValues(alpha: 0.28),
+                          offset: Offset(0, 0),
+                          blurRadius: 0.2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(width: 6),
+                Text(
+                  timeText,
+                  textAlign: TextAlign.right,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 12.2,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(
+                        color: PosColors.slate.withValues(alpha: 0.28),
+                        offset: Offset(0, 0),
+                        blurRadius: 0.2,
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+            )
+          : Row(
+              mainAxisSize: MainAxisSize.max,
+              mainAxisAlignment: MainAxisAlignment.start,
+              children: [
+                Icon(value.icon, color: PosColors.primary, size: 13),
+                SizedBox(width: 5),
+                Text(
+                  value.label,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w900,
+                    shadows: [
+                      Shadow(
+                        color: PosColors.slate.withValues(alpha: 0.28),
+                        offset: Offset(0, 0),
+                        blurRadius: 0.2,
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 4),
+                Flexible(
+                  child: Text(
+                    value.value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                      fontSize: 12.2,
+                      fontWeight: FontWeight.w900,
+                      shadows: [
+                        Shadow(
+                          color: PosColors.slate.withValues(alpha: 0.28),
+                          offset: Offset(0, 0),
+                          blurRadius: 0.2,
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+    );
+    if (!fullWidth) return chip;
+    return SizedBox(width: double.infinity, child: chip);
+  }
+}
+
+class _CloudSyncChip extends StatelessWidget {
+  const _CloudSyncChip({required this.enabled});
+
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 9),
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.sm),
+        border: Border.all(color: PosColors.line),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.start,
+        mainAxisSize: MainAxisSize.max,
+        children: [
+          Icon(Icons.cloud_outlined, color: PosColors.primary, size: 13),
+          SizedBox(width: 5),
+          Text(
+            'Cloud',
+            style: Theme.of(
+              context,
+            ).textTheme.bodySmall?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              shadows: [
+                Shadow(
+                  color: PosColors.slate.withValues(alpha: 0.28),
+                  offset: Offset(0, 0),
+                  blurRadius: 0.2,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 6),
+          Text(
+            enabled ? 'Enabled' : 'Disabled',
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+              color: enabled ? PosColors.success : PosColors.danger,
+              shadows: [
+                Shadow(
+                  color: PosColors.slate.withValues(alpha: 0.22),
+                  offset: Offset(0, 0),
+                  blurRadius: 0.2,
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 4),
+          Icon(
+            enabled ? Icons.check_circle_rounded : Icons.cancel_rounded,
+            size: 12,
+            color: enabled ? PosColors.success : PosColors.danger,
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _InlineSyncLogs extends StatelessWidget {
+  const _InlineSyncLogs({required this.logs});
+
+  final List<SyncLogEntry> logs;
+
+  @override
+  Widget build(BuildContext context) {
+    if (logs.isEmpty) {
+      return Text(
+        'No sync logs yet.',
+        style: Theme.of(context).textTheme.bodySmall,
+      );
+    }
+    final recent = logs.take(6).toList(growable: false);
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: recent
+          .map(
+            (entry) => Padding(
+              padding: EdgeInsets.only(bottom: 6),
+              child: Text(
+                '${DateFormat('HH:mm').format(entry.createdAt)}  ${entry.message}',
+                style: Theme.of(context).textTheme.bodySmall,
+              ),
+            ),
+          )
+          .toList(growable: false),
+    );
+  }
+}
+
+class _InlineSyncValue {
+  _InlineSyncValue(this.label, this.value, this.icon);
+
+  final String label;
+  final String value;
+  final IconData icon;
+}
+
+class _SettingsNavTile extends StatelessWidget {
+  const _SettingsNavTile({
+    required this.title,
+    required this.subtitle,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String title;
+  final String subtitle;
+  final IconData icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(PosRadii.lg),
+        onTap: onTap,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+          child: Row(
+            children: [
+              Container(
+                width: 36,
+                height: 36,
+                decoration: BoxDecoration(
+                  gradient: PosGradients.cardTint(PosColors.primary),
+                  borderRadius: BorderRadius.circular(PosRadii.sm),
+                  border: Border.all(color: PosColors.line),
+                ),
+                child: Icon(icon, color: PosColors.primary, size: 18),
+              ),
+              SizedBox(width: 10),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(title, style: Theme.of(context).textTheme.titleMedium),
+                    SizedBox(height: 2),
+                    Text(
+                      subtitle,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ],
+                ),
+              ),
+              SizedBox(width: 8),
+              Icon(
+                Icons.chevron_right_rounded,
+                color: PosColors.muted,
+                size: 20,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SettingsSectionPage extends StatelessWidget {
+  const _SettingsSectionPage({required this.title, required this.child});
+
+  final String title;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return AppScaffold(
+      title: title,
+      showDatePill: false,
+      showBackButton: true,
+      child: child,
+    );
+  }
+}
+
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
     required this.title,
@@ -357,12 +1253,12 @@ class _SectionCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Container(
                   width: 38,
@@ -376,7 +1272,7 @@ class _SectionCard extends StatelessWidget {
                   ),
                   child: Icon(icon, color: PosColors.primary, size: 19),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -386,7 +1282,7 @@ class _SectionCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.titleLarge,
                       ),
                       if (subtitle != null) ...[
-                        const SizedBox(height: 3),
+                        SizedBox(height: 3),
                         Text(
                           subtitle!,
                           style: Theme.of(context).textTheme.bodyMedium,
@@ -397,7 +1293,7 @@ class _SectionCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             ...children,
           ],
         ),
@@ -438,7 +1334,7 @@ class _DisplaySizeCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -453,13 +1349,13 @@ class _DisplaySizeCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(PosRadii.md),
                         boxShadow: PosShadows.glow,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.text_fields_rounded,
                         color: Colors.white,
                         size: 20,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -468,7 +1364,7 @@ class _DisplaySizeCard extends StatelessWidget {
                             text.displaySize,
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const SizedBox(height: 3),
+                          SizedBox(height: 3),
                           Text(
                             text.displaySizeSubtitle,
                             style: Theme.of(context).textTheme.bodyMedium,
@@ -479,32 +1375,32 @@ class _DisplaySizeCard extends StatelessWidget {
                     _ScalePill(label: label, percent: percent),
                   ],
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
                   children: [
                     _PresetChip(
                       label: text.compact,
-                      selected: value <= 0.94,
-                      onTap: () => onPreset(0.90),
+                      selected: value <= 0.88,
+                      onTap: () => onPreset(0.84),
                     ),
                     _PresetChip(
                       label: text.comfortable,
-                      selected: value > 0.94 && value < 1.08,
-                      onTap: () => onPreset(1.0),
+                      selected: value > 0.88 && value < 0.98,
+                      onTap: () => onPreset(0.92),
                     ),
                     _PresetChip(
                       label: text.large,
-                      selected: value >= 1.08,
-                      onTap: () => onPreset(1.12),
+                      selected: value >= 0.98,
+                      onTap: () => onPreset(1.02),
                     ),
                   ],
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.remove_rounded,
                       color: PosColors.muted,
                       size: 18,
@@ -520,11 +1416,7 @@ class _DisplaySizeCard extends StatelessWidget {
                         onChangeEnd: onChangeEnd,
                       ),
                     ),
-                    const Icon(
-                      Icons.add_rounded,
-                      color: PosColors.muted,
-                      size: 18,
-                    ),
+                    Icon(Icons.add_rounded, color: PosColors.muted, size: 18),
                   ],
                 ),
               ],
@@ -559,12 +1451,57 @@ class _LanguageCard extends StatelessWidget {
             ButtonSegment<AppLanguage>(
               value: AppLanguage.bn,
               label: Text(text.bangla),
-              icon: const Text('অ'),
+              icon: Text('অ'),
             ),
             ButtonSegment<AppLanguage>(
               value: AppLanguage.en,
               label: Text(text.english),
-              icon: const Text('A'),
+              icon: Text('A'),
+            ),
+          ],
+          selected: {selected},
+          showSelectedIcon: true,
+          onSelectionChanged: (values) => onChanged(values.first),
+        ),
+      ],
+    );
+  }
+}
+
+class _ThemeModeCard extends StatelessWidget {
+  const _ThemeModeCard({
+    required this.selected,
+    required this.text,
+    required this.onChanged,
+  });
+
+  final AppThemePreference selected;
+  final AppStrings text;
+  final ValueChanged<AppThemePreference> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return _SectionCard(
+      title: text.themeMode,
+      subtitle: text.themeModeSubtitle,
+      icon: Icons.palette_outlined,
+      children: [
+        SegmentedButton<AppThemePreference>(
+          segments: [
+            ButtonSegment<AppThemePreference>(
+              value: AppThemePreference.black,
+              label: Text(text.blackMode),
+              icon: Icon(Icons.dark_mode_outlined),
+            ),
+            ButtonSegment<AppThemePreference>(
+              value: AppThemePreference.white,
+              label: Text(text.whiteMode),
+              icon: Icon(Icons.light_mode_outlined),
+            ),
+            ButtonSegment<AppThemePreference>(
+              value: AppThemePreference.device,
+              label: Text(text.deviceMode),
+              icon: Icon(Icons.smartphone_outlined),
             ),
           ],
           selected: {selected},
@@ -585,7 +1522,7 @@ class _ScalePill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
         color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -593,7 +1530,7 @@ class _ScalePill extends StatelessWidget {
       ),
       child: Text(
         '$label - $percent%',
-        style: const TextStyle(
+        style: TextStyle(
           color: PosColors.primary,
           fontWeight: FontWeight.w900,
           fontSize: 11.4,
@@ -622,7 +1559,7 @@ class _PresetChip extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onTap(),
       avatar: selected
-          ? const Icon(Icons.check_rounded, size: 16, color: PosColors.primary)
+          ? Icon(Icons.check_rounded, size: 16, color: PosColors.primary)
           : null,
       labelStyle: TextStyle(
         color: selected ? PosColors.primary : PosColors.slate,
@@ -645,7 +1582,7 @@ class _ResponsiveFields extends StatelessWidget {
           return Column(
             children: [
               for (var i = 0; i < children.length; i++) ...[
-                if (i > 0) const SizedBox(height: 10),
+                if (i > 0) SizedBox(height: 10),
                 children[i],
               ],
             ],
@@ -654,7 +1591,7 @@ class _ResponsiveFields extends StatelessWidget {
         return Row(
           children: [
             for (var i = 0; i < children.length; i++) ...[
-              if (i > 0) const SizedBox(width: 12),
+              if (i > 0) SizedBox(width: 12),
               Expanded(child: children[i]),
             ],
           ],
@@ -685,7 +1622,7 @@ class _CloudSecretsNotice extends StatelessWidget {
     final resolvedMessage = message ?? text.noManualApiKeyMessage;
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(16),
@@ -698,7 +1635,7 @@ class _CloudSecretsNotice extends StatelessWidget {
             warning ? Icons.info_outline : Icons.verified_user_outlined,
             color: color,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -707,11 +1644,9 @@ class _CloudSecretsNotice extends StatelessWidget {
                   resolvedTitle,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 3),
+                SizedBox(height: 3),
                 Text(
-                  hasDeviceToken
-                      ? text.deviceAuthorized
-                      : resolvedMessage,
+                  hasDeviceToken ? text.deviceAuthorized : resolvedMessage,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
               ],
@@ -753,7 +1688,7 @@ class _PrinterSettingsCard extends StatelessWidget {
       children: [
         Container(
           width: double.infinity,
-          padding: const EdgeInsets.all(12),
+          padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
             color: state.connected
                 ? PosColors.success.withValues(alpha: 0.09)
@@ -773,7 +1708,7 @@ class _PrinterSettingsCard extends StatelessWidget {
                     : Icons.print_disabled_outlined,
                 color: state.connected ? PosColors.success : PosColors.muted,
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -784,7 +1719,7 @@ class _PrinterSettingsCard extends StatelessWidget {
                           : text.noPrinterSelected,
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const SizedBox(height: 2),
+                    SizedBox(height: 2),
                     Text(
                       state.connected
                           ? text.printerConnectedAuto
@@ -797,7 +1732,7 @@ class _PrinterSettingsCard extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         SwitchListTile.adaptive(
           value: state.autoPrintEnabled,
           onChanged: state.busy ? null : onAutoPrintChanged,
@@ -806,36 +1741,36 @@ class _PrinterSettingsCard extends StatelessWidget {
           subtitle: Text(text.autoPrintNewOrdersSubtitle),
         ),
         if (state.lastError != null) ...[
-          const SizedBox(height: 8),
+          SizedBox(height: 8),
           _PrinterErrorBanner(message: state.lastError!),
         ],
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         Wrap(
           spacing: 8,
           runSpacing: 8,
           children: [
             OutlinedButton.icon(
               onPressed: state.busy ? null : onRefresh,
-              icon: const Icon(Icons.bluetooth_searching_rounded),
+              icon: Icon(Icons.bluetooth_searching_rounded),
               label: Text(text.refreshPairedPrinters),
             ),
             OutlinedButton.icon(
               onPressed: state.busy || !state.hasSelectedPrinter
                   ? null
                   : onTestPrint,
-              icon: const Icon(Icons.receipt_long_outlined),
+              icon: Icon(Icons.receipt_long_outlined),
               label: Text(text.testPrint),
             ),
             if (state.connected)
               OutlinedButton.icon(
                 onPressed: state.busy ? null : onDisconnect,
-                icon: const Icon(Icons.link_off_rounded),
+                icon: Icon(Icons.link_off_rounded),
                 label: Text(text.disconnect),
               ),
           ],
         ),
         if (devices.isNotEmpty) ...[
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           ...devices.map(
             (printer) => _PrinterDeviceTile(
               printer: printer,
@@ -869,8 +1804,8 @@ class _PrinterDeviceTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 8),
-      padding: const EdgeInsets.all(12),
+      margin: EdgeInsets.only(bottom: 8),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: selected
             ? PosColors.primary.withValues(alpha: 0.08)
@@ -888,7 +1823,7 @@ class _PrinterDeviceTile extends StatelessWidget {
             selected ? Icons.check_circle_rounded : Icons.bluetooth_rounded,
             color: selected ? PosColors.primary : PosColors.muted,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -897,7 +1832,7 @@ class _PrinterDeviceTile extends StatelessWidget {
                   printer.label,
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   printer.address,
                   style: Theme.of(context).textTheme.bodyMedium,
@@ -924,7 +1859,7 @@ class _PrinterErrorBanner extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(12),
+      padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: PosColors.danger.withValues(alpha: 0.08),
         borderRadius: BorderRadius.circular(16),
@@ -933,8 +1868,8 @@ class _PrinterErrorBanner extends StatelessWidget {
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Icon(Icons.error_outline_rounded, color: PosColors.danger),
-          const SizedBox(width: 10),
+          Icon(Icons.error_outline_rounded, color: PosColors.danger),
+          SizedBox(width: 10),
           Expanded(
             child: Text(message, style: Theme.of(context).textTheme.bodyMedium),
           ),
@@ -954,11 +1889,11 @@ class _DangerCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         child: Row(
           children: [
-            const Icon(Icons.warning_amber_outlined, color: PosColors.danger),
-            const SizedBox(width: 10),
+            Icon(Icons.warning_amber_outlined, color: PosColors.danger),
+            SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -967,7 +1902,7 @@ class _DangerCard extends StatelessWidget {
                     text.appCache,
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(
                     text.clearCacheSubtitle,
                     style: Theme.of(context).textTheme.bodyMedium,
@@ -977,7 +1912,7 @@ class _DangerCard extends StatelessWidget {
             ),
             OutlinedButton.icon(
               onPressed: onClear,
-              icon: const Icon(Icons.delete_outline),
+              icon: Icon(Icons.delete_outline),
               label: Text(text.clearCache),
             ),
           ],

@@ -34,7 +34,7 @@ class StatusBadge extends StatelessWidget {
     return StatusBadge(
       label: source.label,
       color: source == OrderSource.cloud
-          ? const Color(0xFF2563EB)
+          ? Color(0xFF2563EB)
           : source == OrderSource.manual
           ? PosColors.accent
           : PosColors.primary,
@@ -75,7 +75,7 @@ class StatusBadge extends StatelessWidget {
         children: [
           if (icon != null) ...[
             Icon(icon, size: dense ? 12.5 : 14, color: color),
-            const SizedBox(width: 5),
+            SizedBox(width: 5),
           ],
           Text(
             label,
@@ -98,9 +98,9 @@ class StatusBadge extends StatelessWidget {
       case OrderStatus.accepted:
         return PosColors.primary;
       case OrderStatus.preparing:
-        return const Color(0xFF2563EB);
+        return Color(0xFF2563EB);
       case OrderStatus.ready:
-        return const Color(0xFF7C3AED);
+        return Color(0xFF7C3AED);
       case OrderStatus.served:
         return PosColors.success;
       case OrderStatus.cancelled:

@@ -23,7 +23,7 @@ enum AppLanguage {
 }
 
 class AppStrings {
-  const AppStrings._(this.language);
+  AppStrings._(this.language);
 
   final AppLanguage language;
 
@@ -37,6 +37,7 @@ class AppStrings {
       isBn ? 'ক্লাউড রেস্টুরেন্ট স্যুট' : 'Cloud Restaurant Suite';
 
   String get dashboard => isBn ? 'ড্যাশবোর্ড' : 'Dashboard';
+  String get home => isBn ? 'হোম' : 'Home';
   String get menu => isBn ? 'মেনু' : 'Menu';
   String get orders => isBn ? 'অর্ডার' : 'Orders';
   String get reports => isBn ? 'রিপোর্ট' : 'Reports';
@@ -63,6 +64,13 @@ class AppStrings {
   String get languageLabel => isBn ? 'ভাষা' : 'Language';
   String get languageSubtitle =>
       isBn ? 'অ্যাপের ভাষা নির্বাচন করুন।' : 'Choose app display language.';
+  String get themeMode => isBn ? 'থিম মোড' : 'Theme mode';
+  String get themeModeSubtitle => isBn
+      ? 'পুরো অ্যাপ Black, White বা Device mode-এ দেখান।'
+      : 'Use Black, White, or Device mode for the whole app.';
+  String get blackMode => isBn ? 'Black' : 'Black';
+  String get whiteMode => isBn ? 'White' : 'White';
+  String get deviceMode => isBn ? 'Device' : 'Device';
   String get appLanguage => isBn ? 'অ্যাপ ভাষা' : 'App language';
   String get bangla => 'বাংলা';
   String get english => 'English';
@@ -79,8 +87,9 @@ class AppStrings {
   String get outletName => isBn ? 'আউটলেটের নাম' : 'Outlet name';
   String get restaurantId => isBn ? 'রেস্টুরেন্ট ID' : 'Restaurant ID';
   String get outletId => isBn ? 'আউটলেট ID' : 'Outlet ID';
-  String get restaurantIdHelper =>
-      isBn ? 'ক্লাউড থেকে অটো তৈরি হয়।' : 'Created automatically by the cloud.';
+  String get restaurantIdHelper => isBn
+      ? 'ক্লাউড থেকে অটো তৈরি হয়।'
+      : 'Created automatically by the cloud.';
   String get outletIdHelper => isBn
       ? 'কাস্টমার ওয়েব অ্যাপের সাথে এই ID শেয়ার করুন।'
       : 'Share this ID with the customer web app.';
@@ -170,9 +179,26 @@ class AppStrings {
   String get clearCacheSubtitle => isBn
       ? 'এই ডিভাইসের cached menu, orders ও sync queue ক্লিয়ার করুন।'
       : 'Clear cached menu, orders, and sync queue from this device.';
+  String get yourRestaurantInfo =>
+      isBn ? 'আপনার রেস্টুরেন্ট তথ্য' : 'Your Restaurant Info';
+  String get yourRestaurantInfoSubtitle => isBn
+      ? 'পাবলিক যোগাযোগ তথ্য cloud-এ sync করুন।'
+      : 'Sync public restaurant contact details to cloud.';
+  String get aboutUs => isBn ? 'আমাদের সম্পর্কে' : 'About Us';
+  String get privacyPolicy => isBn ? 'প্রাইভেসি পলিসি' : 'Privacy Policy';
+  String get pushToCloud => isBn ? 'ক্লাউডে পাঠান' : 'Push To Cloud';
+  String get contactPhone => isBn ? 'ফোন' : 'Phone';
+  String get contactEmail => isBn ? 'ইমেইল' : 'Email';
+  String get contactAddress => isBn ? 'ঠিকানা' : 'Address';
+  String get website => isBn ? 'ওয়েবসাইট' : 'Website';
+  String get description => isBn ? 'বর্ণনা' : 'Description';
+  String get detailsPushed => isBn
+      ? 'রেস্টুরেন্ট তথ্য sync queue-তে যোগ হয়েছে'
+      : 'Restaurant info added to sync queue';
 
-  String get payWithBkash =>
-      isBn ? 'এই অ্যাপ ব্যবহার করতে bKash দিয়ে পেমেন্ট করুন' : 'To use this App Pay with Bkash';
+  String get payWithBkash => isBn
+      ? 'এই অ্যাপ ব্যবহার করতে bKash দিয়ে পেমেন্ট করুন'
+      : 'To use this App Pay with Bkash';
   String get monthly => isBn ? 'মাসিক' : 'Monthly';
   String get annual => isBn ? 'বার্ষিক' : 'Annual';
   String get bkashCheckoutLoadFailed => isBn
@@ -216,8 +242,9 @@ class AppStrings {
   String get configureCloudAdmin =>
       isBn ? 'Cloud Admin কনফিগার করুন' : 'Configure Cloud Admin';
   String get cloudAdmin => isBn ? '✦  CLOUD ADMIN' : '✦  CLOUD ADMIN';
-  String get runRestaurantCloud =>
-      isBn ? 'ক্লাউড থেকে\nরেস্টুরেন্ট চালান।' : 'Run your restaurant\nfrom the cloud.';
+  String get runRestaurantCloud => isBn
+      ? 'ক্লাউড থেকে\nরেস্টুরেন্ট চালান।'
+      : 'Run your restaurant\nfrom the cloud.';
   String get modeIntroDescription => isBn
       ? 'একটি secure cloud API দিয়ে menu, orders ও status updates manage করুন।'
       : 'Manage menu, orders, and status updates through a secure cloud API with realtime sync across customer websites.';

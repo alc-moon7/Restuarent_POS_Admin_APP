@@ -35,25 +35,29 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             child: CircularProgressIndicator(
               strokeWidth: 2.4,
               valueColor: AlwaysStoppedAnimation<Color>(
-                widget.secondary ? PosColors.primary : Colors.white,
+                widget.secondary ? PosColors.primary : PosColors.background,
               ),
             ),
           )
         : Icon(widget.icon, size: 18);
 
-    final child = Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        iconWidget,
-        const SizedBox(width: 8),
-        Flexible(child: Text(widget.label, overflow: TextOverflow.ellipsis)),
-      ],
+    final child = FittedBox(
+      fit: BoxFit.scaleDown,
+      alignment: Alignment.centerLeft,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          iconWidget,
+          SizedBox(width: 8),
+          Text(widget.label, maxLines: 1),
+        ],
+      ),
     );
 
     if (widget.secondary) {
       return AnimatedScale(
         scale: _pressed ? 0.97 : 1.0,
-        duration: const Duration(milliseconds: 100),
+        duration: Duration(milliseconds: 100),
         child: OutlinedButton(
           onPressed: disabled ? null : widget.onPressed,
           onLongPress: disabled ? null : widget.onPressed,
@@ -70,7 +74,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
 
     return AnimatedScale(
       scale: _pressed ? 0.97 : 1.0,
-      duration: const Duration(milliseconds: 100),
+      duration: Duration(milliseconds: 100),
       child: GestureDetector(
         onTapDown: disabled ? null : (_) => setState(() => _pressed = true),
         onTapCancel: () => setState(() => _pressed = false),
@@ -81,12 +85,12 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             gradient: disabled ? null : PosGradients.brand,
             color: disabled ? PosColors.mutedSoft : null,
             boxShadow: disabled
-                ? const []
+                ? []
                 : [
                     BoxShadow(
                       color: PosColors.primary.withValues(alpha: 0.32),
                       blurRadius: 14,
-                      offset: const Offset(0, 6),
+                      offset: Offset(0, 6),
                     ),
                   ],
           ),
@@ -95,7 +99,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               disabledBackgroundColor: Colors.transparent,
-              foregroundColor: Colors.white,
+              foregroundColor: PosColors.background,
               disabledForegroundColor: PosColors.muted,
               shadowColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,

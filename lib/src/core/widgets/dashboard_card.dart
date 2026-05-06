@@ -38,10 +38,10 @@ class _DashboardCardState extends State<DashboardCard> {
           onExit: (_) => setState(() => _hovering = false),
           child: AnimatedScale(
             scale: _pressed ? 0.985 : 1.0,
-            duration: const Duration(milliseconds: 110),
+            duration: Duration(milliseconds: 110),
             curve: Curves.easeOut,
             child: AnimatedContainer(
-              duration: const Duration(milliseconds: 180),
+              duration: Duration(milliseconds: 180),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(PosRadii.lg),
                 boxShadow: _hovering
@@ -49,7 +49,7 @@ class _DashboardCardState extends State<DashboardCard> {
                         BoxShadow(
                           color: widget.color.withValues(alpha: 0.18),
                           blurRadius: 26,
-                          offset: const Offset(0, 14),
+                          offset: Offset(0, 14),
                         ),
                       ]
                     : PosShadows.card,
@@ -127,14 +127,12 @@ class _DashboardCardState extends State<DashboardCard> {
                                     color: widget.color,
                                     compact: compact,
                                   ),
-                                  const Spacer(),
+                                  Spacer(),
                                   if (widget.onTap != null)
                                     AnimatedSlide(
-                                      duration: const Duration(
-                                        milliseconds: 220,
-                                      ),
+                                      duration: Duration(milliseconds: 220),
                                       offset: _hovering
-                                          ? const Offset(0.18, 0)
+                                          ? Offset(0.18, 0)
                                           : Offset.zero,
                                       child: Icon(
                                         Icons.arrow_forward_rounded,
@@ -155,7 +153,7 @@ class _DashboardCardState extends State<DashboardCard> {
                                 overflow: TextOverflow.ellipsis,
                                 style:
                                     (compact
-                                            ? const TextStyle(
+                                            ? TextStyle(
                                                 fontSize: 18,
                                                 fontWeight: FontWeight.w900,
                                                 color: PosColors.slate,
@@ -169,13 +167,13 @@ class _DashboardCardState extends State<DashboardCard> {
                                           letterSpacing: 0,
                                         ),
                               ),
-                              const SizedBox(height: 4),
+                              SizedBox(height: 4),
                               Text(
                                 widget.title,
                                 maxLines: compact ? 1 : 2,
                                 overflow: TextOverflow.ellipsis,
                                 style: compact
-                                    ? const TextStyle(
+                                    ? TextStyle(
                                         fontSize: 11.6,
                                         fontWeight: FontWeight.w800,
                                         color: PosColors.slate,
@@ -184,7 +182,7 @@ class _DashboardCardState extends State<DashboardCard> {
                                     : Theme.of(context).textTheme.titleMedium,
                               ),
                               if (widget.caption != null && !compact) ...[
-                                const SizedBox(height: 4),
+                                SizedBox(height: 4),
                                 Text(
                                   widget.caption!,
                                   maxLines: 1,
@@ -209,11 +207,7 @@ class _DashboardCardState extends State<DashboardCard> {
 }
 
 class _IconBox extends StatelessWidget {
-  const _IconBox({
-    required this.icon,
-    required this.color,
-    required this.compact,
-  });
+  const _IconBox({required this.icon, required this.color, required this.compact});
 
   final IconData icon;
   final Color color;
@@ -239,7 +233,7 @@ class _IconBox extends StatelessWidget {
           BoxShadow(
             color: color.withValues(alpha: 0.12),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),

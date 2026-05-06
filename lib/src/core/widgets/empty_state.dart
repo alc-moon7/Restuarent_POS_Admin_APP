@@ -21,7 +21,7 @@ class EmptyState extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 32),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: 32),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -45,9 +45,9 @@ class EmptyState extends StatelessWidget {
                     color: PosColors.surface,
                     borderRadius: BorderRadius.circular(PosRadii.lg),
                     border: Border.all(color: PosColors.line),
-                    boxShadow: const [
+                    boxShadow: [
                       BoxShadow(
-                        color: Color(0x14008C76),
+                        color: PosColors.primary.withValues(alpha: 0.16),
                         blurRadius: 14,
                         offset: Offset(0, 6),
                       ),
@@ -57,19 +57,19 @@ class EmptyState extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 18),
+            SizedBox(height: 18),
             Text(
               title,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.titleLarge,
             ),
-            const SizedBox(height: 6),
+            SizedBox(height: 6),
             Text(
               message,
               textAlign: TextAlign.center,
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            if (action != null) ...[const SizedBox(height: 16), action!],
+            if (action != null) ...[SizedBox(height: 16), action!],
           ],
         ),
       ),

@@ -1,5 +1,5 @@
 class OrderItem {
-  const OrderItem({
+  OrderItem({
     required this.id,
     required this.orderId,
     required this.menuItemId,
@@ -55,7 +55,7 @@ class OrderItem {
 }
 
 class OrderRequestItem {
-  const OrderRequestItem({required this.menuItemId, required this.qty});
+  OrderRequestItem({required this.menuItemId, required this.qty});
 
   final String menuItemId;
   final int qty;
@@ -64,10 +64,10 @@ class OrderRequestItem {
     final rawId = json['menuItemId'] ?? json['id'];
     final rawQty = json['qty'] ?? json['quantity'];
     if (rawId is! String || rawId.trim().isEmpty) {
-      throw const FormatException('Each item must include a menuItemId.');
+      throw FormatException('Each item must include a menuItemId.');
     }
     if (rawQty is! num) {
-      throw const FormatException('Each item must include a numeric qty.');
+      throw FormatException('Each item must include a numeric qty.');
     }
     return OrderRequestItem(menuItemId: rawId.trim(), qty: rawQty.toInt());
   }

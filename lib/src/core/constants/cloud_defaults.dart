@@ -1,17 +1,17 @@
 class CloudDefaults {
-  const CloudDefaults._();
+  CloudDefaults._();
 
-  static const String productionBaseUrl =
+  static String productionBaseUrl =
       'https://vnhxfvtpkgykatvbrczn.supabase.co/functions/v1/pos-api';
 
-  static const String placeholderBaseUrl = 'https://api.example.com';
+  static String placeholderBaseUrl = 'https://api.example.com';
 
-  static const String baseUrl = String.fromEnvironment(
+  static String baseUrl = String.fromEnvironment(
     'POS_CLOUD_API_URL',
     defaultValue: productionBaseUrl,
   );
 
-  static const bool forceCloudSyncEnabled = bool.fromEnvironment(
+  static bool forceCloudSyncEnabled = bool.fromEnvironment(
     'POS_CLOUD_SYNC_ENABLED',
   );
 

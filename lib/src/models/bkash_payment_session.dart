@@ -1,5 +1,5 @@
 class BkashPaymentSession {
-  const BkashPaymentSession({
+  BkashPaymentSession({
     required this.paymentId,
     required this.checkoutUrl,
     required this.status,

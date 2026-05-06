@@ -19,7 +19,7 @@ class CopyableTextCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final canCopy = value.trim().isNotEmpty && !value.contains('Unavailable');
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: PosColors.surfaceTinted,
         borderRadius: BorderRadius.circular(PosRadii.md),
@@ -46,25 +46,25 @@ class CopyableTextCard extends StatelessWidget {
             ),
             child: Icon(icon, color: PosColors.primary, size: 19),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
                   label.toUpperCase(),
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: PosColors.muted,
                     fontWeight: FontWeight.w800,
                     fontSize: 10.6,
                     letterSpacing: 1.2,
                   ),
                 ),
-                const SizedBox(height: 4),
+                SizedBox(height: 4),
                 SelectableText(
                   value,
                   maxLines: 2,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: PosColors.slate,
                     fontWeight: FontWeight.w700,
                     fontSize: 13.4,
@@ -89,7 +89,7 @@ class CopyableTextCard extends StatelessWidget {
                     }
                   : null,
               child: Container(
-                padding: const EdgeInsets.all(9),
+                padding: EdgeInsets.all(9),
                 decoration: BoxDecoration(
                   borderRadius: BorderRadius.circular(PosRadii.sm),
                   border: Border.all(color: PosColors.line),

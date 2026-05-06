@@ -19,12 +19,12 @@ class SyncEventTile extends StatelessWidget {
       SyncStatus.failed => PosColors.danger,
     };
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Color(0x080F2A1F),
             blurRadius: 8,
@@ -52,7 +52,7 @@ class SyncEventTile extends StatelessWidget {
             ),
             child: Icon(Icons.sync_alt, color: accent, size: 20),
           ),
-          const SizedBox(width: 12),
+          SizedBox(width: 12),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -69,24 +69,24 @@ class SyncEventTile extends StatelessWidget {
                     StatusBadge.sync(event.status),
                   ],
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: 5),
                 Text(
                   event.entityId,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 11.5,
                     fontFamily: 'monospace',
                     color: PosColors.muted,
                   ),
                 ),
                 if (event.lastError != null) ...[
-                  const SizedBox(height: 6),
+                  SizedBox(height: 6),
                   Text(
                     event.lastError!,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: PosColors.danger,
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
@@ -96,21 +96,21 @@ class SyncEventTile extends StatelessWidget {
               ],
             ),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: 8),
           Column(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
               Text(
                 DateFormat('h:mm a').format(event.updatedAt),
-                style: const TextStyle(
+                style: TextStyle(
                   color: PosColors.slateSoft,
                   fontWeight: FontWeight.w800,
                   fontSize: 12,
                 ),
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: 4),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
                   color: PosColors.surfaceTinted,
                   borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -118,7 +118,7 @@ class SyncEventTile extends StatelessWidget {
                 ),
                 child: Text(
                   'Retry ${event.retryCount}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: PosColors.muted,
                     fontWeight: FontWeight.w700,
                     fontSize: 10.5,

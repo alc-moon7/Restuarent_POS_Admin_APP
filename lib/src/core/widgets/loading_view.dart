@@ -11,9 +11,9 @@ class LoadingView extends StatelessWidget {
   Widget build(BuildContext context) {
     return Center(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 26, vertical: 22),
+          padding: EdgeInsets.symmetric(horizontal: 26, vertical: 22),
           decoration: BoxDecoration(
             color: PosColors.surface,
             borderRadius: BorderRadius.circular(PosRadii.xl),
@@ -35,7 +35,7 @@ class LoadingView extends StatelessWidget {
                     ],
                   ),
                 ),
-                child: const Padding(
+                child: Padding(
                   padding: EdgeInsets.all(14),
                   child: CircularProgressIndicator(
                     color: PosColors.primary,
@@ -43,7 +43,7 @@ class LoadingView extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 14),
+              SizedBox(height: 14),
               Text(
                 message,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(

@@ -30,7 +30,7 @@ class ConnectivityService {
     try {
       final lookup = await InternetAddress.lookup(
         'example.com',
-      ).timeout(const Duration(seconds: 3));
+      ).timeout(Duration(seconds: 3));
       return lookup.isNotEmpty && lookup.first.rawAddress.isNotEmpty;
     } catch (_) {
       return false;

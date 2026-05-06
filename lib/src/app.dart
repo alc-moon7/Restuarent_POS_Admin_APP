@@ -14,7 +14,6 @@ import 'features/setup/tenant_setup_screen.dart';
 import 'features/settings/settings_screen.dart';
 import 'features/splash/mode_intro_screen.dart';
 import 'features/splash/splash_screen.dart';
-import 'features/sync/sync_status_screen.dart';
 
 class LocalPosApp extends StatefulWidget {
   const LocalPosApp({super.key});
@@ -23,7 +22,7 @@ class LocalPosApp extends StatefulWidget {
   State<LocalPosApp> createState() => _LocalPosAppState();
 }
 
-class _LocalPosAppState extends State<LocalPosApp> {
+class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
   late final PosAppController _controller;
   late final Future<void> _bootFuture;
   bool _showSplash = true;
@@ -33,14 +32,23 @@ class _LocalPosAppState extends State<LocalPosApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _controller = PosAppController();
     _bootFuture = _controller.initialize();
   }
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     _controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangePlatformBrightness() {
+    if (_controller.themePreference == AppThemePreference.device) {
+      setState(() {});
+    }
   }
 
   @override
@@ -52,6 +60,8 @@ class _LocalPosAppState extends State<LocalPosApp> {
         builder: (context, _) {
           final uiScale = _controller.uiScale;
           final text = _controller.strings;
+          final tone = _resolveTone(_controller.themePreference);
+          PosColors.setTone(tone);
           return MaterialApp(
             title: text.appTitle,
             debugShowCheckedModeBanner: false,
@@ -59,29 +69,30 @@ class _LocalPosAppState extends State<LocalPosApp> {
             supportedLocales: AppLanguage.values
                 .map((language) => language.locale)
                 .toList(growable: false),
-            localizationsDelegates: const [
+            localizationsDelegates: [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            theme: AppTheme.light().copyWith(
-              visualDensity: _visualDensityFor(uiScale),
-            ),
+            theme: AppTheme.light(
+              uiScale: uiScale,
+            ).copyWith(visualDensity: _visualDensityFor(uiScale)),
+            themeMode: ThemeMode.light,
             builder: (context, child) {
               final mediaQuery = MediaQuery.of(context);
               final systemScale = mediaQuery.textScaler.scale(1);
               final effectiveScale = (systemScale * uiScale)
-                  .clamp(0.82, 1.24)
+                  .clamp(0.76, 1.12)
                   .toDouble();
               return MediaQuery(
                 data: mediaQuery.copyWith(
                   textScaler: TextScaler.linear(effectiveScale),
                 ),
-                child: child ?? const SizedBox.shrink(),
+                child: child ?? SizedBox.shrink(),
               );
             },
             home: AnimatedSwitcher(
-              duration: const Duration(milliseconds: 320),
+              duration: Duration(milliseconds: 320),
               child: _home(),
             ),
           );
@@ -95,6 +106,21 @@ class _LocalPosAppState extends State<LocalPosApp> {
     return VisualDensity(horizontal: density, vertical: density);
   }
 
+  PosThemeTone _resolveTone(AppThemePreference preference) {
+    switch (preference) {
+      case AppThemePreference.white:
+        return PosThemeTone.light;
+      case AppThemePreference.device:
+        final brightness =
+            WidgetsBinding.instance.platformDispatcher.platformBrightness;
+        return brightness == Brightness.dark
+            ? PosThemeTone.dark
+            : PosThemeTone.light;
+      case AppThemePreference.black:
+        return PosThemeTone.dark;
+    }
+  }
+
   Widget _home() {
     if (_showSplash) {
       return SplashScreen(
@@ -103,7 +129,7 @@ class _LocalPosAppState extends State<LocalPosApp> {
           setState(() {
             _showSplash = false;
             _showIntro = !_controller.hasSeenIntro;
-            _initialShellIndex = _showIntro ? 5 : 0;
+            _initialShellIndex = _showIntro ? 4 : 0;
           });
         },
       );
@@ -125,7 +151,7 @@ class _LocalPosAppState extends State<LocalPosApp> {
           if (!mounted) return;
           setState(() {
             _showIntro = false;
-            _initialShellIndex = 5;
+            _initialShellIndex = 4;
           });
         },
       );
@@ -162,27 +188,41 @@ class _MainShellState extends State<MainShell> {
   }
 
   @override
+  void didUpdateWidget(covariant MainShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.initialIndex != widget.initialIndex) {
+      _selectedIndex = widget.initialIndex;
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
     final text = AppScope.of(context).strings;
     final destinations = _destinations(text);
     final pages = [
+      OrdersScreen(),
+      MenuManagementScreen(),
       DashboardScreen(onNavigate: _setIndex),
-      const MenuManagementScreen(),
-      const OrdersScreen(),
-      const ReportsScreen(),
-      const SyncStatusScreen(),
-      const SettingsScreen(),
+      ReportsScreen(),
+      SettingsScreen(),
     ];
+    final safeIndex = _selectedIndex.clamp(0, pages.length - 1);
+    if (safeIndex != _selectedIndex) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selectedIndex = safeIndex);
+      });
+    }
 
     return LayoutBuilder(
       builder: (context, constraints) {
         final useRail = constraints.maxWidth >= 760;
         if (!useRail) {
           return Scaffold(
-            body: IndexedStack(index: _selectedIndex, children: pages),
+            body: IndexedStack(index: safeIndex, children: pages),
             bottomNavigationBar: _FloatingBottomNav(
               destinations: destinations,
-              selectedIndex: _selectedIndex,
+              selectedIndex: safeIndex,
               onChanged: _setIndex,
             ),
           );
@@ -193,29 +233,29 @@ class _MainShellState extends State<MainShell> {
           body: Row(
             children: [
               DecoratedBox(
-                decoration: const BoxDecoration(
+                decoration: BoxDecoration(
                   color: PosColors.surface,
                   border: Border(right: BorderSide(color: PosColors.line)),
                   boxShadow: [
                     BoxShadow(
-                      color: Color(0x0A0F2A1F),
+                      color: Color(0x55000000),
                       blurRadius: 22,
                       offset: Offset(2, 0),
                     ),
                   ],
                 ),
                 child: NavigationRail(
-                  selectedIndex: _selectedIndex,
+                  selectedIndex: safeIndex,
                   onDestinationSelected: _setIndex,
                   extended: extended,
                   minExtendedWidth: 232,
                   groupAlignment: -0.86,
                   leading: Padding(
-                    padding: const EdgeInsets.fromLTRB(14, 22, 14, 28),
+                    padding: EdgeInsets.fromLTRB(14, 22, 14, 28),
                     child: _RailLogo(extended: extended),
                   ),
                   trailing: Padding(
-                    padding: const EdgeInsets.fromLTRB(12, 18, 12, 22),
+                    padding: EdgeInsets.fromLTRB(12, 18, 12, 22),
                     child: _RailFooter(extended: extended),
                   ),
                   destinations: destinations
@@ -230,7 +270,7 @@ class _MainShellState extends State<MainShell> {
                 ),
               ),
               Expanded(
-                child: IndexedStack(index: _selectedIndex, children: pages),
+                child: IndexedStack(index: safeIndex, children: pages),
               ),
             ],
           ),
@@ -240,27 +280,35 @@ class _MainShellState extends State<MainShell> {
   }
 
   void _setIndex(int index) {
-    setState(() => _selectedIndex = index);
+    final maxIndex = _destinations(AppScope.of(context).strings).length - 1;
+    setState(() => _selectedIndex = index.clamp(0, maxIndex));
   }
 
   List<_Destination> _destinations(AppStrings text) {
     return [
-      _Destination(text.dashboard, Icons.dashboard_outlined, Icons.dashboard),
+      _Destination(
+        text.orders,
+        Icons.receipt_long_outlined,
+        Icons.receipt_long,
+      ),
       _Destination(
         text.menu,
         Icons.restaurant_menu_outlined,
         Icons.restaurant_menu,
       ),
-      _Destination(text.orders, Icons.receipt_long_outlined, Icons.receipt_long),
+      _Destination(text.home, Icons.home_outlined, Icons.home_rounded),
       _Destination(text.reports, Icons.assessment_outlined, Icons.assessment),
-      _Destination(text.sync, Icons.cloud_sync_outlined, Icons.cloud_done),
-      _Destination(text.settings, Icons.tune_outlined, Icons.tune),
+      _Destination(
+        text.settings,
+        Icons.settings_outlined,
+        Icons.settings_rounded,
+      ),
     ];
   }
 }
 
 class _Destination {
-  const _Destination(this.label, this.icon, this.selectedIcon);
+  _Destination(this.label, this.icon, this.selectedIcon);
 
   final String label;
   final IconData icon;
@@ -285,13 +333,13 @@ class _RailLogo extends StatelessWidget {
           BoxShadow(
             color: PosColors.primary.withValues(alpha: 0.36),
             blurRadius: 18,
-            offset: const Offset(0, 10),
+            offset: Offset(0, 10),
           ),
         ],
       ),
-      child: const Icon(
+      child: Icon(
         Icons.point_of_sale_rounded,
-        color: Colors.white,
+        color: PosColors.background,
         size: 24,
       ),
     );
@@ -300,23 +348,23 @@ class _RailLogo extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         mark,
-        const SizedBox(width: 12),
+        SizedBox(width: 12),
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
               text.appTitle,
-              style: const TextStyle(
+              style: TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
                 fontSize: 16.5,
                 letterSpacing: 0,
               ),
             ),
-            const SizedBox(height: 2),
+            SizedBox(height: 2),
             Text(
               text.cloudSuite,
-              style: const TextStyle(
+              style: TextStyle(
                 color: PosColors.muted,
                 fontWeight: FontWeight.w700,
                 fontSize: 11,
@@ -344,20 +392,20 @@ class _FloatingBottomNav extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final showLabel = width >= 390;
-    final barHeight = showLabel ? 66.0 : 60.0;
+    final showLabel = true;
+    final barHeight = width >= 390 ? 68.0 : 64.0;
 
     return SafeArea(
       top: false,
-      minimum: const EdgeInsets.fromLTRB(10, 0, 10, 10),
+      minimum: EdgeInsets.fromLTRB(10, 0, 10, 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
           color: PosColors.surface.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(26),
           border: Border.all(color: PosColors.line),
-          boxShadow: const [
+          boxShadow: [
             BoxShadow(
-              color: Color(0x180F2A1F),
+              color: Color(0x66000000),
               blurRadius: 24,
               offset: Offset(0, 10),
             ),
@@ -366,12 +414,12 @@ class _FloatingBottomNav extends StatelessWidget {
         child: SizedBox(
           height: barHeight,
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+            padding: EdgeInsets.symmetric(horizontal: 6, vertical: 6),
             child: Row(
               children: [
                 for (var i = 0; i < destinations.length; i++)
                   Expanded(
-                    flex: showLabel && i == selectedIndex ? 2 : 1,
+                    flex: 1,
                     child: _BottomNavItem(
                       destination: destinations[i],
                       selected: i == selectedIndex,
@@ -403,7 +451,7 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? Colors.white : PosColors.muted;
+    final foreground = selected ? PosColors.background : PosColors.muted;
     final icon = selected ? destination.selectedIcon : destination.icon;
 
     return Tooltip(
@@ -413,7 +461,7 @@ class _BottomNavItem extends StatelessWidget {
         selected: selected,
         label: destination.label,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 2),
+          padding: EdgeInsets.symmetric(horizontal: 2),
           child: Material(
             color: Colors.transparent,
             borderRadius: BorderRadius.circular(20),
@@ -421,7 +469,7 @@ class _BottomNavItem extends StatelessWidget {
             child: InkWell(
               onTap: onTap,
               child: AnimatedContainer(
-                duration: const Duration(milliseconds: 220),
+                duration: Duration(milliseconds: 220),
                 curve: Curves.easeOutCubic,
                 height: double.infinity,
                 padding: EdgeInsets.symmetric(
@@ -431,29 +479,27 @@ class _BottomNavItem extends StatelessWidget {
                   gradient: selected ? PosGradients.brand : null,
                   color: selected ? null : Colors.transparent,
                   borderRadius: BorderRadius.circular(20),
-                  boxShadow: selected ? PosShadows.glow : const [],
+                  boxShadow: selected ? PosShadows.glow : [],
                 ),
                 child: Center(
-                  child: showLabel && selected
-                      ? Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                  child: showLabel
+                      ? Column(
                           mainAxisSize: MainAxisSize.min,
+                          mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(icon, color: foreground, size: 20),
-                            const SizedBox(width: 6),
-                            Flexible(
-                              child: FittedBox(
-                                fit: BoxFit.scaleDown,
-                                child: Text(
-                                  destination.label,
-                                  maxLines: 1,
-                                  style: TextStyle(
-                                    color: foreground,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 11.5,
-                                    letterSpacing: 0,
-                                  ),
-                                ),
+                            Icon(icon, color: foreground, size: selected ? 21 : 20),
+                            SizedBox(height: 2),
+                            Text(
+                              destination.label,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: foreground,
+                                fontWeight: selected
+                                    ? FontWeight.w900
+                                    : FontWeight.w700,
+                                fontSize: 10.2,
+                                letterSpacing: 0,
                               ),
                             ),
                           ],
@@ -479,13 +525,13 @@ class _RailFooter extends StatelessWidget {
     final text = AppScope.of(context).strings;
     if (!extended) {
       return Container(
-        padding: const EdgeInsets.all(8),
+        padding: EdgeInsets.all(8),
         decoration: BoxDecoration(
           color: PosColors.primarySoft,
           borderRadius: BorderRadius.circular(PosRadii.sm),
           border: Border.all(color: PosColors.line),
         ),
-        child: const Icon(
+        child: Icon(
           Icons.verified_user_outlined,
           color: PosColors.primary,
           size: 20,
@@ -493,7 +539,7 @@ class _RailFooter extends StatelessWidget {
       );
     }
     return Container(
-      padding: const EdgeInsets.all(14),
+      padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topLeft,
@@ -508,12 +554,12 @@ class _RailFooter extends StatelessWidget {
       ),
       child: Row(
         children: [
-          const Icon(
+          Icon(
             Icons.verified_user_outlined,
             color: PosColors.primary,
             size: 20,
           ),
-          const SizedBox(width: 10),
+          SizedBox(width: 10),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -521,16 +567,16 @@ class _RailFooter extends StatelessWidget {
               children: [
                 Text(
                   text.secureTenant,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: PosColors.primaryDark,
                     fontWeight: FontWeight.w900,
                     fontSize: 12.5,
                   ),
                 ),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(
                   text.tokenVerified,
-                  style: const TextStyle(
+                  style: TextStyle(
                     color: PosColors.muted,
                     fontWeight: FontWeight.w700,
                     fontSize: 10.5,

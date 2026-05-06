@@ -53,11 +53,11 @@ class _ReportsScreenState extends State<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _PeriodSelector(value: _days, onChanged: _setDays),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ReportSummary(report: report, currency: _currency),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (report.totalOrders == 0)
-            const EmptyState(
+            EmptyState(
               title: 'No orders in this period',
               message:
                   'Orders will appear here after customers or staff create them.',
@@ -65,7 +65,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             )
           else ...[
             _DailyBreakdown(report: report, currency: _currency, date: _date),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             _TopItems(report: report, currency: _currency),
           ],
         ],
@@ -125,9 +125,9 @@ class _PeriodSelector extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: EdgeInsets.all(12),
         child: SegmentedButton<int>(
-          segments: const [
+          segments: [
             ButtonSegment(
               value: 1,
               label: Text('1 Day'),
@@ -170,7 +170,7 @@ class _ReportSummary extends StatelessWidget {
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
           childAspectRatio: constraints.maxWidth >= 620 ? 2.0 : 1.35,
@@ -185,7 +185,7 @@ class _ReportSummary extends StatelessWidget {
               label: 'Orders',
               value: report.totalOrders.toString(),
               icon: Icons.receipt_long_outlined,
-              color: const Color(0xFF2563EB),
+              color: Color(0xFF2563EB),
             ),
             _ReportTile(
               label: 'Avg order',
@@ -243,7 +243,7 @@ class _ReportTile extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(14),
+            padding: EdgeInsets.all(14),
             child: Row(
               children: [
                 Container(
@@ -263,7 +263,7 @@ class _ReportTile extends StatelessWidget {
                   ),
                   child: Icon(icon, color: color, size: 20),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
@@ -271,14 +271,14 @@ class _ReportTile extends StatelessWidget {
                     children: [
                       Text(
                         label.toUpperCase(),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: PosColors.muted,
                           fontWeight: FontWeight.w800,
                           fontSize: 10.4,
                           letterSpacing: 1.1,
                         ),
                       ),
-                      const SizedBox(height: 4),
+                      SizedBox(height: 4),
                       Text(
                         value,
                         maxLines: 1,
@@ -358,11 +358,7 @@ class _TopItems extends StatelessWidget {
 }
 
 class _ReportCard extends StatelessWidget {
-  const _ReportCard({
-    required this.title,
-    required this.icon,
-    required this.child,
-  });
+  const _ReportCard({required this.title, required this.icon, required this.child});
 
   final String title;
   final IconData icon;
@@ -372,18 +368,18 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
                 Icon(icon, color: PosColors.primary),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Text(title, style: Theme.of(context).textTheme.titleLarge),
               ],
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             child,
           ],
         ),
@@ -406,7 +402,7 @@ class _LineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 8),
       child: Row(
         children: [
           Expanded(
@@ -414,7 +410,7 @@ class _LineRow extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(title, style: Theme.of(context).textTheme.titleMedium),
-                const SizedBox(height: 2),
+                SizedBox(height: 2),
                 Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
               ],
             ),

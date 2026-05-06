@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'sync_status.dart';
 
 class SyncEvent {
-  const SyncEvent({
+  SyncEvent({
     required this.id,
     required this.entityType,
     required this.entityId,
@@ -84,7 +84,7 @@ class SyncEvent {
 }
 
 class SyncSummary {
-  const SyncSummary({
+  SyncSummary({
     required this.pendingCount,
     required this.failedCount,
     this.lastSyncAt,

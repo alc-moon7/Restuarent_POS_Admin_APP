@@ -10,7 +10,7 @@ import '../models/order_status.dart';
 import '../models/server_config.dart';
 
 class CloudApiException implements Exception {
-  const CloudApiException(this.message);
+  CloudApiException(this.message);
 
   final String message;
 
@@ -19,7 +19,7 @@ class CloudApiException implements Exception {
 }
 
 class CloudRealtimeConfig {
-  const CloudRealtimeConfig({
+  CloudRealtimeConfig({
     required this.enabled,
     required this.supabaseUrl,
     required this.publishableKey,
@@ -57,7 +57,7 @@ class CloudRealtimeConfig {
 }
 
 class TenantBootstrapResult {
-  const TenantBootstrapResult({
+  TenantBootstrapResult({
     required this.serverId,
     required this.restaurantId,
     required this.outletId,
@@ -122,7 +122,7 @@ class CloudApiService {
   Future<Map<String, Object?>> testHealth() async {
     final uri = _uri('/health');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     final response = await _sendJson('GET', uri);
     _captureRealtimeConfig(response);
@@ -145,7 +145,7 @@ class CloudApiService {
   }) async {
     final uri = _uri('/tenants/bootstrap');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     final response = await _sendJson(
       'POST',
@@ -169,7 +169,7 @@ class CloudApiService {
   }) async {
     final uri = _uri('/payments/bkash/create');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     final response = await _sendJson(
       'POST',
@@ -189,7 +189,7 @@ class CloudApiService {
   Future<BkashPaymentSession> verifyBkashPayment(String paymentId) async {
     final uri = _uri('/payments/bkash/$paymentId/verify');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     final response = await _sendJson('POST', uri);
     return BkashPaymentSession.fromJson(response);
@@ -198,7 +198,7 @@ class CloudApiService {
   Future<BkashPaymentSession> getBkashPaymentStatus(String paymentId) async {
     final uri = _uri('/payments/bkash/$paymentId/status');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     final response = await _sendJson('GET', uri);
     return BkashPaymentSession.fromJson(response);
@@ -208,7 +208,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/devices/register');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     return _sendJson(
       'POST',
@@ -228,7 +228,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     return _sendJson(
       'POST',
@@ -242,7 +242,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu/${item.id}');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     return _sendJson(
       'PATCH',
@@ -256,7 +256,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu/images');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     final response = await _sendJson(
       'POST',
@@ -273,7 +273,7 @@ class CloudApiService {
         : response;
     final publicUrl = data['publicUrl']?.toString().trim() ?? '';
     if (publicUrl.isEmpty) {
-      throw const CloudApiException('Cloud image upload did not return a URL.');
+      throw CloudApiException('Cloud image upload did not return a URL.');
     }
     return publicUrl;
   }
@@ -282,7 +282,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/menu/$id');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     return _sendJson('DELETE', uri, idempotencyKey: 'menu-delete-$id');
   }
@@ -291,7 +291,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/orders');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     return _sendJson(
       'POST',
@@ -308,7 +308,7 @@ class CloudApiService {
     final config = _requireServerConfig();
     final uri = _uri('/outlets/${config.outletId}/orders/$orderId/status');
     if (uri == null) {
-      throw const CloudApiException('Cloud API URL is empty or invalid.');
+      throw CloudApiException('Cloud API URL is empty or invalid.');
     }
     return _sendJson(
       'PATCH',
@@ -329,7 +329,7 @@ class CloudApiService {
           ? null
           : {'since': since.toIso8601String()},
     );
-    if (uri == null) return const [];
+    if (uri == null) return [];
     final json = await _sendJson('GET', uri);
     return _extractList(json);
   }
@@ -342,7 +342,7 @@ class CloudApiService {
           ? null
           : {'since': since.toIso8601String()},
     );
-    if (uri == null) return const [];
+    if (uri == null) return [];
     final json = await _sendJson('GET', uri);
     return _extractList(json);
   }
@@ -368,7 +368,7 @@ class CloudApiService {
       uri,
       headers,
       encodedBody,
-    ).timeout(const Duration(seconds: 12));
+    ).timeout(Duration(seconds: 12));
     final decoded = response.body.trim().isEmpty
         ? <String, Object?>{}
         : jsonDecode(response.body);
@@ -406,7 +406,7 @@ class CloudApiService {
 
   List<Map<String, Object?>> _extractList(Map<String, Object?> json) {
     final raw = json['data'] ?? json['items'] ?? json['orders'] ?? json['menu'];
-    if (raw is! List) return const [];
+    if (raw is! List) return [];
     return raw
         .whereType<Map>()
         .map((item) => Map<String, Object?>.from(item))
@@ -441,7 +441,7 @@ class CloudApiService {
   ServerConfig _requireServerConfig() {
     final config = _serverConfig;
     if (config == null) {
-      throw const CloudApiException('Server config is not ready.');
+      throw CloudApiException('Server config is not ready.');
     }
     return config;
   }

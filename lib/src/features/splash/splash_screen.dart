@@ -3,11 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({
-    required this.bootFuture,
-    required this.onFinished,
-    super.key,
-  });
+  const SplashScreen({required this.bootFuture, required this.onFinished, super.key});
 
   final Future<void> bootFuture;
   final VoidCallback onFinished;
@@ -28,11 +24,11 @@ class _SplashScreenState extends State<SplashScreen>
     super.initState();
     _entryController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 1000),
+      duration: Duration(milliseconds: 1000),
     )..forward();
     _shimmerController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 2200),
+      duration: Duration(milliseconds: 2200),
     )..repeat();
     _scale = CurvedAnimation(
       parent: _entryController,
@@ -54,7 +50,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Scaffold(
       body: Stack(
         children: [
-          const Positioned.fill(
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(gradient: PosGradients.brandDeep),
             ),
@@ -115,12 +111,12 @@ class _SplashScreenState extends State<SplashScreen>
                           BoxShadow(
                             color: Colors.black.withValues(alpha: 0.35),
                             blurRadius: 40,
-                            offset: const Offset(0, 22),
+                            offset: Offset(0, 22),
                           ),
                           BoxShadow(
                             color: PosColors.primaryGlow.withValues(alpha: 0.3),
                             blurRadius: 32,
-                            offset: const Offset(0, 6),
+                            offset: Offset(0, 6),
                           ),
                         ],
                       ),
@@ -128,14 +124,14 @@ class _SplashScreenState extends State<SplashScreen>
                         shaderCallback: (rect) {
                           return PosGradients.brand.createShader(rect);
                         },
-                        child: const Icon(
+                        child: Icon(
                           Icons.point_of_sale_rounded,
                           color: Colors.white,
                           size: 48,
                         ),
                       ),
                     ),
-                    const SizedBox(height: 22),
+                    SizedBox(height: 22),
                     Text(
                       'REs Admin',
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
@@ -144,9 +140,9 @@ class _SplashScreenState extends State<SplashScreen>
                         fontSize: 32,
                       ),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding: EdgeInsets.symmetric(
                         horizontal: 14,
                         vertical: 6,
                       ),
@@ -174,7 +170,7 @@ class _SplashScreenState extends State<SplashScreen>
                               ],
                             ),
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Text(
                             'Cloud Restaurant Suite',
                             style: TextStyle(
@@ -198,7 +194,7 @@ class _SplashScreenState extends State<SplashScreen>
             bottom: 36,
             child: FadeTransition(
               opacity: _fade,
-              child: const Center(
+              child: Center(
                 child: SizedBox(
                   width: 28,
                   height: 28,
@@ -218,7 +214,7 @@ class _SplashScreenState extends State<SplashScreen>
   Future<void> _finishAfterBoot() async {
     await Future.wait([
       widget.bootFuture,
-      Future<void>.delayed(const Duration(milliseconds: 1600)),
+      Future<void>.delayed(Duration(milliseconds: 1600)),
     ]);
     if (mounted) widget.onFinished();
   }

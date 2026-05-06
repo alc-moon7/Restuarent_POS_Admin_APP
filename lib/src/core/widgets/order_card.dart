@@ -45,7 +45,7 @@ class OrderCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Container(
-                    padding: const EdgeInsets.fromLTRB(16, 14, 14, 12),
+                    padding: EdgeInsets.fromLTRB(16, 14, 14, 12),
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
                         begin: Alignment.topLeft,
@@ -55,15 +55,13 @@ class OrderCard extends StatelessWidget {
                           PosColors.surfaceWarm,
                         ],
                       ),
-                      border: const Border(
-                        bottom: BorderSide(color: PosColors.line),
-                      ),
+                      border: Border(bottom: BorderSide(color: PosColors.line)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         _OrderMark(status: order.status),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -72,7 +70,7 @@ class OrderCard extends StatelessWidget {
                                 order.orderNo,
                                 style: Theme.of(context).textTheme.titleLarge,
                               ),
-                              const SizedBox(height: 6),
+                              SizedBox(height: 6),
                               Wrap(
                                 spacing: 6,
                                 runSpacing: 6,
@@ -94,7 +92,7 @@ class OrderCard extends StatelessWidget {
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        SizedBox(width: 8),
                         Flexible(
                           child: Wrap(
                             spacing: 5,
@@ -111,7 +109,7 @@ class OrderCard extends StatelessWidget {
                     ),
                   ),
                   Padding(
-                    padding: const EdgeInsets.all(14),
+                    padding: EdgeInsets.all(14),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -122,7 +120,7 @@ class OrderCard extends StatelessWidget {
                             border: Border.all(color: PosColors.line),
                           ),
                           child: Padding(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 12,
                               vertical: 6,
                             ),
@@ -130,7 +128,7 @@ class OrderCard extends StatelessWidget {
                               children: order.items
                                   .map(
                                     (item) => Padding(
-                                      padding: const EdgeInsets.symmetric(
+                                      padding: EdgeInsets.symmetric(
                                         vertical: 6,
                                       ),
                                       child: Row(
@@ -161,14 +159,14 @@ class OrderCard extends StatelessWidget {
                                             ),
                                             child: Text(
                                               '${item.qty}×',
-                                              style: const TextStyle(
+                                              style: TextStyle(
                                                 color: PosColors.primary,
                                                 fontWeight: FontWeight.w900,
                                                 fontSize: 12.5,
                                               ),
                                             ),
                                           ),
-                                          const SizedBox(width: 10),
+                                          SizedBox(width: 10),
                                           Expanded(
                                             child: Text(
                                               item.name,
@@ -179,10 +177,10 @@ class OrderCard extends StatelessWidget {
                                               ).textTheme.titleMedium,
                                             ),
                                           ),
-                                          const SizedBox(width: 8),
+                                          SizedBox(width: 8),
                                           Text(
                                             currency.format(item.lineTotal),
-                                            style: const TextStyle(
+                                            style: TextStyle(
                                               color: PosColors.slate,
                                               fontWeight: FontWeight.w900,
                                             ),
@@ -196,9 +194,9 @@ class OrderCard extends StatelessWidget {
                           ),
                         ),
                         if (order.note != null) ...[
-                          const SizedBox(height: 10),
+                          SizedBox(height: 10),
                           Container(
-                            padding: const EdgeInsets.all(12),
+                            padding: EdgeInsets.all(12),
                             decoration: BoxDecoration(
                               color: PosColors.accentSoft,
                               borderRadius: BorderRadius.circular(PosRadii.md),
@@ -209,16 +207,16 @@ class OrderCard extends StatelessWidget {
                             child: Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Icon(
+                                Icon(
                                   Icons.sticky_note_2_outlined,
                                   size: 18,
                                   color: PosColors.warning,
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     order.note!,
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: PosColors.slateSoft,
                                       fontWeight: FontWeight.w600,
                                       height: 1.4,
@@ -229,12 +227,12 @@ class OrderCard extends StatelessWidget {
                             ),
                           ),
                         ],
-                        const SizedBox(height: 14),
+                        SizedBox(height: 14),
                         LayoutBuilder(
                           builder: (context, constraints) {
                             final compact = constraints.maxWidth < 520;
                             final total = Container(
-                              padding: const EdgeInsets.symmetric(
+                              padding: EdgeInsets.symmetric(
                                 horizontal: 14,
                                 vertical: 10,
                               ),
@@ -260,7 +258,7 @@ class OrderCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text(
+                                  Text(
                                     'TOTAL',
                                     style: TextStyle(
                                       color: PosColors.muted,
@@ -269,10 +267,10 @@ class OrderCard extends StatelessWidget {
                                       letterSpacing: 1.4,
                                     ),
                                   ),
-                                  const SizedBox(height: 2),
+                                  SizedBox(height: 2),
                                   Text(
                                     currency.format(order.total),
-                                    style: const TextStyle(
+                                    style: TextStyle(
                                       color: PosColors.primaryDark,
                                       fontSize: 22,
                                       fontWeight: FontWeight.w900,
@@ -289,16 +287,11 @@ class OrderCard extends StatelessWidget {
                               children: [
                                 OutlinedButton.icon(
                                   onPressed: onPrintTicket,
-                                  icon: const Icon(
-                                    Icons.print_outlined,
-                                    size: 18,
-                                  ),
-                                  label: const Text('Print Ticket'),
+                                  icon: Icon(Icons.print_outlined, size: 18),
+                                  label: Text('Print Ticket'),
                                 ),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 14,
-                                  ),
+                                  padding: EdgeInsets.symmetric(horizontal: 14),
                                   decoration: BoxDecoration(
                                     color: PosColors.surface,
                                     borderRadius: BorderRadius.circular(
@@ -307,7 +300,7 @@ class OrderCard extends StatelessWidget {
                                     border: Border.all(
                                       color: PosColors.lineStrong,
                                     ),
-                                    boxShadow: const [
+                                    boxShadow: [
                                       BoxShadow(
                                         color: Color(0x0A0F2A1F),
                                         blurRadius: 6,
@@ -321,11 +314,11 @@ class OrderCard extends StatelessWidget {
                                       borderRadius: BorderRadius.circular(
                                         PosRadii.md,
                                       ),
-                                      icon: const Icon(
+                                      icon: Icon(
                                         Icons.expand_more_rounded,
                                         color: PosColors.slate,
                                       ),
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         color: PosColors.slate,
                                         fontWeight: FontWeight.w800,
                                         fontSize: 13,
@@ -354,14 +347,12 @@ class OrderCard extends StatelessWidget {
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
                                   total,
-                                  const SizedBox(height: 12),
+                                  SizedBox(height: 12),
                                   actions,
                                 ],
                               );
                             }
-                            return Row(
-                              children: [total, const Spacer(), actions],
-                            );
+                            return Row(children: [total, Spacer(), actions]);
                           },
                         ),
                       ],
@@ -427,7 +418,7 @@ class _OrderMark extends StatelessWidget {
           BoxShadow(
             color: color.withValues(alpha: 0.14),
             blurRadius: 10,
-            offset: const Offset(0, 4),
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -445,7 +436,7 @@ class _MetaPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -455,10 +446,10 @@ class _MetaPill extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 12.5, color: PosColors.muted),
-          const SizedBox(width: 5),
+          SizedBox(width: 5),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: PosColors.slateSoft,
               fontWeight: FontWeight.w700,
               fontSize: 11,

@@ -73,7 +73,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             selected: _filter,
             onSelect: (status) => setState(() => _filter = status),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _ToolbarRow(
             controller: _searchController,
             onSearchChanged: (v) => setState(() => _searchQuery = v),
@@ -82,7 +82,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
             view: _view,
             onViewChanged: (v) => setState(() => _view = v),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (app.orders.isEmpty)
             EmptyState(
               title: 'No orders yet',
@@ -90,7 +90,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
               icon: Icons.receipt_long_outlined,
             )
           else if (orders.isEmpty)
-            const EmptyState(
+            EmptyState(
               title: 'No orders match the filters',
               message: 'Try clearing the search or status filter.',
               icon: Icons.filter_alt_off_outlined,
@@ -105,7 +105,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
           else
             ListView.separated(
               shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
+              physics: NeverScrollableScrollPhysics(),
               itemBuilder: (context, index) {
                 final order = orders[index];
                 return OrderCard(
@@ -115,7 +115,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
                   onPrintTicket: () => _showTicketPreview(context, order),
                 );
               },
-              separatorBuilder: (context, index) => const SizedBox(height: 10),
+              separatorBuilder: (context, index) => SizedBox(height: 10),
               itemCount: orders.length,
             ),
         ],
@@ -143,7 +143,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
         .toList(growable: false);
     if (menuItems.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('No available menu items to order')),
+        SnackBar(content: Text('No available menu items to order')),
       );
       return;
     }
@@ -165,7 +165,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     if (!context.mounted) return;
     ScaffoldMessenger.of(
       context,
-    ).showSnackBar(const SnackBar(content: Text('Manual order created')));
+    ).showSnackBar(SnackBar(content: Text('Manual order created')));
   }
 
   Future<void> _showTicketPreview(
@@ -178,17 +178,17 @@ class _OrdersScreenState extends State<OrdersScreen> {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Ticket Preview'),
+        title: Text('Ticket Preview'),
         content: SingleChildScrollView(
           child: SelectableText(
             ticket,
-            style: const TextStyle(fontFamily: 'monospace'),
+            style: TextStyle(fontFamily: 'monospace'),
           ),
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Close'),
+            child: Text('Close'),
           ),
           FilledButton.icon(
             onPressed: () async {
@@ -205,8 +205,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
                 ),
               );
             },
-            icon: const Icon(Icons.print_outlined),
-            label: const Text('Print'),
+            icon: Icon(Icons.print_outlined),
+            label: Text('Print'),
           ),
         ],
       ),
@@ -251,7 +251,7 @@ class _StatusSummary extends StatelessWidget {
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: tiles.length,
-        separatorBuilder: (_, _) => const SizedBox(width: 8),
+        separatorBuilder: (_, _) => SizedBox(width: 8),
         itemBuilder: (context, index) {
           final tile = tiles[index];
           final isSelected = selected == tile.status;
@@ -267,7 +267,7 @@ class _StatusSummary extends StatelessWidget {
 }
 
 class _SummaryTile {
-  const _SummaryTile({
+  _SummaryTile({
     required this.status,
     required this.label,
     required this.count,
@@ -300,8 +300,8 @@ class _StatusChip extends StatelessWidget {
         onTap: onTap,
         borderRadius: BorderRadius.circular(PosRadii.md),
         child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.fromLTRB(14, 10, 16, 10),
+          duration: Duration(milliseconds: 180),
+          padding: EdgeInsets.fromLTRB(14, 10, 16, 10),
           decoration: BoxDecoration(
             gradient: selected
                 ? LinearGradient(
@@ -326,10 +326,10 @@ class _StatusChip extends StatelessWidget {
                     BoxShadow(
                       color: tile.color.withValues(alpha: 0.18),
                       blurRadius: 12,
-                      offset: const Offset(0, 6),
+                      offset: Offset(0, 6),
                     ),
                   ]
-                : const [
+                : [
                     BoxShadow(
                       color: Color(0x0A0F2A1F),
                       blurRadius: 6,
@@ -349,7 +349,7 @@ class _StatusChip extends StatelessWidget {
                 ),
                 child: Icon(tile.icon, color: tile.color, size: 17),
               ),
-              const SizedBox(width: 10),
+              SizedBox(width: 10),
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -364,7 +364,7 @@ class _StatusChip extends StatelessWidget {
                       height: 1.0,
                     ),
                   ),
-                  const SizedBox(height: 2),
+                  SizedBox(height: 2),
                   Text(
                     tile.label.toUpperCase(),
                     style: TextStyle(
@@ -427,14 +427,14 @@ class _ToolbarRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(10),
+        padding: EdgeInsets.all(10),
         child: LayoutBuilder(
           builder: (context, constraints) {
             final compact = constraints.maxWidth < 720;
             final search = TextField(
               controller: controller,
               onChanged: onSearchChanged,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 prefixIcon: Icon(Icons.search_rounded),
                 hintText: 'Order #, customer, table…',
               ),
@@ -451,11 +451,11 @@ class _ToolbarRow extends StatelessWidget {
               return Column(
                 children: [
                   search,
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   Row(
                     children: [
                       Expanded(child: sourceMenu),
-                      const SizedBox(width: 8),
+                      SizedBox(width: 8),
                       viewToggle,
                     ],
                   ),
@@ -465,9 +465,9 @@ class _ToolbarRow extends StatelessWidget {
             return Row(
               children: [
                 Expanded(flex: 5, child: search),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(flex: 3, child: sourceMenu),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 viewToggle,
               ],
             );
@@ -488,12 +488,12 @@ class _SourceDropdown extends StatelessWidget {
   Widget build(BuildContext context) {
     return DropdownButtonFormField<OrderSource?>(
       initialValue: value,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         prefixIcon: Icon(Icons.merge_type_rounded),
         labelText: 'Source',
       ),
       items: [
-        const DropdownMenuItem<OrderSource?>(
+        DropdownMenuItem<OrderSource?>(
           value: null,
           child: Text('All sources'),
         ),
@@ -514,8 +514,8 @@ class _ViewToggle extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SegmentedButton<_OrdersView>(
-      style: const ButtonStyle(visualDensity: VisualDensity.compact),
-      segments: const [
+      style: ButtonStyle(visualDensity: VisualDensity.compact),
+      segments: [
         ButtonSegment(
           value: _OrdersView.board,
           icon: Icon(Icons.view_kanban_rounded),
@@ -545,7 +545,7 @@ class _KanbanBoard extends StatelessWidget {
   final void Function(OrderModel order, OrderStatus status) onStatusChanged;
   final void Function(OrderModel order) onPrintTicket;
 
-  static const _columns = <OrderStatus>[
+  static final _columns = <OrderStatus>[
     OrderStatus.pending,
     OrderStatus.accepted,
     OrderStatus.preparing,
@@ -561,9 +561,9 @@ class _KanbanBoard extends StatelessWidget {
           height: 560,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
-            physics: const BouncingScrollPhysics(),
+            physics: BouncingScrollPhysics(),
             itemCount: _columns.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
+            separatorBuilder: (_, _) => SizedBox(width: 12),
             itemBuilder: (context, index) {
               final status = _columns[index];
               final lane = orders.where((o) => o.status == status).toList();
@@ -605,7 +605,7 @@ class _Lane extends StatelessWidget {
         color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.lg),
         border: Border.all(color: PosColors.line),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Color(0x0A0F2A1F),
             blurRadius: 8,
@@ -616,7 +616,7 @@ class _Lane extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            padding: EdgeInsets.fromLTRB(12, 12, 12, 10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 begin: Alignment.topLeft,
@@ -626,10 +626,10 @@ class _Lane extends StatelessWidget {
                   color.withValues(alpha: 0.04),
                 ],
               ),
-              borderRadius: const BorderRadius.vertical(
+              borderRadius: BorderRadius.vertical(
                 top: Radius.circular(PosRadii.lg),
               ),
-              border: const Border(bottom: BorderSide(color: PosColors.line)),
+              border: Border(bottom: BorderSide(color: PosColors.line)),
             ),
             child: Row(
               children: [
@@ -642,7 +642,7 @@ class _Lane extends StatelessWidget {
                   ),
                   child: Icon(_iconForStatus(status), color: color, size: 16),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     status.label.toUpperCase(),
@@ -655,7 +655,7 @@ class _Lane extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 8,
                     vertical: 3,
                   ),
@@ -680,7 +680,7 @@ class _Lane extends StatelessWidget {
             child: orders.isEmpty
                 ? Center(
                     child: Padding(
-                      padding: const EdgeInsets.all(20),
+                      padding: EdgeInsets.all(20),
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
@@ -689,10 +689,10 @@ class _Lane extends StatelessWidget {
                             color: color.withValues(alpha: 0.45),
                             size: 28,
                           ),
-                          const SizedBox(height: 8),
+                          SizedBox(height: 8),
                           Text(
                             'No ${status.label.toLowerCase()} orders',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: PosColors.muted,
                               fontWeight: FontWeight.w700,
                               fontSize: 11.6,
@@ -703,9 +703,9 @@ class _Lane extends StatelessWidget {
                     ),
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(10),
+                    padding: EdgeInsets.all(10),
                     itemCount: orders.length,
-                    separatorBuilder: (_, _) => const SizedBox(height: 8),
+                    separatorBuilder: (_, _) => SizedBox(height: 8),
                     itemBuilder: (context, i) {
                       final order = orders[i];
                       return _LaneCard(
@@ -775,7 +775,7 @@ class _LaneCard extends StatelessWidget {
         color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
             color: Color(0x080F2A1F),
             blurRadius: 6,
@@ -792,13 +792,13 @@ class _LaneCard extends StatelessWidget {
               gradient: LinearGradient(
                 colors: [accent, accent.withValues(alpha: 0.4)],
               ),
-              borderRadius: const BorderRadius.vertical(
+              borderRadius: BorderRadius.vertical(
                 top: Radius.circular(PosRadii.md),
               ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(12),
+            padding: EdgeInsets.all(12),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -807,7 +807,7 @@ class _LaneCard extends StatelessWidget {
                     Expanded(
                       child: Text(
                         order.orderNo,
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: PosColors.slate,
                           fontWeight: FontWeight.w900,
                           fontSize: 14.5,
@@ -817,7 +817,7 @@ class _LaneCard extends StatelessWidget {
                     ),
                     Text(
                       time,
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: PosColors.muted,
                         fontWeight: FontWeight.w700,
                         fontSize: 11,
@@ -825,7 +825,7 @@ class _LaneCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 6),
+                SizedBox(height: 6),
                 Wrap(
                   spacing: 6,
                   runSpacing: 4,
@@ -845,9 +845,9 @@ class _LaneCard extends StatelessWidget {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(
+                  padding: EdgeInsets.symmetric(
                     horizontal: 10,
                     vertical: 8,
                   ),
@@ -861,24 +861,24 @@ class _LaneCard extends StatelessWidget {
                     children: [
                       for (final item in order.items.take(3))
                         Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 1.5),
+                          padding: EdgeInsets.symmetric(vertical: 1.5),
                           child: Row(
                             children: [
                               Text(
                                 '${item.qty}×',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   color: PosColors.primary,
                                   fontWeight: FontWeight.w900,
                                   fontSize: 11.5,
                                 ),
                               ),
-                              const SizedBox(width: 6),
+                              SizedBox(width: 6),
                               Expanded(
                                 child: Text(
                                   item.name,
                                   maxLines: 1,
                                   overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     color: PosColors.slateSoft,
                                     fontSize: 12,
                                     fontWeight: FontWeight.w600,
@@ -890,10 +890,10 @@ class _LaneCard extends StatelessWidget {
                         ),
                       if (order.items.length > 3)
                         Padding(
-                          padding: const EdgeInsets.only(top: 3),
+                          padding: EdgeInsets.only(top: 3),
                           child: Text(
                             '+ ${order.items.length - 3} more',
-                            style: const TextStyle(
+                            style: TextStyle(
                               color: PosColors.muted,
                               fontSize: 11,
                               fontWeight: FontWeight.w700,
@@ -903,25 +903,25 @@ class _LaneCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 Row(
                   children: [
                     Text(
                       currency.format(order.total),
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: PosColors.primaryDark,
                         fontWeight: FontWeight.w900,
                         fontSize: 16,
                         letterSpacing: 0,
                       ),
                     ),
-                    const Spacer(),
+                    Spacer(),
                     _CardIconBtn(
                       icon: Icons.print_outlined,
                       tooltip: 'Print ticket',
                       onTap: onPrint,
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: 6),
                     if (canCancel)
                       _CardIconBtn(
                         icon: Icons.close_rounded,
@@ -932,19 +932,19 @@ class _LaneCard extends StatelessWidget {
                   ],
                 ),
                 if (canAdvance) ...[
-                  const SizedBox(height: 10),
+                  SizedBox(height: 10),
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton.icon(
                       onPressed: onAdvance,
-                      icon: const Icon(Icons.arrow_forward_rounded, size: 17),
+                      icon: Icon(Icons.arrow_forward_rounded, size: 17),
                       label: Text(
                         _nextLabel(order.status),
-                        style: const TextStyle(fontSize: 12.5),
+                        style: TextStyle(fontSize: 12.5),
                       ),
                       style: FilledButton.styleFrom(
                         backgroundColor: accent,
-                        padding: const EdgeInsets.symmetric(vertical: 9),
+                        padding: EdgeInsets.symmetric(vertical: 9),
                       ),
                     ),
                   ),
@@ -993,7 +993,7 @@ class _CardIconBtn extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(PosRadii.sm),
           child: Padding(
-            padding: const EdgeInsets.all(7),
+            padding: EdgeInsets.all(7),
             child: Icon(icon, color: c, size: 16),
           ),
         ),
@@ -1010,7 +1010,7 @@ class _MiniMeta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
         color: PosColors.surfaceTinted,
         borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -1020,10 +1020,10 @@ class _MiniMeta extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, size: 11.5, color: PosColors.muted),
-          const SizedBox(width: 4),
+          SizedBox(width: 4),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: PosColors.slateSoft,
               fontWeight: FontWeight.w700,
               fontSize: 10.6,
@@ -1081,7 +1081,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
       padding: EdgeInsets.only(bottom: bottomInset),
       child: SingleChildScrollView(
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 20),
+          padding: EdgeInsets.fromLTRB(18, 14, 18, 20),
           child: Form(
             key: _formKey,
             child: Column(
@@ -1098,13 +1098,13 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                         borderRadius: BorderRadius.circular(PosRadii.sm + 2),
                         boxShadow: PosShadows.glow,
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.add_shopping_cart_rounded,
                         color: Colors.white,
                         size: 20,
                       ),
                     ),
-                    const SizedBox(width: 12),
+                    SizedBox(width: 12),
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
@@ -1113,7 +1113,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                             'Create Manual Order',
                             style: Theme.of(context).textTheme.titleLarge,
                           ),
-                          const Text(
+                          Text(
                             'Add walk-in or phone orders manually',
                             style: TextStyle(
                               color: PosColors.muted,
@@ -1126,18 +1126,18 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     ),
                     IconButton(
                       onPressed: () => Navigator.pop(context),
-                      icon: const Icon(Icons.close),
+                      icon: Icon(Icons.close),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 LayoutBuilder(
                   builder: (context, constraints) {
                     final compact = constraints.maxWidth < 560;
                     final customer = TextField(
                       controller: _customerController,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Customer name',
                         hintText: 'Optional',
                         prefixIcon: Icon(Icons.person_outline),
@@ -1146,7 +1146,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     final table = TextField(
                       controller: _tableController,
                       textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
+                      decoration: InputDecoration(
                         labelText: 'Table number',
                         hintText: 'Optional',
                         prefixIcon: Icon(Icons.table_restaurant_outlined),
@@ -1154,45 +1154,45 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     );
                     if (compact) {
                       return Column(
-                        children: [customer, const SizedBox(height: 10), table],
+                        children: [customer, SizedBox(height: 10), table],
                       );
                     }
                     return Row(
                       children: [
                         Expanded(child: customer),
-                        const SizedBox(width: 12),
+                        SizedBox(width: 12),
                         Expanded(child: table),
                       ],
                     );
                   },
                 ),
-                const SizedBox(height: 10),
+                SizedBox(height: 10),
                 TextField(
                   controller: _noteController,
                   maxLines: 2,
-                  decoration: const InputDecoration(
+                  decoration: InputDecoration(
                     labelText: 'Order note',
                     hintText: 'Optional',
                     prefixIcon: Icon(Icons.notes_rounded),
                   ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Row(
                   children: [
-                    const Icon(
+                    Icon(
                       Icons.shopping_basket_outlined,
                       size: 18,
                       color: PosColors.primary,
                     ),
-                    const SizedBox(width: 8),
+                    SizedBox(width: 8),
                     Text(
                       'Items',
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
-                    const Spacer(),
+                    Spacer(),
                     Text(
                       '${_lines.length} line${_lines.length == 1 ? '' : 's'}',
-                      style: const TextStyle(
+                      style: TextStyle(
                         color: PosColors.muted,
                         fontWeight: FontWeight.w700,
                         fontSize: 11.6,
@@ -1200,10 +1200,10 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 ..._lines.asMap().entries.map((entry) {
                   return Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
+                    padding: EdgeInsets.only(bottom: 10),
                     child: _OrderLineEditor(
                       line: entry.value,
                       menuItems: widget.menuItems,
@@ -1223,12 +1223,12 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                       ),
                     );
                   },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Add another item'),
+                  icon: Icon(Icons.add),
+                  label: Text('Add another item'),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: 16),
                 Container(
-                  padding: const EdgeInsets.all(12),
+                  padding: EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: LinearGradient(
                       begin: Alignment.topLeft,
@@ -1245,7 +1245,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                   ),
                   child: Row(
                     children: [
-                      const Text(
+                      Text(
                         'TOTAL',
                         style: TextStyle(
                           color: PosColors.muted,
@@ -1254,10 +1254,10 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                           letterSpacing: 1.4,
                         ),
                       ),
-                      const Spacer(),
+                      Spacer(),
                       Text(
                         currency.format(total),
-                        style: const TextStyle(
+                        style: TextStyle(
                           color: PosColors.primaryDark,
                           fontWeight: FontWeight.w900,
                           fontSize: 22,
@@ -1267,13 +1267,13 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                     ],
                   ),
                 ),
-                const SizedBox(height: 14),
+                SizedBox(height: 14),
                 SizedBox(
                   width: double.infinity,
                   child: FilledButton.icon(
                     onPressed: _submit,
-                    icon: const Icon(Icons.receipt_long_outlined),
-                    label: const Text('Create Order'),
+                    icon: Icon(Icons.receipt_long_outlined),
+                    label: Text('Create Order'),
                   ),
                 ),
               ],
@@ -1329,7 +1329,7 @@ class _OrderLineEditor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
         color: PosColors.surfaceWarm,
         border: Border.all(color: PosColors.line),
@@ -1339,7 +1339,7 @@ class _OrderLineEditor extends StatelessWidget {
         builder: (context, constraints) {
           final selector = DropdownButtonFormField<String>(
             initialValue: line.menuItemId,
-            decoration: const InputDecoration(
+            decoration: InputDecoration(
               labelText: 'Menu item',
               prefixIcon: Icon(Icons.restaurant_menu_rounded),
             ),
@@ -1370,11 +1370,11 @@ class _OrderLineEditor extends StatelessWidget {
                   onChanged();
                 },
               ),
-              const SizedBox(width: 4),
+              SizedBox(width: 4),
               IconButton(
                 tooltip: 'Remove item',
                 onPressed: canRemove ? onRemove : null,
-                icon: const Icon(Icons.delete_outline),
+                icon: Icon(Icons.delete_outline),
                 color: PosColors.danger,
               ),
             ],
@@ -1385,7 +1385,7 @@ class _OrderLineEditor extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 selector,
-                const SizedBox(height: 8),
+                SizedBox(height: 8),
                 Align(alignment: Alignment.centerRight, child: controls),
               ],
             );
@@ -1395,7 +1395,7 @@ class _OrderLineEditor extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(child: selector),
-              const SizedBox(width: 8),
+              SizedBox(width: 8),
               controls,
             ],
           );
@@ -1426,14 +1426,14 @@ class _QtyStepper extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             tooltip: 'Decrease',
             onPressed: qty <= 1 ? null : () => onChanged(qty - 1),
-            icon: const Icon(Icons.remove_rounded, size: 18),
+            icon: Icon(Icons.remove_rounded, size: 18),
           ),
           SizedBox(
             width: 22,
             child: Text(
               qty.toString(),
               textAlign: TextAlign.center,
-              style: const TextStyle(
+              style: TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
                 fontSize: 14,
@@ -1444,7 +1444,7 @@ class _QtyStepper extends StatelessWidget {
             visualDensity: VisualDensity.compact,
             tooltip: 'Increase',
             onPressed: () => onChanged(qty + 1),
-            icon: const Icon(Icons.add_rounded, size: 18),
+            icon: Icon(Icons.add_rounded, size: 18),
           ),
         ],
       ),
@@ -1460,7 +1460,7 @@ class _DraftOrderLine {
 }
 
 class _ManualOrderResult {
-  const _ManualOrderResult({
+  _ManualOrderResult({
     required this.items,
     this.customerName,
     this.tableNo,

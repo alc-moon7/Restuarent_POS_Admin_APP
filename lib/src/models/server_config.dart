@@ -1,5 +1,5 @@
 class ServerConfig {
-  const ServerConfig({
+  ServerConfig({
     required this.serverId,
     required this.restaurantId,
     required this.outletId,
@@ -31,7 +31,7 @@ class ServerConfig {
 }
 
 class CloudConfig {
-  const CloudConfig({
+  CloudConfig({
     required this.baseUrl,
     required this.enabled,
     required this.deviceToken,

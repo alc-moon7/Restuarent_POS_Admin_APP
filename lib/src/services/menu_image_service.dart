@@ -7,7 +7,7 @@ class MenuImageService {
 
   final ImagePicker _picker;
 
-  static const int maxBinaryBytes = 650 * 1024;
+  static int maxBinaryBytes = 650 * 1024;
 
   Future<String?> pickMenuImageDataUrl() async {
     final image = await _picker.pickImage(
@@ -21,7 +21,7 @@ class MenuImageService {
 
     final bytes = await image.readAsBytes();
     if (bytes.length > maxBinaryBytes) {
-      throw const MenuImageException(
+      throw MenuImageException(
         'Selected image is too large. Please choose a smaller image.',
       );
     }
@@ -39,7 +39,7 @@ class MenuImageService {
 }
 
 class MenuImageException implements Exception {
-  const MenuImageException(this.message);
+  MenuImageException(this.message);
 
   final String message;
 

@@ -45,13 +45,13 @@ class SyncStatusScreen extends StatelessWidget {
             lastSync: lastSync,
             cloudEnabled: app.cloudConfig.enabled,
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _SyncActions(app: app),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           _SyncLogs(logs: sync.logs),
-          const SizedBox(height: 12),
+          SizedBox(height: 12),
           if (app.syncEvents.isEmpty)
-            const EmptyState(
+            EmptyState(
               title: 'No sync events',
               message: 'Queued changes will appear here before cloud delivery.',
               icon: Icons.cloud_sync_outlined,
@@ -106,7 +106,7 @@ class _SyncSummaryGrid extends StatelessWidget {
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           crossAxisSpacing: 8,
           mainAxisSpacing: 8,
           childAspectRatio: constraints.maxWidth >= 860 ? 2.2 : 1.55,
@@ -124,7 +124,7 @@ class _SyncSummaryGrid extends StatelessWidget {
                         ),
                       ),
                       Padding(
-                        padding: const EdgeInsets.all(14),
+                        padding: EdgeInsets.all(14),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
@@ -153,17 +153,17 @@ class _SyncSummaryGrid extends StatelessWidget {
                                 size: 19,
                               ),
                             ),
-                            const Spacer(),
+                            Spacer(),
                             Text(
                               value.value,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: Theme.of(context).textTheme.titleLarge,
                             ),
-                            const SizedBox(height: 3),
+                            SizedBox(height: 3),
                             Text(
                               value.label.toUpperCase(),
-                              style: const TextStyle(
+                              style: TextStyle(
                                 color: PosColors.muted,
                                 fontWeight: FontWeight.w800,
                                 fontSize: 10.4,
@@ -193,7 +193,7 @@ class _SyncActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         child: Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -259,12 +259,12 @@ class _SyncLogs extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Sync logs', style: Theme.of(context).textTheme.titleLarge),
-            const SizedBox(height: 10),
+            SizedBox(height: 10),
             if (logs.isEmpty)
               Text(
                 'No sync logs yet.',
@@ -275,7 +275,7 @@ class _SyncLogs extends StatelessWidget {
                   .take(6)
                   .map(
                     (log) => Padding(
-                      padding: const EdgeInsets.only(bottom: 8),
+                      padding: EdgeInsets.only(bottom: 8),
                       child: Row(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
@@ -288,7 +288,7 @@ class _SyncLogs extends StatelessWidget {
                                 : PosColors.success,
                             size: 18,
                           ),
-                          const SizedBox(width: 8),
+                          SizedBox(width: 8),
                           Expanded(
                             child: Text(
                               log.message,
@@ -323,14 +323,14 @@ class _EventsList extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Sync events', style: Theme.of(context).textTheme.titleLarge),
-        const SizedBox(height: 10),
+        SizedBox(height: 10),
         ListView.separated(
           itemCount: visibleEvents.length,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           itemBuilder: (context, index) =>
               SyncEventTile(event: visibleEvents[index]),
-          separatorBuilder: (context, index) => const SizedBox(height: 8),
+          separatorBuilder: (context, index) => SizedBox(height: 8),
         ),
       ],
     );
@@ -338,7 +338,7 @@ class _EventsList extends StatelessWidget {
 }
 
 class _SummaryValue {
-  const _SummaryValue(this.label, this.value, this.icon, this.color);
+  _SummaryValue(this.label, this.value, this.icon, this.color);
 
   final String label;
   final String value;

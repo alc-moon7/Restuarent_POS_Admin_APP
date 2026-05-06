@@ -16,7 +16,7 @@ import '../models/sync_event.dart';
 import '../models/sync_status.dart';
 
 class DatabaseValidationException implements Exception {
-  const DatabaseValidationException(this.message);
+  DatabaseValidationException(this.message);
 
   final String message;
 
@@ -25,7 +25,7 @@ class DatabaseValidationException implements Exception {
 }
 
 class LocalDatabaseService {
-  final Uuid _uuid = const Uuid();
+  final Uuid _uuid = Uuid();
   final StreamController<void> _changeController =
       StreamController<void>.broadcast();
 
@@ -194,7 +194,7 @@ class LocalDatabaseService {
   Future<MenuItem> toggleMenuAvailability(String id, bool isAvailable) async {
     final existing = await getMenuItemById(id);
     if (existing == null) {
-      throw const DatabaseValidationException('Menu item was not found.');
+      throw DatabaseValidationException('Menu item was not found.');
     }
     final updated = existing.copyWith(
       isAvailable: isAvailable,
@@ -264,7 +264,7 @@ class LocalDatabaseService {
       if (existing != null) return existing;
     }
     if (requestedItems.isEmpty) {
-      throw const DatabaseValidationException(
+      throw DatabaseValidationException(
         'Order must contain at least one item.',
       );
     }
@@ -278,7 +278,7 @@ class LocalDatabaseService {
 
       for (final requestItem in requestedItems) {
         if (requestItem.qty <= 0) {
-          throw const DatabaseValidationException(
+          throw DatabaseValidationException(
             'Item quantity must be greater than zero.',
           );
         }
@@ -453,7 +453,7 @@ class LocalDatabaseService {
         limit: 1,
       );
       if (rows.isEmpty) {
-        throw const DatabaseValidationException('Order was not found.');
+        throw DatabaseValidationException('Order was not found.');
       }
       final currentItems = await _getOrderItemsWithExecutor(txn, id);
       final current = OrderModel.fromMap(rows.first, items: currentItems);
@@ -487,6 +487,23 @@ class LocalDatabaseService {
     });
     _emitChange();
     return order;
+  }
+
+  Future<void> queueServerConfigSync({
+    required String serverId,
+    required Map<String, Object?> payload,
+  }) async {
+    final db = await _db;
+    await db.transaction((txn) async {
+      await _insertSyncEvent(
+        txn,
+        entityType: 'server_config',
+        entityId: serverId,
+        action: 'update',
+        payload: payload,
+      );
+    });
+    _emitChange();
   }
 
   Future<List<SyncEvent>> getSyncEvents({

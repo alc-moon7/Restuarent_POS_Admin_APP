@@ -27,7 +27,7 @@ class CloudRealtimeService {
     _channelName = nextChannel;
     final channel = _client!.channel(nextChannel);
 
-    for (final event in const [
+    for (final event in [
       'device_registered',
       'device_heartbeat',
       'menu_updated',

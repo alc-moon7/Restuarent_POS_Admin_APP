@@ -11,7 +11,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/order_model.dart';
 
 class BluetoothPrinterDevice {
-  const BluetoothPrinterDevice({required this.name, required this.address});
+  BluetoothPrinterDevice({required this.name, required this.address});
 
   final String name;
   final String address;
@@ -20,7 +20,7 @@ class BluetoothPrinterDevice {
 }
 
 class PrinterRuntimeState {
-  const PrinterRuntimeState({
+  PrinterRuntimeState({
     required this.autoPrintEnabled,
     required this.connected,
     required this.busy,
@@ -81,15 +81,15 @@ class PrinterRuntimeState {
 }
 
 class PrinterService {
-  static const _autoPrintKey = 'printer_auto_print_enabled';
-  static const _printerNameKey = 'printer_selected_name';
-  static const _printerAddressKey = 'printer_selected_address';
-  static const _printedOrderIdsKey = 'printer_printed_order_ids';
+  static const String _autoPrintKey = 'printer_auto_print_enabled';
+  static const String _printerNameKey = 'printer_selected_name';
+  static const String _printerAddressKey = 'printer_selected_address';
+  static const String _printedOrderIdsKey = 'printer_printed_order_ids';
 
   final StreamController<PrinterRuntimeState> _stateController =
       StreamController<PrinterRuntimeState>.broadcast();
 
-  PrinterRuntimeState _state = const PrinterRuntimeState(
+  PrinterRuntimeState _state = PrinterRuntimeState(
     autoPrintEnabled: true,
     connected: false,
     busy: false,
@@ -103,7 +103,7 @@ class PrinterService {
     final preferences = await SharedPreferences.getInstance();
     _printedOrderIds
       ..clear()
-      ..addAll(preferences.getStringList(_printedOrderIdsKey) ?? const []);
+      ..addAll(preferences.getStringList(_printedOrderIdsKey) ?? []);
     // Do not touch the Bluetooth plugin during app boot. Some Android devices
     // wait on the native connection-status call until Bluetooth permission/state
     // is ready, which can keep the splash screen open. We check live status only
@@ -134,7 +134,7 @@ class PrinterService {
           .toList(growable: false);
     } catch (error) {
       _emit(_state.copyWith(lastError: _friendlyError(error)));
-      return const [];
+      return [];
     } finally {
       _emit(
         _state.copyWith(busy: false, connected: await _readConnectionStatus()),
@@ -149,7 +149,7 @@ class PrinterService {
         macPrinterAddress: printer.address,
       );
       if (!connected) {
-        throw const PrinterException(
+        throw PrinterException(
           'Could not connect to the selected printer.',
         );
       }
@@ -195,7 +195,7 @@ class PrinterService {
         ...generator.reset(),
         ...generator.text(
           _ticketText(restaurantName, fallback: 'HYBRID POS'),
-          styles: const PosStyles(
+          styles: PosStyles(
             align: PosAlign.center,
             bold: true,
             height: PosTextSize.size2,
@@ -204,7 +204,7 @@ class PrinterService {
         ),
         ...generator.text(
           _ticketText(outletName, fallback: 'Receipt Printer Test'),
-          styles: const PosStyles(align: PosAlign.center, bold: true),
+          styles: PosStyles(align: PosAlign.center, bold: true),
         ),
         ...generator.hr(),
         ...generator.text('Deli ES421 58mm printer test'),
@@ -212,13 +212,13 @@ class PrinterService {
         ...generator.hr(),
         ...generator.text(
           'Printer is ready.',
-          styles: const PosStyles(align: PosAlign.center, bold: true),
+          styles: PosStyles(align: PosAlign.center, bold: true),
         ),
         ...generator.feed(2),
         ...generator.cut(),
       ];
       final ok = await PrintBluetoothThermal.writeBytes(bytes);
-      if (!ok) throw const PrinterException('Test print failed.');
+      if (!ok) throw PrinterException('Test print failed.');
       _emit(_state.copyWith(clearLastError: true));
       return true;
     });
@@ -314,7 +314,7 @@ class PrinterService {
       ..addAll(
         generator.text(
           _ticketText(restaurantName, fallback: 'HYBRID POS'),
-          styles: const PosStyles(
+          styles: PosStyles(
             align: PosAlign.center,
             bold: true,
             height: PosTextSize.size2,
@@ -325,14 +325,14 @@ class PrinterService {
       ..addAll(
         generator.text(
           _ticketText(outletName, fallback: 'Kitchen Ticket'),
-          styles: const PosStyles(align: PosAlign.center, bold: true),
+          styles: PosStyles(align: PosAlign.center, bold: true),
         ),
       )
       ..addAll(generator.hr())
       ..addAll(
         generator.text(
           'ORDER ${_ticketText(order.orderNo)}',
-          styles: const PosStyles(align: PosAlign.center, bold: true),
+          styles: PosStyles(align: PosAlign.center, bold: true),
         ),
       )
       ..addAll(generator.text('Source: ${order.source.label}'))
@@ -358,7 +358,7 @@ class PrinterService {
         ..addAll(
           generator.text(
             '${item.qty}x ${_ticketText(item.name)}',
-            styles: const PosStyles(bold: true),
+            styles: PosStyles(bold: true),
           ),
         )
         ..addAll(
@@ -367,12 +367,12 @@ class PrinterService {
             PosColumn(
               text: 'x ${item.qty}',
               width: 2,
-              styles: const PosStyles(align: PosAlign.center),
+              styles: PosStyles(align: PosAlign.center),
             ),
             PosColumn(
               text: currency.format(item.lineTotal),
               width: 6,
-              styles: const PosStyles(align: PosAlign.right),
+              styles: PosStyles(align: PosAlign.right),
             ),
           ]),
         );
@@ -385,12 +385,12 @@ class PrinterService {
           PosColumn(
             text: 'TOTAL',
             width: 5,
-            styles: const PosStyles(bold: true),
+            styles: PosStyles(bold: true),
           ),
           PosColumn(
             text: currency.format(order.total),
             width: 7,
-            styles: const PosStyles(align: PosAlign.right, bold: true),
+            styles: PosStyles(align: PosAlign.right, bold: true),
           ),
         ]),
       )
@@ -405,7 +405,7 @@ class PrinterService {
         !Platform.isIOS &&
         !Platform.isMacOS &&
         !Platform.isWindows) {
-      throw const PrinterException('Bluetooth printing is not supported here.');
+      throw PrinterException('Bluetooth printing is not supported here.');
     }
     if (Platform.isAndroid) {
       final alreadyGranted =
@@ -417,13 +417,13 @@ class PrinterService {
         ].request();
         final granted = statuses.values.every((status) => status.isGranted);
         if (!granted) {
-          throw const PrinterException('Bluetooth permission is required.');
+          throw PrinterException('Bluetooth permission is required.');
         }
       }
     }
     final enabled = await PrintBluetoothThermal.bluetoothEnabled;
     if (!enabled) {
-      throw const PrinterException('Turn on Bluetooth first.');
+      throw PrinterException('Turn on Bluetooth first.');
     }
   }
 
@@ -433,14 +433,14 @@ class PrinterService {
     if (!connected) {
       final address = _state.selectedPrinterAddress;
       if (address == null || address.trim().isEmpty) {
-        throw const PrinterException('Select a Bluetooth printer first.');
+        throw PrinterException('Select a Bluetooth printer first.');
       }
       connected = await PrintBluetoothThermal.connect(
         macPrinterAddress: address,
       );
     }
     if (!connected) {
-      throw const PrinterException('Printer is not connected.');
+      throw PrinterException('Printer is not connected.');
     }
     _emit(_state.copyWith(connected: true, clearLastError: true));
   }
@@ -448,7 +448,7 @@ class PrinterService {
   Future<bool> _readConnectionStatus() async {
     try {
       return await PrintBluetoothThermal.connectionStatus.timeout(
-        const Duration(milliseconds: 900),
+        Duration(milliseconds: 900),
       );
     } catch (_) {
       return false;
@@ -506,7 +506,7 @@ class PrinterService {
 }
 
 class PrinterException implements Exception {
-  const PrinterException(this.message);
+  PrinterException(this.message);
 
   final String message;
 

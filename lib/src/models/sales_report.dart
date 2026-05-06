@@ -2,7 +2,7 @@ import 'order_model.dart';
 import 'order_status.dart';
 
 class SalesReport {
-  const SalesReport({
+  SalesReport({
     required this.title,
     required this.days,
     required this.startAt,
@@ -40,7 +40,7 @@ class SalesReport {
     final current = now ?? DateTime.now();
     final todayStart = DateTime(current.year, current.month, current.day);
     final startAt = todayStart.subtract(Duration(days: days - 1));
-    final endAt = todayStart.add(const Duration(days: 1));
+    final endAt = todayStart.add(Duration(days: 1));
     final scoped = orders
         .where(
           (order) =>
@@ -129,7 +129,7 @@ class SalesReport {
 }
 
 class SalesItemSummary {
-  const SalesItemSummary({
+  SalesItemSummary({
     required this.menuItemId,
     required this.name,
     required this.qty,
@@ -143,7 +143,7 @@ class SalesItemSummary {
 }
 
 class SalesDailySummary {
-  const SalesDailySummary({
+  SalesDailySummary({
     required this.date,
     required this.orders,
     required this.sales,

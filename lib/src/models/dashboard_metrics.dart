@@ -1,5 +1,5 @@
 class DashboardMetrics {
-  const DashboardMetrics({
+  DashboardMetrics({
     required this.todayOrders,
     required this.pendingOrders,
     required this.completedOrders,

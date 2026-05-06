@@ -1,12 +1,12 @@
 class PaymentDefaults {
-  const PaymentDefaults._();
+  PaymentDefaults._();
 
-  static const bool requireBkashGate = bool.fromEnvironment(
+  static bool requireBkashGate = bool.fromEnvironment(
     'POS_REQUIRE_BKASH_GATE',
     defaultValue: true,
   );
 
-  static const String sandboxAmountText = String.fromEnvironment(
+  static String sandboxAmountText = String.fromEnvironment(
     'POS_BKASH_SANDBOX_AMOUNT',
     defaultValue: '10',
   );
@@ -17,14 +17,14 @@ class PaymentDefaults {
     return parsed;
   }
 
-  static const String bkashSandboxWallet = '01770618575';
-  static const String bkashSandboxOtp = '123456';
-  static const String bkashSandboxPin = '12121';
+  static String bkashSandboxWallet = '01770618575';
+  static String bkashSandboxOtp = '123456';
+  static String bkashSandboxPin = '12121';
 
   static const double monthlyPlanAmount = 800;
   static const double annualPlanAmount = 9600;
 
-  static const bool useDemoBkashGateway = bool.fromEnvironment(
+  static bool useDemoBkashGateway = bool.fromEnvironment(
     'POS_BKASH_DEMO_MODE',
     defaultValue: true,
   );

@@ -14,13 +14,13 @@ class ModeIntroScreen extends StatelessWidget {
       backgroundColor: PosColors.background,
       body: Stack(
         children: [
-          const Positioned.fill(child: _IntroWash()),
+          Positioned.fill(child: _IntroWash()),
           SafeArea(
             child: Center(
               child: ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 980),
+                constraints: BoxConstraints(maxWidth: 980),
                 child: Padding(
-                  padding: const EdgeInsets.all(20),
+                  padding: EdgeInsets.all(20),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final wide = constraints.maxWidth >= 760;
@@ -28,14 +28,14 @@ class ModeIntroScreen extends StatelessWidget {
                       final cards = _CapabilityCards(wide: wide);
                       if (!wide) {
                         return ListView(
-                          children: [hero, const SizedBox(height: 14), cards],
+                          children: [hero, SizedBox(height: 14), cards],
                         );
                       }
                       return Row(
                         crossAxisAlignment: CrossAxisAlignment.center,
                         children: [
                           Expanded(flex: 5, child: hero),
-                          const SizedBox(width: 18),
+                          SizedBox(width: 18),
                           Expanded(flex: 4, child: cards),
                         ],
                       );
@@ -106,7 +106,7 @@ class _HeroPanel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(24),
+        padding: EdgeInsets.all(24),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -119,21 +119,21 @@ class _HeroPanel extends StatelessWidget {
                 borderRadius: BorderRadius.circular(PosRadii.lg),
                 boxShadow: PosShadows.glow,
               ),
-              child: const Icon(
+              child: Icon(
                 Icons.admin_panel_settings_rounded,
                 color: Colors.white,
                 size: 30,
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: 20),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+              padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
               decoration: BoxDecoration(
                 color: PosColors.primarySoft,
                 borderRadius: BorderRadius.circular(PosRadii.pill),
                 border: Border.all(color: PosColors.line),
               ),
-              child: const Text(
+              child: Text(
                 '✦  CLOUD ADMIN',
                 style: TextStyle(
                   color: PosColors.primary,
@@ -143,14 +143,14 @@ class _HeroPanel extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Text(
               'Run your restaurant\nfrom the cloud.',
               style: Theme.of(
                 context,
               ).textTheme.displaySmall?.copyWith(fontSize: 32, height: 1.08),
             ),
-            const SizedBox(height: 12),
+            SizedBox(height: 12),
             Text(
               'Manage menu, orders, and status updates through a secure cloud API with realtime sync across customer websites.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -159,7 +159,7 @@ class _HeroPanel extends StatelessWidget {
                 height: 1.55,
               ),
             ),
-            const SizedBox(height: 22),
+            SizedBox(height: 22),
             PrimaryButton(
               label: 'Configure Cloud Admin',
               icon: Icons.arrow_forward_rounded,
@@ -180,21 +180,21 @@ class _CapabilityCards extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final cards = [
-      const _Capability(
+      _Capability(
         icon: Icons.cloud_done_rounded,
         title: 'Cloud APIs',
         message:
             'Supabase Edge Function endpoints for customer websites and admin sync.',
         color: PosColors.primary,
       ),
-      const _Capability(
+      _Capability(
         icon: Icons.restaurant_menu_rounded,
         title: 'Live Menu',
         message:
             'Availability changes sync to customer websites through cloud.',
         color: PosColors.accent,
       ),
-      const _Capability(
+      _Capability(
         icon: Icons.receipt_long_rounded,
         title: 'Order Workflow',
         message:
@@ -207,10 +207,8 @@ class _CapabilityCards extends StatelessWidget {
       mainAxisSize: wide ? MainAxisSize.min : MainAxisSize.max,
       children: cards
           .map(
-            (card) => Padding(
-              padding: const EdgeInsets.only(bottom: 10),
-              child: card,
-            ),
+            (card) =>
+                Padding(padding: EdgeInsets.only(bottom: 10), child: card),
           )
           .toList(growable: false),
     );
@@ -234,7 +232,7 @@ class _Capability extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Row(
           children: [
             Container(
@@ -254,13 +252,13 @@ class _Capability extends StatelessWidget {
               ),
               child: Icon(icon, color: color, size: 22),
             ),
-            const SizedBox(width: 12),
+            SizedBox(width: 12),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  const SizedBox(height: 4),
+                  SizedBox(height: 4),
                   Text(message, style: Theme.of(context).textTheme.bodyMedium),
                 ],
               ),

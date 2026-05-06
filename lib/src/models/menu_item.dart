@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'sync_status.dart';
 
 class MenuItem {
-  const MenuItem({
+  MenuItem({
     required this.id,
     required this.name,
     required this.description,
@@ -144,11 +144,11 @@ class MenuItem {
     if (rawTags is List) {
       return rawTags.map((tag) => tag.toString()).toList(growable: false);
     }
-    if (rawTags is! String || rawTags.trim().isEmpty) return const [];
+    if (rawTags is! String || rawTags.trim().isEmpty) return [];
     final decoded = jsonDecode(rawTags);
     if (decoded is List) {
       return decoded.map((tag) => tag.toString()).toList(growable: false);
     }
-    return const [];
+    return [];
   }
 }

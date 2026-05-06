@@ -21,13 +21,13 @@ class DashboardScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
     if (!app.initialized && app.lastError == null) {
-      return const LoadingView(message: 'Preparing cloud workspace...');
+      return LoadingView(message: 'Preparing cloud workspace...');
     }
     if (app.lastError != null && !app.initialized) {
       return Scaffold(
         body: SafeArea(
           child: Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: ErrorView(message: app.lastError!),
           ),
         ),
@@ -64,9 +64,9 @@ class DashboardScreen extends StatelessWidget {
             currency: currency,
             compactCurrency: compactCurrency,
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           _SectionLabel(icon: Icons.bolt_rounded, label: "Today's pulse"),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _PulseGrid(
             cards: [
               DashboardCard(
@@ -74,21 +74,21 @@ class DashboardScreen extends StatelessWidget {
                 value: metrics.todayOrders.toString(),
                 icon: Icons.today_outlined,
                 color: PosColors.primary,
-                onTap: () => onNavigate(2),
+                onTap: () => onNavigate(0),
               ),
               DashboardCard(
                 title: 'Pending now',
                 value: metrics.pendingOrders.toString(),
                 icon: Icons.pending_actions_outlined,
                 color: PosColors.warning,
-                onTap: () => onNavigate(2),
+                onTap: () => onNavigate(0),
               ),
               DashboardCard(
                 title: 'Completed',
                 value: metrics.completedOrders.toString(),
                 icon: Icons.done_all,
                 color: PosColors.success,
-                onTap: () => onNavigate(2),
+                onTap: () => onNavigate(0),
               ),
               DashboardCard(
                 title: 'Avg ticket',
@@ -101,12 +101,12 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           _SectionLabel(
             icon: Icons.insights_rounded,
             label: 'Revenue & catalog',
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           LayoutBuilder(
             builder: (context, constraints) {
               final wide = constraints.maxWidth >= 920;
@@ -125,28 +125,24 @@ class DashboardScreen extends StatelessWidget {
               );
               if (!wide) {
                 return Column(
-                  children: [
-                    revenueCard,
-                    const SizedBox(height: 10),
-                    catalogCard,
-                  ],
+                  children: [revenueCard, SizedBox(height: 10), catalogCard],
                 );
               }
               return Row(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   Expanded(child: revenueCard),
-                  const SizedBox(width: 10),
+                  SizedBox(width: 10),
                   Expanded(child: catalogCard),
                 ],
               );
             },
           ),
-          const SizedBox(height: 18),
+          SizedBox(height: 18),
           _SectionLabel(icon: Icons.flash_on_rounded, label: 'Quick actions'),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           _QuickActions(onNavigate: onNavigate, onSyncNow: app.syncNow),
-          const SizedBox(height: 16),
+          SizedBox(height: 16),
           _CloudHintCard(
             connected: sync.cloudConnected,
             cloudUrl: app.cloudConfig.baseUrl,
@@ -196,10 +192,10 @@ class _SectionLabel extends StatelessWidget {
           ),
           child: Icon(icon, color: PosColors.primary, size: 16),
         ),
-        const SizedBox(width: 10),
+        SizedBox(width: 10),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             color: PosColors.slate,
             fontWeight: FontWeight.w900,
             fontSize: 14,
@@ -248,7 +244,7 @@ class _HeroPanel extends StatelessWidget {
             BoxShadow(
               color: PosColors.primary.withValues(alpha: 0.32),
               blurRadius: 24,
-              offset: const Offset(0, 14),
+              offset: Offset(0, 14),
             ),
           ],
         ),
@@ -289,7 +285,7 @@ class _HeroPanel extends StatelessWidget {
               ),
             ),
             Padding(
-              padding: const EdgeInsets.all(20),
+              padding: EdgeInsets.all(20),
               child: LayoutBuilder(
                 builder: (context, constraints) {
                   final wide = constraints.maxWidth >= 620;
@@ -304,14 +300,14 @@ class _HeroPanel extends StatelessWidget {
                   if (!wide) {
                     return Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [summary, const SizedBox(height: 18), chart],
+                      children: [summary, SizedBox(height: 18), chart],
                     );
                   }
                   return Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Expanded(flex: 5, child: summary),
-                      const SizedBox(width: 18),
+                      SizedBox(width: 18),
                       Expanded(flex: 5, child: chart),
                     ],
                   );
@@ -342,13 +338,13 @@ class _HeroPanel extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Container(
-          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.14),
             borderRadius: BorderRadius.circular(PosRadii.pill),
             border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
           ),
-          child: const Row(
+          child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               Icon(Icons.today_rounded, size: 13, color: Colors.white),
@@ -365,10 +361,10 @@ class _HeroPanel extends StatelessWidget {
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: 12),
         Text(
           currency.format(today),
-          style: const TextStyle(
+          style: TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.w900,
             fontSize: 38,
@@ -376,11 +372,11 @@ class _HeroPanel extends StatelessWidget {
             height: 1.0,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: 8),
         Row(
           children: [
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
               decoration: BoxDecoration(
                 color: positive
                     ? PosColors.primaryGlow.withValues(alpha: 0.28)
@@ -391,10 +387,10 @@ class _HeroPanel extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   Icon(arrow, color: Colors.white, size: 13),
-                  const SizedBox(width: 4),
+                  SizedBox(width: 4),
                   Text(
                     pctLabel,
-                    style: const TextStyle(
+                    style: TextStyle(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
@@ -405,14 +401,14 @@ class _HeroPanel extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 14),
+        SizedBox(height: 14),
         Row(
           children: [
             _HeroChip(
               icon: Icons.receipt_long_rounded,
               label: '$todayOrders orders',
             ),
-            const SizedBox(width: 8),
+            SizedBox(width: 8),
             _HeroChip(
               icon: Icons.calendar_view_week_rounded,
               label:
@@ -426,7 +422,7 @@ class _HeroPanel extends StatelessWidget {
 
   Widget _heroChart(List<double> values, List<String> labels) {
     return Container(
-      padding: const EdgeInsets.fromLTRB(14, 12, 14, 10),
+      padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(PosRadii.md),
@@ -435,7 +431,7 @@ class _HeroPanel extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text(
+          Text(
             'LAST 7 DAYS',
             style: TextStyle(
               color: Colors.white70,
@@ -444,7 +440,7 @@ class _HeroPanel extends StatelessWidget {
               letterSpacing: 1.2,
             ),
           ),
-          const SizedBox(height: 10),
+          SizedBox(height: 10),
           MiniBarChart(
             values: values,
             labels: labels,
@@ -466,7 +462,7 @@ class _HeroChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.10),
         borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -476,10 +472,10 @@ class _HeroChip extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: Colors.white, size: 14),
-          const SizedBox(width: 6),
+          SizedBox(width: 6),
           Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: Colors.white,
               fontWeight: FontWeight.w800,
               fontSize: 11.5,
@@ -511,7 +507,7 @@ class _PulseGrid extends StatelessWidget {
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
-          physics: const NeverScrollableScrollPhysics(),
+          physics: NeverScrollableScrollPhysics(),
           mainAxisSpacing: 10,
           crossAxisSpacing: 10,
           childAspectRatio: width >= 1080
@@ -547,7 +543,7 @@ class _RevenueBreakdownCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -570,13 +566,13 @@ class _RevenueBreakdownCard extends StatelessWidget {
                       color: PosColors.primary.withValues(alpha: 0.20),
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.payments_rounded,
                     color: PosColors.primary,
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Revenue',
@@ -585,7 +581,7 @@ class _RevenueBreakdownCard extends StatelessWidget {
                 ),
                 TextButton(
                   onPressed: onOpenReports,
-                  child: const Row(
+                  child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('Reports'),
@@ -596,14 +592,14 @@ class _RevenueBreakdownCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             _RevenueRow(
               label: 'This week',
               value: currency.format(weekSales),
               ratio: ratio,
               color: PosColors.primary,
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             _RevenueRow(
               label: 'This month',
               value: currency.format(monthSales),
@@ -640,7 +636,7 @@ class _RevenueRow extends StatelessWidget {
             Expanded(
               child: Text(
                 label,
-                style: const TextStyle(
+                style: TextStyle(
                   color: PosColors.muted,
                   fontWeight: FontWeight.w800,
                   fontSize: 11.6,
@@ -650,7 +646,7 @@ class _RevenueRow extends StatelessWidget {
             ),
             Text(
               value,
-              style: const TextStyle(
+              style: TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
                 fontSize: 16.5,
@@ -659,12 +655,12 @@ class _RevenueRow extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(height: 6),
+        SizedBox(height: 6),
         ClipRRect(
           borderRadius: BorderRadius.circular(PosRadii.pill),
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: ratio),
-            duration: const Duration(milliseconds: 700),
+            duration: Duration(milliseconds: 700),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
               return LinearProgressIndicator(
@@ -703,7 +699,7 @@ class _CatalogHealthCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -726,13 +722,13 @@ class _CatalogHealthCard extends StatelessWidget {
                       color: PosColors.accent.withValues(alpha: 0.22),
                     ),
                   ),
-                  child: const Icon(
+                  child: Icon(
                     Icons.restaurant_menu_rounded,
                     color: PosColors.accent,
                     size: 20,
                   ),
                 ),
-                const SizedBox(width: 10),
+                SizedBox(width: 10),
                 Expanded(
                   child: Text(
                     'Catalog & sync',
@@ -741,7 +737,7 @@ class _CatalogHealthCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -750,7 +746,7 @@ class _CatalogHealthCard extends StatelessWidget {
                   label: 'Available',
                   value: '$available/$total',
                 ),
-                const SizedBox(width: 14),
+                SizedBox(width: 14),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -761,14 +757,14 @@ class _CatalogHealthCard extends StatelessWidget {
                         label: 'Available items',
                         value: available.toString(),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _MiniStat(
                         icon: Icons.pause_circle_outline,
                         color: PosColors.warning,
                         label: 'Paused items',
                         value: paused.toString(),
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       _MiniStat(
                         icon: Icons.sync_problem_outlined,
                         color: pendingSync == 0
@@ -782,22 +778,22 @@ class _CatalogHealthCard extends StatelessWidget {
                 ),
               ],
             ),
-            const SizedBox(height: 14),
+            SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onOpenMenu,
-                    icon: const Icon(Icons.menu_book_outlined, size: 17),
-                    label: const Text('Open menu'),
+                    icon: Icon(Icons.menu_book_outlined, size: 17),
+                    label: Text('Open menu'),
                   ),
                 ),
-                const SizedBox(width: 8),
+                SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onOpenSync,
-                    icon: const Icon(Icons.sync_rounded, size: 17),
-                    label: const Text('Sync log'),
+                    icon: Icon(Icons.sync_rounded, size: 17),
+                    label: Text('Sync log'),
                   ),
                 ),
               ],
@@ -810,11 +806,7 @@ class _CatalogHealthCard extends StatelessWidget {
 }
 
 class _RingStat extends StatelessWidget {
-  const _RingStat({
-    required this.ratio,
-    required this.label,
-    required this.value,
-  });
+  const _RingStat({required this.ratio, required this.label, required this.value});
 
   final double ratio;
   final String label;
@@ -830,7 +822,7 @@ class _RingStat extends StatelessWidget {
         children: [
           TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: ratio),
-            duration: const Duration(milliseconds: 800),
+            duration: Duration(milliseconds: 800),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
               return SizedBox(
@@ -840,9 +832,7 @@ class _RingStat extends StatelessWidget {
                   value: value,
                   strokeWidth: 8,
                   backgroundColor: PosColors.mutedSoft,
-                  valueColor: const AlwaysStoppedAnimation<Color>(
-                    PosColors.success,
-                  ),
+                  valueColor: AlwaysStoppedAnimation<Color>(PosColors.success),
                 ),
               );
             },
@@ -852,7 +842,7 @@ class _RingStat extends StatelessWidget {
             children: [
               Text(
                 value,
-                style: const TextStyle(
+                style: TextStyle(
                   color: PosColors.slate,
                   fontWeight: FontWeight.w900,
                   fontSize: 16,
@@ -861,7 +851,7 @@ class _RingStat extends StatelessWidget {
               ),
               Text(
                 label.toUpperCase(),
-                style: const TextStyle(
+                style: TextStyle(
                   color: PosColors.muted,
                   fontWeight: FontWeight.w800,
                   fontSize: 9,
@@ -902,11 +892,11 @@ class _MiniStat extends StatelessWidget {
           ),
           child: Icon(icon, color: color, size: 14),
         ),
-        const SizedBox(width: 8),
+        SizedBox(width: 8),
         Expanded(
           child: Text(
             label,
-            style: const TextStyle(
+            style: TextStyle(
               color: PosColors.muted,
               fontWeight: FontWeight.w700,
               fontSize: 12.2,
@@ -915,7 +905,7 @@ class _MiniStat extends StatelessWidget {
         ),
         Text(
           value,
-          style: const TextStyle(
+          style: TextStyle(
             color: PosColors.slate,
             fontWeight: FontWeight.w900,
             fontSize: 13.5,
@@ -936,7 +926,7 @@ class _QuickActions extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: const EdgeInsets.all(14),
+        padding: EdgeInsets.all(14),
         child: Wrap(
           spacing: 10,
           runSpacing: 10,
@@ -950,7 +940,7 @@ class _QuickActions extends StatelessWidget {
               label: 'View Orders',
               icon: Icons.receipt_long,
               secondary: true,
-              onPressed: () => onNavigate(2),
+              onPressed: () => onNavigate(0),
             ),
             PrimaryButton(
               label: 'Reports',
@@ -976,7 +966,7 @@ class _QuickActions extends StatelessWidget {
               label: 'Cloud Settings',
               icon: Icons.settings_outlined,
               secondary: true,
-              onPressed: () => onNavigate(5),
+              onPressed: () => onNavigate(4),
             ),
           ],
         ),
@@ -1016,7 +1006,7 @@ class _CloudHintCard extends StatelessWidget {
             ),
           ),
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: EdgeInsets.all(16),
             child: Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1043,7 +1033,7 @@ class _CloudHintCard extends StatelessWidget {
                     size: 24,
                   ),
                 ),
-                const SizedBox(width: 12),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -1059,7 +1049,7 @@ class _CloudHintCard extends StatelessWidget {
                             ),
                           ),
                           Container(
-                            padding: const EdgeInsets.symmetric(
+                            padding: EdgeInsets.symmetric(
                               horizontal: 8,
                               vertical: 3,
                             ),
@@ -1083,7 +1073,7 @@ class _CloudHintCard extends StatelessWidget {
                                     ],
                                   ),
                                 ),
-                                const SizedBox(width: 6),
+                                SizedBox(width: 6),
                                 Text(
                                   connected ? 'LIVE' : 'QUEUED',
                                   style: TextStyle(
@@ -1098,14 +1088,14 @@ class _CloudHintCard extends StatelessWidget {
                           ),
                         ],
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Text(
                         'Customer websites should use the cloud API configured for this app.',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
-                      const SizedBox(height: 8),
+                      SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(
+                        padding: EdgeInsets.symmetric(
                           horizontal: 10,
                           vertical: 7,
                         ),
@@ -1116,17 +1106,17 @@ class _CloudHintCard extends StatelessWidget {
                         ),
                         child: Row(
                           children: [
-                            const Icon(
+                            Icon(
                               Icons.link_rounded,
                               size: 14,
                               color: PosColors.muted,
                             ),
-                            const SizedBox(width: 6),
+                            SizedBox(width: 6),
                             Expanded(
                               child: SelectableText(
                                 cloudUrl,
                                 maxLines: 1,
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontFamily: 'monospace',
                                   fontSize: 11.5,
                                   color: PosColors.slateSoft,
