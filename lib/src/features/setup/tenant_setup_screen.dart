@@ -14,16 +14,31 @@ class TenantSetupScreen extends StatefulWidget {
 }
 
 class _TenantSetupScreenState extends State<TenantSetupScreen> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _loginFormKey = GlobalKey<FormState>();
+  final GlobalKey<FormState> _createFormKey = GlobalKey<FormState>();
+  bool _showCreate = false;
+
+  final TextEditingController _loginIdController = TextEditingController();
+  final TextEditingController _loginPasswordController =
+      TextEditingController();
+
   final TextEditingController _restaurantController = TextEditingController();
   final TextEditingController _outletController = TextEditingController(
     text: 'Main Outlet',
   );
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
 
   @override
   void dispose() {
+    _loginIdController.dispose();
+    _loginPasswordController.dispose();
     _restaurantController.dispose();
     _outletController.dispose();
+    _emailController.dispose();
+    _usernameController.dispose();
+    _passwordController.dispose();
     super.dispose();
   }
 
@@ -52,99 +67,35 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                         clipBehavior: Clip.antiAlias,
                         child: Padding(
                           padding: EdgeInsets.all(24),
-                          child: Form(
-                            key: _formKey,
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Row(
-                                  children: [
-                                    Container(
-                                      width: 64,
-                                      height: 64,
-                                      decoration: BoxDecoration(
-                                        gradient: PosGradients.brand,
-                                        borderRadius: BorderRadius.circular(
-                                          PosRadii.lg,
-                                        ),
-                                        boxShadow: PosShadows.glow,
-                                      ),
-                                      child: Icon(
-                                        Icons.verified_rounded,
-                                        color: Colors.white,
-                                        size: 32,
-                                      ),
-                                    ),
-                                    SizedBox(width: 16),
-                                    Expanded(
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            text.createRestaurantCloud,
-                                            style: Theme.of(context)
-                                                .textTheme
-                                                .displaySmall
-                                                ?.copyWith(fontSize: 26),
-                                          ),
-                                          SizedBox(height: 6),
-                                          _SetupBadge(),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
+                          child: _showCreate
+                              ? _CreateAccountForm(
+                                  formKey: _createFormKey,
+                                  restaurantController: _restaurantController,
+                                  outletController: _outletController,
+                                  emailController: _emailController,
+                                  usernameController: _usernameController,
+                                  passwordController: _passwordController,
+                                  busy: app.busy,
+                                  error: app.lastError,
+                                  onSubmit: app.busy ? null : _createAccount,
+                                  onBackToLogin: () {
+                                    setState(() => _showCreate = false);
+                                  },
+                                  requiredValidator: _required,
+                                )
+                              : _LoginForm(
+                                  formKey: _loginFormKey,
+                                  loginIdController: _loginIdController,
+                                  passwordController: _loginPasswordController,
+                                  busy: app.busy,
+                                  error: app.lastError,
+                                  onLogin: app.busy ? null : _login,
+                                  onCreateAccount: () {
+                                    setState(() => _showCreate = true);
+                                  },
+                                  onForgotPassword: _forgotPassword,
+                                  requiredValidator: _required,
                                 ),
-                                SizedBox(height: 16),
-                                Text(
-                                  text.setupRestaurantDescription,
-                                  style: Theme.of(context).textTheme.bodyLarge,
-                                ),
-                                SizedBox(height: 20),
-                                TextFormField(
-                                  controller: _restaurantController,
-                                  textInputAction: TextInputAction.next,
-                                  decoration: InputDecoration(
-                                    labelText: text.restaurantName,
-                                    hintText: text.restaurantNameHint,
-                                    prefixIcon: Icon(Icons.restaurant_outlined),
-                                  ),
-                                  validator: _required,
-                                ),
-                                SizedBox(height: 12),
-                                TextFormField(
-                                  controller: _outletController,
-                                  textInputAction: TextInputAction.done,
-                                  decoration: InputDecoration(
-                                    labelText: text.outletName,
-                                    hintText: text.outletNameHint,
-                                    prefixIcon: Icon(Icons.storefront_outlined),
-                                  ),
-                                  validator: _required,
-                                  onFieldSubmitted: (_) => _submit(),
-                                ),
-                                SizedBox(height: 14),
-                                _SecurityNotice(
-                                  hasToken: app.cloudConfig.hasDeviceToken,
-                                ),
-                                if (app.lastError != null) ...[
-                                  SizedBox(height: 12),
-                                  _InlineError(message: app.lastError!),
-                                ],
-                                SizedBox(height: 18),
-                                SizedBox(
-                                  width: double.infinity,
-                                  child: PrimaryButton(
-                                    label: text.createRestaurantCloud,
-                                    icon: Icons.cloud_done_outlined,
-                                    busy: app.busy,
-                                    onPressed: app.busy ? null : _submit,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
                         ),
                       ),
                     ),
@@ -158,12 +109,15 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
     );
   }
 
-  Future<void> _submit() async {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _createAccount() async {
+    if (!_createFormKey.currentState!.validate()) return;
     final app = AppScope.of(context);
-    final ok = await app.provisionTenant(
+    final ok = await app.createAccountAndProvisionTenant(
       restaurantName: _restaurantController.text,
       outletName: _outletController.text,
+      email: _emailController.text,
+      username: _usernameController.text,
+      password: _passwordController.text,
     );
     if (!mounted) return;
     if (ok) {
@@ -172,6 +126,44 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
     }
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(app.lastError ?? app.strings.cloudSetupFailed)),
+    );
+  }
+
+  Future<void> _login() async {
+    if (!_loginFormKey.currentState!.validate()) return;
+    final app = AppScope.of(context);
+    final ok = await app.loginWithAccount(
+      usernameOrEmail: _loginIdController.text,
+      password: _loginPasswordController.text,
+    );
+    if (!mounted) return;
+    if (ok) {
+      widget.onProvisioned();
+      return;
+    }
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(app.lastError ?? 'Login failed')),
+    );
+  }
+
+  Future<void> _forgotPassword() async {
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: Text('Forget password'),
+          content: Text(
+            'Please contact admin support to reset this device account.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: Text('OK'),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -247,31 +239,92 @@ class _SetupWash extends StatelessWidget {
   }
 }
 
-class _SetupBadge extends StatelessWidget {
-  const _SetupBadge();
+class _LoginForm extends StatelessWidget {
+  const _LoginForm({
+    required this.formKey,
+    required this.loginIdController,
+    required this.passwordController,
+    required this.busy,
+    required this.error,
+    required this.onLogin,
+    required this.onCreateAccount,
+    required this.onForgotPassword,
+    required this.requiredValidator,
+  });
+
+  final GlobalKey<FormState> formKey;
+  final TextEditingController loginIdController;
+  final TextEditingController passwordController;
+  final bool busy;
+  final String? error;
+  final VoidCallback? onLogin;
+  final VoidCallback onCreateAccount;
+  final VoidCallback onForgotPassword;
+  final String? Function(String?) requiredValidator;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
-      decoration: BoxDecoration(
-        color: PosColors.primarySoft,
-        borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
-      ),
-      child: Row(
+    return Form(
+      key: formKey,
+      child: Column(
         mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_clock_rounded, size: 12, color: PosColors.primary),
-          SizedBox(width: 5),
           Text(
-            'ONE-TIME SECURE SETUP',
-            style: TextStyle(
-              color: PosColors.primaryDark,
-              fontWeight: FontWeight.w900,
-              fontSize: 10.6,
-              letterSpacing: 1.0,
+            'Log in',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              fontSize: 30,
             ),
+          ),
+          SizedBox(height: 16),
+          TextFormField(
+            controller: loginIdController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: 'Enter your username/email',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+            validator: requiredValidator,
+          ),
+          SizedBox(height: 12),
+          TextFormField(
+            controller: passwordController,
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: 'Enter your password',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+            validator: requiredValidator,
+            onFieldSubmitted: (_) => onLogin?.call(),
+          ),
+          if (error != null) ...[
+            SizedBox(height: 12),
+            _InlineError(message: error!),
+          ],
+          SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'Log in',
+              icon: Icons.login_rounded,
+              busy: busy,
+              onPressed: onLogin,
+            ),
+          ),
+          SizedBox(height: 10),
+          Row(
+            children: [
+              TextButton(
+                onPressed: busy ? null : onCreateAccount,
+                child: Text('Create account'),
+              ),
+              SizedBox(width: 6),
+              TextButton(
+                onPressed: busy ? null : onForgotPassword,
+                child: Text('Forget pass'),
+              ),
+            ],
           ),
         ],
       ),
@@ -279,33 +332,117 @@ class _SetupBadge extends StatelessWidget {
   }
 }
 
-class _SecurityNotice extends StatelessWidget {
-  const _SecurityNotice({required this.hasToken});
+class _CreateAccountForm extends StatelessWidget {
+  const _CreateAccountForm({
+    required this.formKey,
+    required this.restaurantController,
+    required this.outletController,
+    required this.emailController,
+    required this.usernameController,
+    required this.passwordController,
+    required this.busy,
+    required this.error,
+    required this.onSubmit,
+    required this.onBackToLogin,
+    required this.requiredValidator,
+  });
 
-  final bool hasToken;
+  final GlobalKey<FormState> formKey;
+  final TextEditingController restaurantController;
+  final TextEditingController outletController;
+  final TextEditingController emailController;
+  final TextEditingController usernameController;
+  final TextEditingController passwordController;
+  final bool busy;
+  final String? error;
+  final VoidCallback? onSubmit;
+  final VoidCallback onBackToLogin;
+  final String? Function(String?) requiredValidator;
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: PosColors.success.withValues(alpha: 0.1),
-        border: Border.all(color: PosColors.success.withValues(alpha: 0.25)),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Row(
+    return Form(
+      key: formKey,
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(Icons.lock_outline, color: PosColors.success),
-          SizedBox(width: 10),
-          Expanded(
-            child: Text(
-              hasToken
-                  ? 'This device already has a private cloud token.'
-                  : 'No API key setup is needed. A private device token will be issued and stored inside this app.',
-              style: Theme.of(context).textTheme.bodyMedium,
+          Text(
+            'Create account',
+            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              fontSize: 30,
             ),
+          ),
+          SizedBox(height: 16),
+          TextFormField(
+            controller: restaurantController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: 'Restaurant name',
+              prefixIcon: Icon(Icons.restaurant_outlined),
+            ),
+            validator: requiredValidator,
+          ),
+          SizedBox(height: 10),
+          TextFormField(
+            controller: outletController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: 'Outlet name',
+              prefixIcon: Icon(Icons.storefront_outlined),
+            ),
+            validator: requiredValidator,
+          ),
+          SizedBox(height: 10),
+          TextFormField(
+            controller: emailController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: 'Email',
+              prefixIcon: Icon(Icons.email_outlined),
+            ),
+            validator: requiredValidator,
+          ),
+          SizedBox(height: 10),
+          TextFormField(
+            controller: usernameController,
+            textInputAction: TextInputAction.next,
+            decoration: InputDecoration(
+              labelText: 'Username',
+              prefixIcon: Icon(Icons.badge_outlined),
+            ),
+            validator: requiredValidator,
+          ),
+          SizedBox(height: 10),
+          TextFormField(
+            controller: passwordController,
+            obscureText: true,
+            textInputAction: TextInputAction.done,
+            decoration: InputDecoration(
+              labelText: 'Pass',
+              prefixIcon: Icon(Icons.lock_outline),
+            ),
+            validator: requiredValidator,
+            onFieldSubmitted: (_) => onSubmit?.call(),
+          ),
+          if (error != null) ...[
+            SizedBox(height: 12),
+            _InlineError(message: error!),
+          ],
+          SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: PrimaryButton(
+              label: 'Create account',
+              icon: Icons.person_add_alt_1_outlined,
+              busy: busy,
+              onPressed: onSubmit,
+            ),
+          ),
+          SizedBox(height: 10),
+          TextButton(
+            onPressed: busy ? null : onBackToLogin,
+            child: Text('Back to log in'),
           ),
         ],
       ),

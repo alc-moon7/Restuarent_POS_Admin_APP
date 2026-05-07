@@ -39,7 +39,7 @@ enum AppThemePreference {
         return mode;
       }
     }
-    return AppThemePreference.black;
+    return AppThemePreference.white;
   }
 }
 
@@ -85,9 +85,12 @@ class PosAppController extends ChangeNotifier {
   String? lastBkashPaymentId;
   String? lastBkashTransactionId;
   AppLanguage language = AppLanguage.bn;
-  AppThemePreference themePreference = AppThemePreference.black;
+  AppThemePreference themePreference = AppThemePreference.white;
   double uiScale = 0.9;
   String? lastError;
+  String accountEmail = '';
+  String accountUsername = '';
+  String _accountPassword = '';
   List<MenuItem> menuItems = [];
   List<OrderModel> orders = [];
   List<SyncEvent> syncEvents = [];
@@ -179,6 +182,9 @@ class PosAppController extends ChangeNotifier {
         deviceToken: preferences.getString(_deviceTokenKey) ?? '',
         autoSyncIntervalSeconds: preferences.getInt(_autoSyncIntervalKey) ?? 30,
       );
+      accountEmail = preferences.getString(_accountEmailKey) ?? '';
+      accountUsername = preferences.getString(_accountUsernameKey) ?? '';
+      _accountPassword = preferences.getString(_accountPasswordKey) ?? '';
 
       await printerService.initialize();
       printerState = printerService.state;
@@ -385,37 +391,53 @@ class PosAppController extends ChangeNotifier {
     required String outletName,
   }) async {
     return _runBusy(() async {
-      final bootstrapCloudConfig = cloudConfig.copyWith(
-        baseUrl: CloudDefaults.resolveBaseUrl(cloudConfig.baseUrl),
-        enabled: true,
+      await _provisionTenantInternal(
+        restaurantName: restaurantName,
+        outletName: outletName,
       );
-      cloudApiService.configure(
-        cloudConfig: bootstrapCloudConfig,
-        serverConfig: serverConfig,
+    });
+  }
+
+  Future<bool> createAccountAndProvisionTenant({
+    required String restaurantName,
+    required String outletName,
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    return _runBusy(() async {
+      await _provisionTenantInternal(
+        restaurantName: restaurantName,
+        outletName: outletName,
       );
-      final tenant = await cloudApiService.bootstrapTenant(
-        serverId: serverConfig.serverId,
-        restaurantName: restaurantName.trim(),
-        outletName: outletName.trim(),
-        restaurantId: serverConfig.restaurantId,
-        outletId: serverConfig.outletId,
-      );
-      serverConfig = serverConfig.copyWith(
-        serverId: tenant.serverId,
-        restaurantId: tenant.restaurantId,
-        outletId: tenant.outletId,
-        restaurantName: tenant.restaurantName,
-        outletName: tenant.outletName,
-      );
-      cloudConfig = bootstrapCloudConfig.copyWith(
-        deviceToken: tenant.deviceToken,
-      );
-      await _persistSettings();
-      syncService.configure(
-        cloudConfig: cloudConfig,
-        serverConfig: serverConfig,
-      );
-      unawaited(syncService.syncNow());
+      accountEmail = email.trim();
+      accountUsername = username.trim();
+      _accountPassword = password;
+      await _persistAccountAuth();
+    });
+  }
+
+  Future<bool> loginWithAccount({
+    required String usernameOrEmail,
+    required String password,
+  }) async {
+    return _runBusy(() async {
+      final id = usernameOrEmail.trim().toLowerCase();
+      if (accountUsername.trim().isEmpty || _accountPassword.isEmpty) {
+        throw Exception(
+          'No account found on this device. Please create account first.',
+        );
+      }
+      final usernameMatch = accountUsername.trim().toLowerCase() == id;
+      final emailMatch = accountEmail.trim().toLowerCase() == id;
+      if ((!usernameMatch && !emailMatch) || _accountPassword != password) {
+        throw Exception('Invalid username/email or password.');
+      }
+      if (!isTenantReady) {
+        throw Exception(
+          'Restaurant setup is incomplete on this device. Please create account again.',
+        );
+      }
     });
   }
 
@@ -705,6 +727,45 @@ class PosAppController extends ChangeNotifier {
     );
   }
 
+  Future<void> _persistAccountAuth() async {
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setString(_accountEmailKey, accountEmail);
+    await preferences.setString(_accountUsernameKey, accountUsername);
+    await preferences.setString(_accountPasswordKey, _accountPassword);
+  }
+
+  Future<void> _provisionTenantInternal({
+    required String restaurantName,
+    required String outletName,
+  }) async {
+    final bootstrapCloudConfig = cloudConfig.copyWith(
+      baseUrl: CloudDefaults.resolveBaseUrl(cloudConfig.baseUrl),
+      enabled: true,
+    );
+    cloudApiService.configure(
+      cloudConfig: bootstrapCloudConfig,
+      serverConfig: serverConfig,
+    );
+    final tenant = await cloudApiService.bootstrapTenant(
+      serverId: serverConfig.serverId,
+      restaurantName: restaurantName.trim(),
+      outletName: outletName.trim(),
+      restaurantId: serverConfig.restaurantId,
+      outletId: serverConfig.outletId,
+    );
+    serverConfig = serverConfig.copyWith(
+      serverId: tenant.serverId,
+      restaurantId: tenant.restaurantId,
+      outletId: tenant.outletId,
+      restaurantName: tenant.restaurantName,
+      outletName: tenant.outletName,
+    );
+    cloudConfig = bootstrapCloudConfig.copyWith(deviceToken: tenant.deviceToken);
+    await _persistSettings();
+    syncService.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
+    unawaited(syncService.syncNow());
+  }
+
   Future<void> _persistBkashPayment(BkashPaymentSession session) async {
     final preferences = await SharedPreferences.getInstance();
     bkashPaymentVerified = true;
@@ -754,6 +815,9 @@ class PosAppController extends ChangeNotifier {
   static final String _bkashPaymentVerifiedKey = 'local_pos_bkash_payment_verified';
   static final String _bkashPaymentIdKey = 'local_pos_bkash_payment_id';
   static final String _bkashTransactionIdKey = 'local_pos_bkash_transaction_id';
+  static final String _accountEmailKey = 'local_pos_account_email';
+  static final String _accountUsernameKey = 'local_pos_account_username';
+  static final String _accountPasswordKey = 'local_pos_account_password';
   static double minUiScale = 0.78;
   static double maxUiScale = 1.08;
 }

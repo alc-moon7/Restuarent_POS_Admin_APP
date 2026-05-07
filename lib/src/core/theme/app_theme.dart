@@ -77,26 +77,26 @@ class PosColors {
 
   static const _light = _PosPalette(
     primary: Color(0xFFFFC107),
-    primaryDark: Color(0xFFB17C00),
-    primarySoft: Color(0xFFFFF8E1),
-    primaryGlow: Color(0xFFFFD54F),
+    primaryDark: Color(0xFFE0A800),
+    primarySoft: Color(0xFFFFF4C2),
+    primaryGlow: Color(0xFFFFD24A),
     accent: Color(0xFFFFB300),
-    accentSoft: Color(0xFFFFF3D6),
-    background: Color(0xFFF7F7FA),
+    accentSoft: Color(0xFFFFF7DB),
+    background: Color(0xFFFFFDF5),
     surface: Color(0xFFFFFFFF),
-    surfaceWarm: Color(0xFFF4F4F8),
-    surfaceTinted: Color(0xFFF1F1F6),
+    surfaceWarm: Color(0xFFFFFCF1),
+    surfaceTinted: Color(0xFFFFFAEA),
     slate: Color(0xFF101018),
     slateSoft: Color(0xFF232333),
-    muted: Color(0xFF5E5E6B),
-    mutedSoft: Color(0xFFE9E9F0),
+    muted: Color(0xFF66666F),
+    mutedSoft: Color(0xFFF1EFDf),
     success: Color(0xFF16A34A),
-    warning: Color(0xFFD97706),
+    warning: Color(0xFFE0A800),
     danger: Color(0xFFDC2626),
     info: Color(0xFFCA8A04),
     purple: Color(0xFFD97706),
-    line: Color(0xFFD9D9E3),
-    lineStrong: Color(0xFFBFC0CC),
+    line: Color(0xFFE7E2C8),
+    lineStrong: Color(0xFFD5CC99),
   );
 
   static _PosPalette _active = _dark;
@@ -162,24 +162,24 @@ class PosShadows {
 }
 
 class PosGradients {
-  static LinearGradient get brand => const LinearGradient(
+  static LinearGradient get brand => LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFC107), Color(0xFFFFB300)],
+    colors: [PosColors.primary, PosColors.primary],
   );
 
-  static LinearGradient get brandDeep => const LinearGradient(
+  static LinearGradient get brandDeep => LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFFFFCA28), Color(0xFFB17C00)],
+    colors: [PosColors.primary, PosColors.primary],
   );
 
   static LinearGradient softWash({double opacity = 0.72}) => LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [
-      PosColors.primarySoft.withValues(alpha: opacity),
-      PosColors.background.withValues(alpha: 0),
+      PosColors.primarySoft.withValues(alpha: PosColors.tone == PosThemeTone.light ? 0.18 : opacity),
+      PosColors.background.withValues(alpha: PosColors.tone == PosThemeTone.light ? 0.18 : 0),
     ],
   );
 
@@ -187,8 +187,8 @@ class PosGradients {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
     colors: [
-      color.withValues(alpha: 0.10),
-      color.withValues(alpha: 0.02),
+      color.withValues(alpha: 0.06),
+      color.withValues(alpha: 0.04),
       PosColors.surface,
     ],
     stops: const [0, 0.45, 1],
