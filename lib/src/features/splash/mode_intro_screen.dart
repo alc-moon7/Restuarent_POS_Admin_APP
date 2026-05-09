@@ -121,7 +121,7 @@ class _HeroPanel extends StatelessWidget {
               ),
               child: Icon(
                 Icons.admin_panel_settings_rounded,
-                color: Colors.white,
+                color: PosColors.slate,
                 size: 30,
               ),
             ),
@@ -198,7 +198,7 @@ class _CapabilityCards extends StatelessWidget {
         icon: Icons.receipt_long_rounded,
         title: 'Order Workflow',
         message:
-            'Accept, prepare, ready, serve, or cancel orders from one dashboard.',
+            'Customer orders are accepted automatically, then served or cancelled from one dashboard.',
         color: PosColors.info,
       ),
     ];

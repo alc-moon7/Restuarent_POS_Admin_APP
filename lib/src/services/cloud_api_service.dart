@@ -96,6 +96,47 @@ class TenantBootstrapResult {
   }
 }
 
+class AdminLoginResult {
+  AdminLoginResult({
+    required this.email,
+    required this.username,
+    required this.serverId,
+    required this.restaurantId,
+    required this.outletId,
+    required this.restaurantName,
+    required this.outletName,
+    required this.deviceToken,
+  });
+
+  final String email;
+  final String username;
+  final String serverId;
+  final String restaurantId;
+  final String outletId;
+  final String restaurantName;
+  final String outletName;
+  final String deviceToken;
+
+  static AdminLoginResult fromJson(Map<String, Object?> json) {
+    final data = json['data'] is Map
+        ? Map<String, Object?>.from(json['data'] as Map)
+        : json;
+    final account = data['account'] is Map
+        ? Map<String, Object?>.from(data['account'] as Map)
+        : <String, Object?>{};
+    return AdminLoginResult(
+      email: account['email']?.toString().trim() ?? '',
+      username: account['username']?.toString().trim() ?? '',
+      serverId: TenantBootstrapResult._required(data, 'serverId'),
+      restaurantId: TenantBootstrapResult._required(data, 'restaurantId'),
+      outletId: TenantBootstrapResult._required(data, 'outletId'),
+      restaurantName: TenantBootstrapResult._required(data, 'restaurantName'),
+      outletName: TenantBootstrapResult._required(data, 'outletName'),
+      deviceToken: TenantBootstrapResult._required(data, 'deviceToken'),
+    );
+  }
+}
+
 class CloudApiService {
   CloudApiService({http.Client? client}) : _client = client ?? http.Client();
 
@@ -161,6 +202,27 @@ class CloudApiService {
       idempotencyKey: 'tenant-bootstrap-$serverId',
     );
     return TenantBootstrapResult.fromJson(response);
+  }
+
+  Future<AdminLoginResult> loginAdminAccount({
+    required String usernameOrEmail,
+    required String password,
+    required String serverId,
+  }) async {
+    final uri = _uri('/admin/login');
+    if (uri == null) {
+      throw CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    final response = await _sendJson(
+      'POST',
+      uri,
+      body: {
+        'usernameOrEmail': usernameOrEmail.trim(),
+        'password': password,
+        'serverId': serverId,
+      },
+    );
+    return AdminLoginResult.fromJson(response);
   }
 
   Future<BkashPaymentSession> createBkashSandboxPayment({

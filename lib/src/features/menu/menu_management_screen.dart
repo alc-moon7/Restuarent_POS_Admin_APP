@@ -178,7 +178,10 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
 }
 
 class _MenuToolbar extends StatelessWidget {
-  const _MenuToolbar({required this.searchController, required this.onSearchChanged});
+  const _MenuToolbar({
+    required this.searchController,
+    required this.onSearchChanged,
+  });
 
   final TextEditingController searchController;
   final ValueChanged<String> onSearchChanged;
@@ -443,10 +446,10 @@ class _MenuGrid extends StatelessWidget {
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
             childAspectRatio: columns == 1
-                ? 0.72
+                ? 1.08
                 : columns == 2
-                ? 0.76
-                : 0.8,
+                ? 1.02
+                : 1.08,
           ),
           itemBuilder: (context, index) {
             final item = items[index];

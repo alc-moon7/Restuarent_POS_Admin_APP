@@ -11,13 +11,13 @@ enum OrderStatus {
   String get label {
     switch (this) {
       case OrderStatus.pending:
-        return 'Pending';
+        return 'Accepted';
       case OrderStatus.accepted:
         return 'Accepted';
       case OrderStatus.preparing:
-        return 'Preparing';
+        return 'Accepted';
       case OrderStatus.ready:
-        return 'Ready';
+        return 'Accepted';
       case OrderStatus.served:
         return 'Served';
       case OrderStatus.cancelled:
@@ -25,11 +25,20 @@ enum OrderStatus {
     }
   }
 
-  bool get isOpen =>
-      this == OrderStatus.pending ||
-      this == OrderStatus.accepted ||
-      this == OrderStatus.preparing ||
-      this == OrderStatus.ready;
+  OrderStatus get adminStatus {
+    switch (this) {
+      case OrderStatus.pending:
+      case OrderStatus.preparing:
+      case OrderStatus.ready:
+        return OrderStatus.accepted;
+      case OrderStatus.accepted:
+      case OrderStatus.served:
+      case OrderStatus.cancelled:
+        return this;
+    }
+  }
+
+  bool get isOpen => adminStatus == OrderStatus.accepted;
 
   int get priority {
     switch (this) {
@@ -49,11 +58,15 @@ enum OrderStatus {
   }
 
   bool canTransitionTo(OrderStatus next) {
-    if (this == next) return true;
-    if (this == OrderStatus.served) return next == OrderStatus.served;
-    if (next == OrderStatus.cancelled) return this != OrderStatus.served;
-    if (this == OrderStatus.cancelled) return next == OrderStatus.cancelled;
-    return next.priority >= priority;
+    final current = adminStatus;
+    final target = next.adminStatus;
+    if (current == target) return true;
+    if (current == OrderStatus.served) return target == OrderStatus.served;
+    if (target == OrderStatus.cancelled) return current != OrderStatus.served;
+    if (current == OrderStatus.cancelled) {
+      return target == OrderStatus.cancelled;
+    }
+    return current == OrderStatus.accepted && target == OrderStatus.served;
   }
 
   static OrderStatus? tryParse(String? value) {

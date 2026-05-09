@@ -44,156 +44,96 @@ class _DashboardCardState extends State<DashboardCard> {
               duration: Duration(milliseconds: 180),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(PosRadii.lg),
-                boxShadow: _hovering
-                    ? [
-                        BoxShadow(
-                          color: widget.color.withValues(alpha: 0.18),
-                          blurRadius: 26,
-                          offset: Offset(0, 14),
-                        ),
-                      ]
-                    : PosShadows.card,
+                boxShadow: _hovering ? PosShadows.glow : PosShadows.card,
               ),
               child: Material(
                 color: Colors.transparent,
                 child: Card(
+                  color: PosColors.background,
+                  surfaceTintColor: Colors.transparent,
                   clipBehavior: Clip.antiAlias,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(PosRadii.lg),
                     side: BorderSide(
-                      color: _hovering
-                          ? widget.color.withValues(alpha: 0.32)
-                          : PosColors.line,
+                      color: PosColors.lineStrong.withValues(alpha: 0.36),
                     ),
                   ),
                   child: InkWell(
                     onTap: widget.onTap,
                     onHighlightChanged: (v) => setState(() => _pressed = v),
-                    splashColor: widget.color.withValues(alpha: 0.08),
-                    highlightColor: widget.color.withValues(alpha: 0.04),
-                    child: Stack(
-                      children: [
-                        Positioned.fill(
-                          child: DecoratedBox(
-                            decoration: BoxDecoration(
-                              gradient: PosGradients.cardTint(widget.color),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: -28,
-                          right: -28,
-                          child: Container(
-                            width: 104,
-                            height: 104,
-                            decoration: BoxDecoration(
-                              shape: BoxShape.circle,
-                              gradient: RadialGradient(
-                                colors: [
-                                  widget.color.withValues(alpha: 0.18),
-                                  widget.color.withValues(alpha: 0),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Positioned(
-                          top: 0,
-                          left: 0,
-                          right: 0,
-                          child: Container(
-                            height: 3,
-                            decoration: BoxDecoration(
-                              gradient: LinearGradient(
-                                colors: [
-                                  widget.color,
-                                  widget.color.withValues(alpha: 0.55),
-                                ],
-                              ),
-                            ),
-                          ),
-                        ),
-                        Padding(
-                          padding: EdgeInsets.all(compact ? 11 : 14),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisAlignment: MainAxisAlignment.center,
+                    splashColor: PosColors.slate.withValues(alpha: 0.08),
+                    highlightColor: PosColors.slate.withValues(alpha: 0.04),
+                    child: Padding(
+                      padding: EdgeInsets.all(compact ? 11 : 14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Row(
                             children: [
-                              Row(
-                                children: [
-                                  _IconBox(
-                                    icon: widget.icon,
-                                    color: widget.color,
-                                    compact: compact,
+                              _IconBox(icon: widget.icon, compact: compact),
+                              Spacer(),
+                              if (widget.onTap != null)
+                                AnimatedSlide(
+                                  duration: Duration(milliseconds: 220),
+                                  offset: _hovering
+                                      ? Offset(0.18, 0)
+                                      : Offset.zero,
+                                  child: Icon(
+                                    Icons.arrow_forward_rounded,
+                                    color: PosColors.slate,
+                                    size: compact ? 16 : 18,
                                   ),
-                                  Spacer(),
-                                  if (widget.onTap != null)
-                                    AnimatedSlide(
-                                      duration: Duration(milliseconds: 220),
-                                      offset: _hovering
-                                          ? Offset(0.18, 0)
-                                          : Offset.zero,
-                                      child: Icon(
-                                        Icons.arrow_forward_rounded,
-                                        color: _hovering
-                                            ? widget.color
-                                            : PosColors.muted.withValues(
-                                                alpha: 0.5,
-                                              ),
-                                        size: compact ? 16 : 18,
-                                      ),
-                                    ),
-                                ],
-                              ),
-                              SizedBox(height: compact ? 8 : 12),
-                              Text(
-                                widget.value,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style:
-                                    (compact
-                                            ? TextStyle(
-                                                fontSize: 18,
-                                                fontWeight: FontWeight.w900,
-                                                color: PosColors.slate,
-                                                letterSpacing: 0,
-                                              )
-                                            : Theme.of(
-                                                context,
-                                              ).textTheme.headlineMedium)
-                                        ?.copyWith(
-                                          fontWeight: FontWeight.w900,
-                                          letterSpacing: 0,
-                                        ),
-                              ),
-                              SizedBox(height: 4),
-                              Text(
-                                widget.title,
-                                maxLines: compact ? 1 : 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: compact
-                                    ? TextStyle(
-                                        fontSize: 11.6,
-                                        fontWeight: FontWeight.w800,
-                                        color: PosColors.slate,
-                                        height: 1.2,
-                                      )
-                                    : Theme.of(context).textTheme.titleMedium,
-                              ),
-                              if (widget.caption != null && !compact) ...[
-                                SizedBox(height: 4),
-                                Text(
-                                  widget.caption!,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: Theme.of(context).textTheme.bodyMedium,
                                 ),
-                              ],
                             ],
                           ),
-                        ),
-                      ],
+                          SizedBox(height: compact ? 8 : 12),
+                          Text(
+                            widget.value,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style:
+                                (compact
+                                        ? TextStyle(
+                                            fontSize: 18,
+                                            fontWeight: FontWeight.w900,
+                                            color: PosColors.slate,
+                                            letterSpacing: 0,
+                                          )
+                                        : Theme.of(
+                                            context,
+                                          ).textTheme.headlineMedium)
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w900,
+                                      letterSpacing: 0,
+                                    ),
+                          ),
+                          SizedBox(height: 4),
+                          Text(
+                            widget.title,
+                            maxLines: compact ? 1 : 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: compact
+                                ? TextStyle(
+                                    fontSize: 11.6,
+                                    fontWeight: FontWeight.w800,
+                                    color: PosColors.slate,
+                                    height: 1.2,
+                                  )
+                                : Theme.of(context).textTheme.titleMedium,
+                          ),
+                          if (widget.caption != null && !compact) ...[
+                            SizedBox(height: 4),
+                            Text(
+                              widget.caption!,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: Theme.of(context).textTheme.bodyMedium,
+                            ),
+                          ],
+                        ],
+                      ),
                     ),
                   ),
                 ),
@@ -207,10 +147,9 @@ class _DashboardCardState extends State<DashboardCard> {
 }
 
 class _IconBox extends StatelessWidget {
-  const _IconBox({required this.icon, required this.color, required this.compact});
+  const _IconBox({required this.icon, required this.compact});
 
   final IconData icon;
-  final Color color;
   final bool compact;
 
   @override
@@ -219,25 +158,11 @@ class _IconBox extends StatelessWidget {
       width: compact ? 32 : 40,
       height: compact ? 32 : 40,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            color.withValues(alpha: 0.20),
-            color.withValues(alpha: 0.08),
-          ],
-        ),
+        color: PosColors.surface,
         borderRadius: BorderRadius.circular(compact ? 11 : 13),
-        border: Border.all(color: color.withValues(alpha: 0.22)),
-        boxShadow: [
-          BoxShadow(
-            color: color.withValues(alpha: 0.12),
-            blurRadius: 10,
-            offset: Offset(0, 4),
-          ),
-        ],
+        border: Border.all(color: PosColors.slate),
       ),
-      child: Icon(icon, color: color, size: compact ? 17 : 21),
+      child: Icon(icon, color: PosColors.slate, size: compact ? 17 : 21),
     );
   }
 }

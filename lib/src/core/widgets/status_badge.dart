@@ -92,15 +92,15 @@ class StatusBadge extends StatelessWidget {
   }
 
   static Color _colorForOrderStatus(OrderStatus status) {
-    switch (status) {
+    switch (status.adminStatus) {
       case OrderStatus.pending:
-        return PosColors.warning;
+        return PosColors.primaryDark;
       case OrderStatus.accepted:
-        return PosColors.primary;
+        return PosColors.primaryDark;
       case OrderStatus.preparing:
-        return Color(0xFF2563EB);
+        return PosColors.primaryDark;
       case OrderStatus.ready:
-        return Color(0xFF7C3AED);
+        return PosColors.primaryDark;
       case OrderStatus.served:
         return PosColors.success;
       case OrderStatus.cancelled:
@@ -109,15 +109,15 @@ class StatusBadge extends StatelessWidget {
   }
 
   static IconData _iconForOrderStatus(OrderStatus status) {
-    switch (status) {
+    switch (status.adminStatus) {
       case OrderStatus.pending:
-        return Icons.schedule;
+        return Icons.check_circle_outline;
       case OrderStatus.accepted:
         return Icons.check_circle_outline;
       case OrderStatus.preparing:
-        return Icons.local_fire_department_outlined;
+        return Icons.check_circle_outline;
       case OrderStatus.ready:
-        return Icons.room_service_outlined;
+        return Icons.check_circle_outline;
       case OrderStatus.served:
         return Icons.done_all;
       case OrderStatus.cancelled:

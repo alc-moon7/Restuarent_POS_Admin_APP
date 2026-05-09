@@ -179,37 +179,31 @@ class _ReportSummary extends StatelessWidget {
               label: 'Total sales',
               value: currency.format(report.totalSales),
               icon: Icons.payments_outlined,
-              color: PosColors.primary,
             ),
             _ReportTile(
               label: 'Orders',
               value: report.totalOrders.toString(),
               icon: Icons.receipt_long_outlined,
-              color: Color(0xFF2563EB),
             ),
             _ReportTile(
               label: 'Avg order',
               value: currency.format(report.averageOrderValue),
               icon: Icons.trending_up_outlined,
-              color: PosColors.success,
             ),
             _ReportTile(
               label: 'Items sold',
               value: report.totalItemsSold.toString(),
               icon: Icons.local_dining_outlined,
-              color: PosColors.warning,
             ),
             _ReportTile(
               label: 'Open',
               value: report.openOrders.toString(),
               icon: Icons.pending_actions_outlined,
-              color: PosColors.warning,
             ),
             _ReportTile(
               label: 'Completed',
               value: report.completedOrders.toString(),
               icon: Icons.done_all,
-              color: PosColors.success,
             ),
           ],
         );
@@ -223,75 +217,57 @@ class _ReportTile extends StatelessWidget {
     required this.label,
     required this.value,
     required this.icon,
-    required this.color,
   });
 
   final String label;
   final String value;
   final IconData icon;
-  final Color color;
 
   @override
   Widget build(BuildContext context) {
     return Card(
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(gradient: PosGradients.cardTint(color)),
+      child: Padding(
+        padding: EdgeInsets.all(14),
+        child: Row(
+          children: [
+            Container(
+              width: 42,
+              height: 42,
+              decoration: BoxDecoration(
+                color: PosColors.surface,
+                borderRadius: BorderRadius.circular(PosRadii.md),
+                border: Border.all(color: PosColors.slate),
+              ),
+              child: Icon(icon, color: PosColors.slate, size: 20),
             ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(14),
-            child: Row(
-              children: [
-                Container(
-                  width: 42,
-                  height: 42,
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        color.withValues(alpha: 0.22),
-                        color.withValues(alpha: 0.08),
-                      ],
+            SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label.toUpperCase(),
+                    style: TextStyle(
+                      color: PosColors.slate,
+                      fontWeight: FontWeight.w800,
+                      fontSize: 10.4,
+                      letterSpacing: 1.1,
                     ),
-                    borderRadius: BorderRadius.circular(PosRadii.md),
-                    border: Border.all(color: color.withValues(alpha: 0.22)),
                   ),
-                  child: Icon(icon, color: color, size: 20),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        label.toUpperCase(),
-                        style: TextStyle(
-                          color: PosColors.muted,
-                          fontWeight: FontWeight.w800,
-                          fontSize: 10.4,
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                      SizedBox(height: 4),
-                      Text(
-                        value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ],
+                  SizedBox(height: 4),
+                  Text(
+                    value,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: Theme.of(context).textTheme.titleLarge,
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+          ],
+        ),
       ),
     );
   }
@@ -358,7 +334,11 @@ class _TopItems extends StatelessWidget {
 }
 
 class _ReportCard extends StatelessWidget {
-  const _ReportCard({required this.title, required this.icon, required this.child});
+  const _ReportCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
 
   final String title;
   final IconData icon;

@@ -38,27 +38,36 @@ class _MenuItemCardState extends State<MenuItemCard> {
         duration: Duration(milliseconds: 180),
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(PosRadii.lg),
-          boxShadow: _hovering ? PosShadows.raised : PosShadows.card,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: _hovering ? 0.12 : 0.07),
+              blurRadius: _hovering ? 16 : 12,
+              offset: Offset(0, _hovering ? 7 : 5),
+            ),
+          ],
         ),
         child: Card(
+          color: PosColors.background,
+          elevation: 0,
+          surfaceTintColor: Colors.transparent,
           clipBehavior: Clip.antiAlias,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(PosRadii.lg),
             side: BorderSide(
               color: _hovering
-                  ? PosColors.primary.withValues(alpha: 0.3)
-                  : PosColors.line,
+                  ? PosColors.primaryDark.withValues(alpha: 0.42)
+                  : PosColors.lineStrong.withValues(alpha: 0.36),
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(12),
+            padding: EdgeInsets.all(10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 ClipRRect(
                   borderRadius: BorderRadius.circular(PosRadii.md),
                   child: AspectRatio(
-                    aspectRatio: 1.78,
+                    aspectRatio: 1.82,
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -143,50 +152,40 @@ class _MenuItemCardState extends State<MenuItemCard> {
                     ),
                   ),
                 ),
-                SizedBox(height: 12),
+                SizedBox(height: 7),
                 Text(
                   widget.item.name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize: 16,
+                    fontSize: 14.5,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
-                SizedBox(height: 4),
+                SizedBox(height: 2),
                 Text(
                   widget.item.description,
-                  maxLines: 2,
+                  maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                SizedBox(height: 10),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 6,
-                  crossAxisAlignment: WrapCrossAlignment.center,
+                SizedBox(height: 5),
+                Row(
                   children: [
-                    StatusBadge.sync(widget.item.syncStatus),
-                    _SmallPill(
-                      icon: Icons.category_outlined,
-                      label: widget.item.category,
-                    ),
-                    if (widget.item.preparationTimeMinutes != null)
-                      _SmallPill(
-                        icon: Icons.timer_outlined,
-                        label: '${widget.item.preparationTimeMinutes} min',
+                    Expanded(
+                      child: _SmallPill(
+                        icon: Icons.category_outlined,
+                        label: widget.item.category,
                       ),
-                    ...widget.item.tags.map(
-                      (tag) =>
-                          _SmallPill(icon: Icons.sell_outlined, label: tag),
                     ),
+                    SizedBox(width: 6),
+                    StatusBadge.sync(widget.item.syncStatus),
                   ],
                 ),
-                Spacer(),
-                SizedBox(height: 10),
+                SizedBox(height: 5),
                 Divider(height: 1),
-                SizedBox(height: 6),
+                SizedBox(height: 1),
                 Row(
                   children: [
                     Expanded(
@@ -195,6 +194,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                         onChanged: widget.onAvailabilityChanged,
                         contentPadding: EdgeInsets.zero,
                         dense: true,
+                        visualDensity: VisualDensity.compact,
                         title: Text(
                           widget.item.isAvailable ? 'Active' : 'Paused',
                           style: TextStyle(
@@ -211,7 +211,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                       icon: Icons.edit_outlined,
                       tooltip: 'Edit menu item',
                       onPressed: widget.onEdit,
-                      color: PosColors.primary,
+                      color: PosColors.slate,
                     ),
                     SizedBox(width: 6),
                     _IconAction(
@@ -249,8 +249,11 @@ class _IconAction extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: Material(
-        color: color.withValues(alpha: 0.10),
-        borderRadius: BorderRadius.circular(PosRadii.sm),
+        color: PosColors.background,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PosRadii.sm),
+          side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.36)),
+        ),
         child: InkWell(
           onTap: onPressed,
           borderRadius: BorderRadius.circular(PosRadii.sm),
@@ -275,9 +278,9 @@ class _SmallPill extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: PosColors.surfaceTinted,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

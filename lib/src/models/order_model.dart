@@ -115,7 +115,8 @@ class OrderModel {
       note: map['note'] as String?,
       source: OrderSource.parse(map['source'] as String?),
       status:
-          OrderStatus.tryParse(map['status'] as String?) ?? OrderStatus.pending,
+          OrderStatus.tryParse(map['status'] as String?) ??
+          OrderStatus.accepted,
       total: (map['total'] as num).toDouble(),
       items: items,
       syncStatus: SyncStatus.parse(map['syncStatus'] as String?),

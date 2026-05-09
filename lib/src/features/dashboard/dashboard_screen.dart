@@ -77,9 +77,9 @@ class DashboardScreen extends StatelessWidget {
                 onTap: () => onNavigate(0),
               ),
               DashboardCard(
-                title: 'Pending now',
+                title: 'Accepted now',
                 value: metrics.pendingOrders.toString(),
-                icon: Icons.pending_actions_outlined,
+                icon: Icons.check_circle_outline,
                 color: PosColors.warning,
                 onTap: () => onNavigate(0),
               ),
@@ -238,15 +238,18 @@ class _HeroPanel extends StatelessWidget {
       borderRadius: BorderRadius.circular(PosRadii.lg),
       child: Container(
         decoration: BoxDecoration(
-          gradient: PosGradients.brandDeep,
+          color: PosColors.background,
           borderRadius: BorderRadius.circular(PosRadii.lg),
           boxShadow: [
             BoxShadow(
-              color: PosColors.primary.withValues(alpha: 0.32),
-              blurRadius: 24,
-              offset: Offset(0, 14),
+              color: Colors.black.withValues(alpha: 0.07),
+              blurRadius: 16,
+              offset: Offset(0, 6),
             ),
           ],
+          border: Border.all(
+            color: PosColors.lineStrong.withValues(alpha: 0.36),
+          ),
         ),
         child: Stack(
           children: [
@@ -259,10 +262,7 @@ class _HeroPanel extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [
-                      Colors.white.withValues(alpha: 0.16),
-                      Colors.white.withValues(alpha: 0),
-                    ],
+                    colors: [Colors.transparent, Colors.transparent],
                   ),
                 ),
               ),
@@ -276,10 +276,7 @@ class _HeroPanel extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   gradient: RadialGradient(
-                    colors: [
-                      PosColors.primaryGlow.withValues(alpha: 0.30),
-                      PosColors.primaryGlow.withValues(alpha: 0),
-                    ],
+                    colors: [Colors.transparent, Colors.transparent],
                   ),
                 ),
               ),
@@ -340,19 +337,19 @@ class _HeroPanel extends StatelessWidget {
         Container(
           padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
           decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.14),
+            color: PosColors.surfaceTinted,
             borderRadius: BorderRadius.circular(PosRadii.pill),
-            border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+            border: Border.all(color: PosColors.line),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.today_rounded, size: 13, color: Colors.white),
+              Icon(Icons.today_rounded, size: 13, color: PosColors.slate),
               SizedBox(width: 6),
               Text(
                 'TODAY · LIVE',
                 style: TextStyle(
-                  color: Colors.white,
+                  color: PosColors.slate,
                   fontWeight: FontWeight.w900,
                   fontSize: 10.4,
                   letterSpacing: 1.2,
@@ -365,7 +362,7 @@ class _HeroPanel extends StatelessWidget {
         Text(
           currency.format(today),
           style: TextStyle(
-            color: Colors.white,
+            color: PosColors.slate,
             fontWeight: FontWeight.w900,
             fontSize: 38,
             letterSpacing: 0,
@@ -386,12 +383,12 @@ class _HeroPanel extends StatelessWidget {
               child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Icon(arrow, color: Colors.white, size: 13),
+                  Icon(arrow, color: PosColors.slate, size: 13),
                   SizedBox(width: 4),
                   Text(
                     pctLabel,
                     style: TextStyle(
-                      color: Colors.white,
+                      color: PosColors.slate,
                       fontWeight: FontWeight.w800,
                       fontSize: 11,
                     ),
@@ -424,9 +421,9 @@ class _HeroPanel extends StatelessWidget {
     return Container(
       padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
+        color: PosColors.surfaceTinted,
         borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.16)),
+        border: Border.all(color: PosColors.line),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -434,7 +431,7 @@ class _HeroPanel extends StatelessWidget {
           Text(
             'LAST 7 DAYS',
             style: TextStyle(
-              color: Colors.white70,
+              color: PosColors.muted,
               fontWeight: FontWeight.w900,
               fontSize: 10.4,
               letterSpacing: 1.2,
@@ -444,7 +441,7 @@ class _HeroPanel extends StatelessWidget {
           MiniBarChart(
             values: values,
             labels: labels,
-            color: Colors.white,
+            color: PosColors.slate,
             height: 100,
             formatValue: (v) => compactCurrency.format(v),
           ),
@@ -464,19 +461,19 @@ class _HeroChip extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.10),
+        color: PosColors.surfaceTinted,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.20)),
+        border: Border.all(color: PosColors.line),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, color: Colors.white, size: 14),
+          Icon(icon, color: PosColors.slate, size: 14),
           SizedBox(width: 6),
           Text(
             label,
             style: TextStyle(
-              color: Colors.white,
+              color: PosColors.slate,
               fontWeight: FontWeight.w800,
               fontSize: 11.5,
             ),
@@ -541,6 +538,8 @@ class _RevenueBreakdownCard extends StatelessWidget {
         ? 0.0
         : (weekSales / monthSales).clamp(0, 1).toDouble();
     return Card(
+      color: PosColors.background,
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -553,22 +552,13 @@ class _RevenueBreakdownCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        PosColors.primary.withValues(alpha: 0.20),
-                        PosColors.primary.withValues(alpha: 0.08),
-                      ],
-                    ),
+                    color: PosColors.surface,
                     borderRadius: BorderRadius.circular(PosRadii.sm),
-                    border: Border.all(
-                      color: PosColors.primary.withValues(alpha: 0.20),
-                    ),
+                    border: Border.all(color: PosColors.lineStrong),
                   ),
                   child: Icon(
                     Icons.payments_rounded,
-                    color: PosColors.primary,
+                    color: PosColors.slate,
                     size: 20,
                   ),
                 ),
@@ -697,6 +687,8 @@ class _CatalogHealthCard extends StatelessWidget {
     final paused = (total - available).clamp(0, total);
     final ratio = total == 0 ? 0.0 : available / total;
     return Card(
+      color: PosColors.background,
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -709,22 +701,13 @@ class _CatalogHealthCard extends StatelessWidget {
                   width: 36,
                   height: 36,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        PosColors.accent.withValues(alpha: 0.22),
-                        PosColors.accent.withValues(alpha: 0.08),
-                      ],
-                    ),
+                    color: PosColors.surface,
                     borderRadius: BorderRadius.circular(PosRadii.sm),
-                    border: Border.all(
-                      color: PosColors.accent.withValues(alpha: 0.22),
-                    ),
+                    border: Border.all(color: PosColors.lineStrong),
                   ),
                   child: Icon(
                     Icons.restaurant_menu_rounded,
-                    color: PosColors.accent,
+                    color: PosColors.slate,
                     size: 20,
                   ),
                 ),
@@ -806,7 +789,11 @@ class _CatalogHealthCard extends StatelessWidget {
 }
 
 class _RingStat extends StatelessWidget {
-  const _RingStat({required this.ratio, required this.label, required this.value});
+  const _RingStat({
+    required this.ratio,
+    required this.label,
+    required this.value,
+  });
 
   final double ratio;
   final String label;
@@ -887,10 +874,11 @@ class _MiniStat extends StatelessWidget {
           width: 26,
           height: 26,
           decoration: BoxDecoration(
-            color: color.withValues(alpha: 0.14),
+            color: PosColors.surface,
             borderRadius: BorderRadius.circular(PosRadii.xs),
+            border: Border.all(color: PosColors.lineStrong),
           ),
-          child: Icon(icon, color: color, size: 14),
+          child: Icon(icon, color: PosColors.slate, size: 14),
         ),
         SizedBox(width: 8),
         Expanded(
@@ -925,6 +913,8 @@ class _QuickActions extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: PosColors.background,
+      surfaceTintColor: Colors.transparent,
       child: Padding(
         padding: EdgeInsets.all(14),
         child: Wrap(
@@ -985,6 +975,8 @@ class _CloudHintCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final color = connected ? PosColors.success : PosColors.warning;
     return Card(
+      color: PosColors.background,
+      surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: Stack(
         children: [
@@ -997,10 +989,7 @@ class _CloudHintCard extends StatelessWidget {
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
                 gradient: RadialGradient(
-                  colors: [
-                    color.withValues(alpha: 0.12),
-                    color.withValues(alpha: 0),
-                  ],
+                  colors: [Colors.transparent, Colors.transparent],
                 ),
               ),
             ),
@@ -1014,22 +1003,15 @@ class _CloudHintCard extends StatelessWidget {
                   width: 46,
                   height: 46,
                   decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        color.withValues(alpha: 0.22),
-                        color.withValues(alpha: 0.08),
-                      ],
-                    ),
+                    color: PosColors.surface,
                     borderRadius: BorderRadius.circular(PosRadii.md),
-                    border: Border.all(color: color.withValues(alpha: 0.28)),
+                    border: Border.all(color: PosColors.lineStrong),
                   ),
                   child: Icon(
                     connected
                         ? Icons.cloud_done_rounded
                         : Icons.cloud_queue_rounded,
-                    color: color,
+                    color: PosColors.slate,
                     size: 24,
                   ),
                 ),
@@ -1054,10 +1036,11 @@ class _CloudHintCard extends StatelessWidget {
                               vertical: 3,
                             ),
                             decoration: BoxDecoration(
-                              color: color.withValues(alpha: 0.14),
+                              color: PosColors.surface,
                               borderRadius: BorderRadius.circular(
                                 PosRadii.pill,
                               ),
+                              border: Border.all(color: PosColors.lineStrong),
                             ),
                             child: Row(
                               mainAxisSize: MainAxisSize.min,
@@ -1077,7 +1060,7 @@ class _CloudHintCard extends StatelessWidget {
                                 Text(
                                   connected ? 'LIVE' : 'QUEUED',
                                   style: TextStyle(
-                                    color: color,
+                                    color: PosColors.slate,
                                     fontWeight: FontWeight.w900,
                                     fontSize: 10,
                                     letterSpacing: 1.0,

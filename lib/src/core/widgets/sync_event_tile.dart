@@ -21,7 +21,7 @@ class SyncEventTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.md),
         border: Border.all(color: PosColors.line),
         boxShadow: [

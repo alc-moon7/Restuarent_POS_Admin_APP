@@ -45,13 +45,6 @@ class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
   }
 
   @override
-  void didChangePlatformBrightness() {
-    if (_controller.themePreference == AppThemePreference.device) {
-      setState(() {});
-    }
-  }
-
-  @override
   Widget build(BuildContext context) {
     return AppScope(
       controller: _controller,
@@ -106,19 +99,8 @@ class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
     return VisualDensity(horizontal: density, vertical: density);
   }
 
-  PosThemeTone _resolveTone(AppThemePreference preference) {
-    switch (preference) {
-      case AppThemePreference.white:
-        return PosThemeTone.light;
-      case AppThemePreference.device:
-        final brightness =
-            WidgetsBinding.instance.platformDispatcher.platformBrightness;
-        return brightness == Brightness.dark
-            ? PosThemeTone.dark
-            : PosThemeTone.light;
-      case AppThemePreference.black:
-        return PosThemeTone.dark;
-    }
+  PosThemeTone _resolveTone(AppThemePreference _) {
+    return PosThemeTone.light;
   }
 
   Widget _home() {
@@ -156,7 +138,7 @@ class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
         },
       );
     }
-    if (!_controller.isTenantReady) {
+    if (!_controller.isTenantReady || !_controller.isLoggedIn) {
       return TenantSetupScreen(
         onProvisioned: () {
           setState(() {
@@ -339,7 +321,7 @@ class _RailLogo extends StatelessWidget {
       ),
       child: Icon(
         Icons.point_of_sale_rounded,
-        color: PosColors.background,
+        color: PosColors.slate,
         size: 24,
       ),
     );
@@ -400,9 +382,9 @@ class _FloatingBottomNav extends StatelessWidget {
       minimum: EdgeInsets.fromLTRB(10, 0, 10, 10),
       child: DecoratedBox(
         decoration: BoxDecoration(
-          color: PosColors.surface.withValues(alpha: 0.96),
+          color: PosColors.background.withValues(alpha: 0.96),
           borderRadius: BorderRadius.circular(26),
-          border: Border.all(color: PosColors.line),
+          border: Border.all(color: PosColors.lineStrong),
           boxShadow: [
             BoxShadow(
               color: Color(0x66000000),
@@ -451,7 +433,7 @@ class _BottomNavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final foreground = selected ? PosColors.background : PosColors.muted;
+    final foreground = selected ? PosColors.slate : PosColors.muted;
     final icon = selected ? destination.selectedIcon : destination.icon;
 
     return Tooltip(
@@ -487,7 +469,11 @@ class _BottomNavItem extends StatelessWidget {
                           mainAxisSize: MainAxisSize.min,
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(icon, color: foreground, size: selected ? 21 : 20),
+                            Icon(
+                              icon,
+                              color: foreground,
+                              size: selected ? 21 : 20,
+                            ),
                             SizedBox(height: 2),
                             Text(
                               destination.label,

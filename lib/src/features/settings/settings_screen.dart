@@ -114,13 +114,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
           ),
           SizedBox(height: 10),
           _SettingsNavTile(
-            title: text.themeMode,
-            subtitle: text.themeModeSubtitle,
-            icon: Icons.palette_outlined,
-            onTap: _openThemeMode,
-          ),
-          SizedBox(height: 10),
-          _SettingsNavTile(
             title: text.displaySize,
             subtitle: text.displaySizeSubtitle,
             icon: Icons.tune_rounded,
@@ -161,6 +154,13 @@ class _SettingsScreenState extends State<SettingsScreen> {
             icon: Icons.privacy_tip_outlined,
             onTap: _openPrivacyPolicy,
           ),
+          SizedBox(height: 10),
+          _SettingsNavTile(
+            title: 'Log out',
+            subtitle: 'Return to the login screen on this device.',
+            icon: Icons.logout_rounded,
+            onTap: _confirmLogout,
+          ),
         ],
       ),
     );
@@ -186,27 +186,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                   setState(() => _displayScale = value);
                   _updateDisplayScale(value);
                 },
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Future<void> _openThemeMode() async {
-    final app = AppScope.of(context);
-    final text = app.strings;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => _SettingsSectionPage(
-          title: text.themeMode,
-          child: Column(
-            children: [
-              _ThemeModeCard(
-                selected: app.themePreference,
-                text: text,
-                onChanged: app.updateThemePreference,
               ),
             ],
           ),
@@ -329,7 +308,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
                 SizedBox(height: 10),
                 _SectionCard(
                   title: 'Sync Status',
-                  subtitle: 'Queue, retry, logs, and cloud health in one place.',
+                  subtitle:
+                      'Queue, retry, logs, and cloud health in one place.',
                   icon: Icons.cloud_sync_outlined,
                   children: [
                     _InlineSyncStatus(app: app),
@@ -430,6 +410,28 @@ class _SettingsScreenState extends State<SettingsScreen> {
         ),
       ),
     );
+  }
+
+  Future<void> _confirmLogout() async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Log out'),
+        content: Text('Do you want to return to the login screen?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text('Log out'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    await AppScope.of(context).logOut();
   }
 
   Future<void> _openYourRestaurantInfo() async {
@@ -786,9 +788,7 @@ class _InlineSyncStatus extends StatelessWidget {
                         if (!context.mounted) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           SnackBar(
-                            content: Text(
-                              ok ? 'Retry queued' : 'Retry failed',
-                            ),
+                            content: Text(ok ? 'Retry queued' : 'Retry failed'),
                           ),
                         );
                       },
@@ -818,10 +818,7 @@ class _InlineSyncStatus extends StatelessWidget {
           ],
         ),
         SizedBox(height: 10),
-        Text(
-          'Sync Events',
-          style: Theme.of(context).textTheme.titleSmall,
-        ),
+        Text('Sync Events', style: Theme.of(context).textTheme.titleSmall),
         SizedBox(height: 6),
         if (sync.logs.isNotEmpty) ...[
           _InlineSyncLogs(logs: sync.logs),
@@ -1074,9 +1071,7 @@ class _CloudSyncChip extends StatelessWidget {
           SizedBox(width: 5),
           Text(
             'Cloud',
-            style: Theme.of(
-              context,
-            ).textTheme.bodySmall?.copyWith(
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w900,
               shadows: [
@@ -1351,7 +1346,7 @@ class _DisplaySizeCard extends StatelessWidget {
                       ),
                       child: Icon(
                         Icons.text_fields_rounded,
-                        color: Colors.white,
+                        color: PosColors.slate,
                         size: 20,
                       ),
                     ),
@@ -1457,51 +1452,6 @@ class _LanguageCard extends StatelessWidget {
               value: AppLanguage.en,
               label: Text(text.english),
               icon: Text('A'),
-            ),
-          ],
-          selected: {selected},
-          showSelectedIcon: true,
-          onSelectionChanged: (values) => onChanged(values.first),
-        ),
-      ],
-    );
-  }
-}
-
-class _ThemeModeCard extends StatelessWidget {
-  const _ThemeModeCard({
-    required this.selected,
-    required this.text,
-    required this.onChanged,
-  });
-
-  final AppThemePreference selected;
-  final AppStrings text;
-  final ValueChanged<AppThemePreference> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return _SectionCard(
-      title: text.themeMode,
-      subtitle: text.themeModeSubtitle,
-      icon: Icons.palette_outlined,
-      children: [
-        SegmentedButton<AppThemePreference>(
-          segments: [
-            ButtonSegment<AppThemePreference>(
-              value: AppThemePreference.black,
-              label: Text(text.blackMode),
-              icon: Icon(Icons.dark_mode_outlined),
-            ),
-            ButtonSegment<AppThemePreference>(
-              value: AppThemePreference.white,
-              label: Text(text.whiteMode),
-              icon: Icon(Icons.light_mode_outlined),
-            ),
-            ButtonSegment<AppThemePreference>(
-              value: AppThemePreference.device,
-              label: Text(text.deviceMode),
-              icon: Icon(Icons.smartphone_outlined),
             ),
           ],
           selected: {selected},

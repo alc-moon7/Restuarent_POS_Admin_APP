@@ -35,7 +35,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             child: CircularProgressIndicator(
               strokeWidth: 2.4,
               valueColor: AlwaysStoppedAnimation<Color>(
-                widget.secondary ? PosColors.primary : PosColors.background,
+                widget.secondary ? PosColors.primaryDark : PosColors.slate,
               ),
             ),
           )
@@ -99,7 +99,7 @@ class _PrimaryButtonState extends State<PrimaryButton> {
             style: ElevatedButton.styleFrom(
               backgroundColor: Colors.transparent,
               disabledBackgroundColor: Colors.transparent,
-              foregroundColor: PosColors.background,
+              foregroundColor: PosColors.slate,
               disabledForegroundColor: PosColors.muted,
               shadowColor: Colors.transparent,
               surfaceTintColor: Colors.transparent,

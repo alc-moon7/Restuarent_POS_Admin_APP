@@ -32,13 +32,7 @@ enum AppThemePreference {
   const AppThemePreference(this.code);
   final String code;
 
-  static AppThemePreference parse(String? value) {
-    final normalized = value?.trim().toLowerCase();
-    for (final mode in AppThemePreference.values) {
-      if (mode.code == normalized || mode.name == normalized) {
-        return mode;
-      }
-    }
+  static AppThemePreference parse(String? _) {
     return AppThemePreference.white;
   }
 }
@@ -88,6 +82,7 @@ class PosAppController extends ChangeNotifier {
   AppThemePreference themePreference = AppThemePreference.white;
   double uiScale = 0.9;
   String? lastError;
+  bool isLoggedIn = false;
   String accountEmail = '';
   String accountUsername = '';
   String _accountPassword = '';
@@ -155,9 +150,7 @@ class PosAppController extends ChangeNotifier {
       lastBkashPaymentId = preferences.getString(_bkashPaymentIdKey);
       lastBkashTransactionId = preferences.getString(_bkashTransactionIdKey);
       language = AppLanguage.parse(preferences.getString(_languageKey));
-      themePreference = AppThemePreference.parse(
-        preferences.getString(_themePreferenceKey),
-      );
+      themePreference = AppThemePreference.white;
       uiScale = (preferences.getDouble(_uiScaleKey) ?? 0.9)
           .clamp(minUiScale, maxUiScale)
           .toDouble();
@@ -185,6 +178,7 @@ class PosAppController extends ChangeNotifier {
       accountEmail = preferences.getString(_accountEmailKey) ?? '';
       accountUsername = preferences.getString(_accountUsernameKey) ?? '';
       _accountPassword = preferences.getString(_accountPasswordKey) ?? '';
+      isLoggedIn = preferences.getBool(_accountLoggedInKey) ?? isTenantReady;
 
       await printerService.initialize();
       printerState = printerService.state;
@@ -413,6 +407,7 @@ class PosAppController extends ChangeNotifier {
       accountEmail = email.trim();
       accountUsername = username.trim();
       _accountPassword = password;
+      isLoggedIn = true;
       await _persistAccountAuth();
     });
   }
@@ -423,22 +418,88 @@ class PosAppController extends ChangeNotifier {
   }) async {
     return _runBusy(() async {
       final id = usernameOrEmail.trim().toLowerCase();
+      final cloudErrors = <Object>[];
+      if (cloudConfig.hasValidBaseUrl) {
+        try {
+          await _loginCloudAccount(usernameOrEmail: id, password: password);
+          return;
+        } catch (error) {
+          cloudErrors.add(error);
+        }
+      }
+
       if (accountUsername.trim().isEmpty || _accountPassword.isEmpty) {
+        if (cloudErrors.isNotEmpty) {
+          throw Exception(cloudErrors.first.toString());
+        }
         throw Exception(
           'No account found on this device. Please create account first.',
         );
       }
-      final usernameMatch = accountUsername.trim().toLowerCase() == id;
-      final emailMatch = accountEmail.trim().toLowerCase() == id;
-      if ((!usernameMatch && !emailMatch) || _accountPassword != password) {
-        throw Exception('Invalid username/email or password.');
-      }
-      if (!isTenantReady) {
-        throw Exception(
-          'Restaurant setup is incomplete on this device. Please create account again.',
-        );
-      }
+      await _loginLocalAccount(usernameOrEmail: id, password: password);
     });
+  }
+
+  Future<void> _loginCloudAccount({
+    required String usernameOrEmail,
+    required String password,
+  }) async {
+    final loginCloudConfig = cloudConfig.copyWith(
+      baseUrl: CloudDefaults.resolveBaseUrl(cloudConfig.baseUrl),
+      enabled: true,
+    );
+    cloudApiService.configure(
+      cloudConfig: loginCloudConfig,
+      serverConfig: serverConfig,
+    );
+    final result = await cloudApiService.loginAdminAccount(
+      usernameOrEmail: usernameOrEmail,
+      password: password,
+      serverId: serverConfig.serverId,
+    );
+    serverConfig = serverConfig.copyWith(
+      serverId: result.serverId,
+      restaurantId: result.restaurantId,
+      outletId: result.outletId,
+      restaurantName: result.restaurantName,
+      outletName: result.outletName,
+    );
+    cloudConfig = loginCloudConfig.copyWith(deviceToken: result.deviceToken);
+    accountEmail = result.email;
+    accountUsername = result.username;
+    _accountPassword = password;
+    isLoggedIn = true;
+    await _persistSettings();
+    await _persistAccountAuth();
+    syncService.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
+    unawaited(syncService.syncNow());
+  }
+
+  Future<void> _loginLocalAccount({
+    required String usernameOrEmail,
+    required String password,
+  }) async {
+    final usernameMatch =
+        accountUsername.trim().toLowerCase() == usernameOrEmail;
+    final emailMatch = accountEmail.trim().toLowerCase() == usernameOrEmail;
+    if ((!usernameMatch && !emailMatch) || _accountPassword != password) {
+      throw Exception('Invalid username/email or password.');
+    }
+    if (!isTenantReady) {
+      throw Exception(
+        'Restaurant setup is incomplete on this device. Please create account again.',
+      );
+    }
+    isLoggedIn = true;
+    await _persistAccountAuth();
+  }
+
+  Future<void> logOut() async {
+    isLoggedIn = false;
+    lastError = null;
+    final preferences = await SharedPreferences.getInstance();
+    await preferences.setBool(_accountLoggedInKey, false);
+    notifyListeners();
   }
 
   Future<void> saveMenuItem({
@@ -578,11 +639,14 @@ class PosAppController extends ChangeNotifier {
   }
 
   Future<void> updateThemePreference(AppThemePreference value) async {
-    if (themePreference == value) return;
-    themePreference = value;
+    if (themePreference == AppThemePreference.white) return;
+    themePreference = AppThemePreference.white;
     notifyListeners();
     final preferences = await SharedPreferences.getInstance();
-    await preferences.setString(_themePreferenceKey, value.code);
+    await preferences.setString(
+      _themePreferenceKey,
+      AppThemePreference.white.code,
+    );
   }
 
   Future<void> clearLocalData() async {
@@ -732,6 +796,7 @@ class PosAppController extends ChangeNotifier {
     await preferences.setString(_accountEmailKey, accountEmail);
     await preferences.setString(_accountUsernameKey, accountUsername);
     await preferences.setString(_accountPasswordKey, _accountPassword);
+    await preferences.setBool(_accountLoggedInKey, isLoggedIn);
   }
 
   Future<void> _provisionTenantInternal({
@@ -760,7 +825,9 @@ class PosAppController extends ChangeNotifier {
       restaurantName: tenant.restaurantName,
       outletName: tenant.outletName,
     );
-    cloudConfig = bootstrapCloudConfig.copyWith(deviceToken: tenant.deviceToken);
+    cloudConfig = bootstrapCloudConfig.copyWith(
+      deviceToken: tenant.deviceToken,
+    );
     await _persistSettings();
     syncService.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
     unawaited(syncService.syncNow());
@@ -812,12 +879,14 @@ class PosAppController extends ChangeNotifier {
   static final String _uiScaleKey = 'local_pos_ui_scale';
   static final String _languageKey = 'local_pos_language';
   static final String _themePreferenceKey = 'local_pos_theme_preference';
-  static final String _bkashPaymentVerifiedKey = 'local_pos_bkash_payment_verified';
+  static final String _bkashPaymentVerifiedKey =
+      'local_pos_bkash_payment_verified';
   static final String _bkashPaymentIdKey = 'local_pos_bkash_payment_id';
   static final String _bkashTransactionIdKey = 'local_pos_bkash_transaction_id';
   static final String _accountEmailKey = 'local_pos_account_email';
   static final String _accountUsernameKey = 'local_pos_account_username';
   static final String _accountPasswordKey = 'local_pos_account_password';
+  static final String _accountLoggedInKey = 'local_pos_account_logged_in';
   static double minUiScale = 0.78;
   static double maxUiScale = 1.08;
 }

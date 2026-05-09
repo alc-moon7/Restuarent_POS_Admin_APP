@@ -6,6 +6,12 @@ import '../../models/order_status.dart';
 import '../theme/app_theme.dart';
 import 'status_badge.dart';
 
+const _adminOrderStatusOptions = <OrderStatus>[
+  OrderStatus.accepted,
+  OrderStatus.served,
+  OrderStatus.cancelled,
+];
+
 class OrderCard extends StatelessWidget {
   const OrderCard({
     required this.order,
@@ -25,6 +31,14 @@ class OrderCard extends StatelessWidget {
     final accent = _accentForStatus(order.status);
 
     return Card(
+      color: PosColors.background,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PosRadii.lg),
+        side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.36)),
+      ),
       clipBehavior: Clip.antiAlias,
       child: IntrinsicHeight(
         child: Row(
@@ -47,15 +61,12 @@ class OrderCard extends StatelessWidget {
                   Container(
                     padding: EdgeInsets.fromLTRB(16, 14, 14, 12),
                     decoration: BoxDecoration(
-                      gradient: LinearGradient(
-                        begin: Alignment.topLeft,
-                        end: Alignment.bottomRight,
-                        colors: [
-                          accent.withValues(alpha: 0.06),
-                          PosColors.surfaceWarm,
-                        ],
+                      color: PosColors.background,
+                      border: Border(
+                        bottom: BorderSide(
+                          color: PosColors.lineStrong.withValues(alpha: 0.36),
+                        ),
                       ),
-                      border: Border(bottom: BorderSide(color: PosColors.line)),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -115,9 +126,13 @@ class OrderCard extends StatelessWidget {
                       children: [
                         DecoratedBox(
                           decoration: BoxDecoration(
-                            color: PosColors.surfaceTinted,
+                            color: PosColors.background,
                             borderRadius: BorderRadius.circular(PosRadii.md),
-                            border: Border.all(color: PosColors.line),
+                            border: Border.all(
+                              color: PosColors.lineStrong.withValues(
+                                alpha: 0.36,
+                              ),
+                            ),
                           ),
                           child: Padding(
                             padding: EdgeInsets.symmetric(
@@ -138,23 +153,12 @@ class OrderCard extends StatelessWidget {
                                             height: 34,
                                             alignment: Alignment.center,
                                             decoration: BoxDecoration(
-                                              gradient: LinearGradient(
-                                                begin: Alignment.topLeft,
-                                                end: Alignment.bottomRight,
-                                                colors: [
-                                                  PosColors.primary.withValues(
-                                                    alpha: 0.18,
-                                                  ),
-                                                  PosColors.primary.withValues(
-                                                    alpha: 0.08,
-                                                  ),
-                                                ],
-                                              ),
+                                              color: PosColors.background,
                                               borderRadius:
                                                   BorderRadius.circular(11),
                                               border: Border.all(
-                                                color: PosColors.primary
-                                                    .withValues(alpha: 0.2),
+                                                color: PosColors.lineStrong
+                                                    .withValues(alpha: 0.36),
                                               ),
                                             ),
                                             child: Text(
@@ -237,20 +241,13 @@ class OrderCard extends StatelessWidget {
                                 vertical: 10,
                               ),
                               decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topLeft,
-                                  end: Alignment.bottomRight,
-                                  colors: [
-                                    PosColors.primary.withValues(alpha: 0.10),
-                                    PosColors.primary.withValues(alpha: 0.02),
-                                  ],
-                                ),
+                                color: PosColors.background,
                                 borderRadius: BorderRadius.circular(
                                   PosRadii.md,
                                 ),
                                 border: Border.all(
-                                  color: PosColors.primary.withValues(
-                                    alpha: 0.18,
+                                  color: PosColors.lineStrong.withValues(
+                                    alpha: 0.36,
                                   ),
                                 ),
                               ),
@@ -293,24 +290,28 @@ class OrderCard extends StatelessWidget {
                                 Container(
                                   padding: EdgeInsets.symmetric(horizontal: 14),
                                   decoration: BoxDecoration(
-                                    color: PosColors.surface,
+                                    color: PosColors.background,
                                     borderRadius: BorderRadius.circular(
                                       PosRadii.sm + 2,
                                     ),
                                     border: Border.all(
-                                      color: PosColors.lineStrong,
+                                      color: PosColors.lineStrong.withValues(
+                                        alpha: 0.36,
+                                      ),
                                     ),
                                     boxShadow: [
                                       BoxShadow(
-                                        color: Color(0x0A0F2A1F),
-                                        blurRadius: 6,
-                                        offset: Offset(0, 2),
+                                        color: Colors.black.withValues(
+                                          alpha: 0.06,
+                                        ),
+                                        blurRadius: 10,
+                                        offset: Offset(0, 4),
                                       ),
                                     ],
                                   ),
                                   child: DropdownButtonHideUnderline(
                                     child: DropdownButton<OrderStatus>(
-                                      value: order.status,
+                                      value: order.status.adminStatus,
                                       borderRadius: BorderRadius.circular(
                                         PosRadii.md,
                                       ),
@@ -323,7 +324,7 @@ class OrderCard extends StatelessWidget {
                                         fontWeight: FontWeight.w800,
                                         fontSize: 13,
                                       ),
-                                      items: OrderStatus.values
+                                      items: _adminOrderStatusOptions
                                           .map(
                                             (status) => DropdownMenuItem(
                                               value: status,
@@ -368,15 +369,15 @@ class OrderCard extends StatelessWidget {
   }
 
   Color _accentForStatus(OrderStatus status) {
-    switch (status) {
+    switch (status.adminStatus) {
       case OrderStatus.pending:
-        return PosColors.warning;
+        return PosColors.primaryDark;
       case OrderStatus.accepted:
-        return PosColors.primary;
+        return PosColors.primaryDark;
       case OrderStatus.preparing:
-        return PosColors.info;
+        return PosColors.primaryDark;
       case OrderStatus.ready:
-        return PosColors.purple;
+        return PosColors.primaryDark;
       case OrderStatus.served:
         return PosColors.success;
       case OrderStatus.cancelled:
@@ -392,11 +393,11 @@ class _OrderMark extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = switch (status) {
-      OrderStatus.pending => PosColors.warning,
-      OrderStatus.accepted => PosColors.primary,
-      OrderStatus.preparing => PosColors.info,
-      OrderStatus.ready => PosColors.purple,
+    final color = switch (status.adminStatus) {
+      OrderStatus.pending => PosColors.primaryDark,
+      OrderStatus.accepted => PosColors.primaryDark,
+      OrderStatus.preparing => PosColors.primaryDark,
+      OrderStatus.ready => PosColors.primaryDark,
       OrderStatus.served => PosColors.success,
       OrderStatus.cancelled => PosColors.danger,
     };
@@ -438,9 +439,9 @@ class _MetaPill extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

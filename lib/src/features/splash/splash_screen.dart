@@ -3,7 +3,11 @@ import 'package:flutter/material.dart';
 import '../../core/theme/app_theme.dart';
 
 class SplashScreen extends StatefulWidget {
-  const SplashScreen({required this.bootFuture, required this.onFinished, super.key});
+  const SplashScreen({
+    required this.bootFuture,
+    required this.onFinished,
+    super.key,
+  });
 
   final Future<void> bootFuture;
   final VoidCallback onFinished;
@@ -52,7 +56,7 @@ class _SplashScreenState extends State<SplashScreen>
         children: [
           Positioned.fill(
             child: DecoratedBox(
-              decoration: BoxDecoration(gradient: PosGradients.brandDeep),
+              decoration: BoxDecoration(color: PosColors.background),
             ),
           ),
           Positioned(
@@ -60,7 +64,7 @@ class _SplashScreenState extends State<SplashScreen>
             right: -80,
             child: _BgOrb(
               size: 360,
-              color: Colors.white.withValues(alpha: 0.08),
+              color: PosColors.primarySoft.withValues(alpha: 0.55),
             ),
           ),
           Positioned(
@@ -84,8 +88,8 @@ class _SplashScreenState extends State<SplashScreen>
                     shape: BoxShape.circle,
                     gradient: RadialGradient(
                       colors: [
-                        Colors.white.withValues(alpha: 0.10),
-                        Colors.white.withValues(alpha: 0),
+                        PosColors.primarySoft.withValues(alpha: 0.42),
+                        PosColors.primarySoft.withValues(alpha: 0),
                       ],
                     ),
                   ),
@@ -105,7 +109,7 @@ class _SplashScreenState extends State<SplashScreen>
                       width: 96,
                       height: 96,
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: PosColors.surface,
                         borderRadius: BorderRadius.circular(28),
                         boxShadow: [
                           BoxShadow(
@@ -122,11 +126,11 @@ class _SplashScreenState extends State<SplashScreen>
                       ),
                       child: ShaderMask(
                         shaderCallback: (rect) {
-                          return PosGradients.brand.createShader(rect);
+                          return PosGradients.brandDeep.createShader(rect);
                         },
                         child: Icon(
                           Icons.point_of_sale_rounded,
-                          color: Colors.white,
+                          color: PosColors.slate,
                           size: 48,
                         ),
                       ),
@@ -135,7 +139,7 @@ class _SplashScreenState extends State<SplashScreen>
                     Text(
                       'REs Admin',
                       style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                        color: Colors.white,
+                        color: PosColors.slate,
                         letterSpacing: 0,
                         fontSize: 32,
                       ),
@@ -147,11 +151,9 @@ class _SplashScreenState extends State<SplashScreen>
                         vertical: 6,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withValues(alpha: 0.14),
+                        color: PosColors.surface,
                         borderRadius: BorderRadius.circular(PosRadii.pill),
-                        border: Border.all(
-                          color: Colors.white.withValues(alpha: 0.22),
-                        ),
+                        border: Border.all(color: PosColors.line),
                       ),
                       child: Row(
                         mainAxisSize: MainAxisSize.min,
@@ -174,7 +176,7 @@ class _SplashScreenState extends State<SplashScreen>
                           Text(
                             'Cloud Restaurant Suite',
                             style: TextStyle(
-                              color: Colors.white.withValues(alpha: 0.92),
+                              color: PosColors.slate,
                               fontWeight: FontWeight.w800,
                               fontSize: 11.5,
                               letterSpacing: 0.4,
@@ -200,7 +202,7 @@ class _SplashScreenState extends State<SplashScreen>
                   height: 28,
                   child: CircularProgressIndicator(
                     strokeWidth: 2.4,
-                    valueColor: AlwaysStoppedAnimation<Color>(Colors.white70),
+                    valueColor: AlwaysStoppedAnimation<Color>(PosColors.slate),
                   ),
                 ),
               ),

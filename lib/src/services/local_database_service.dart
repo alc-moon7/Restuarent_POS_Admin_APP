@@ -324,7 +324,7 @@ class LocalDatabaseService {
         tableNo: _cleanNullable(tableNo),
         note: _cleanNullable(note),
         source: source,
-        status: OrderStatus.pending,
+        status: OrderStatus.accepted,
         total: total,
         items: orderItems,
         syncStatus: createSyncEvent ? SyncStatus.pending : SyncStatus.synced,
@@ -367,11 +367,25 @@ class LocalDatabaseService {
         whereArgs: [order.id],
         limit: 1,
       );
-      final remote = order.copyWith(syncStatus: SyncStatus.synced);
+      final normalizedStatus = order.status.adminStatus;
+      final shouldAutoAccept = normalizedStatus != order.status;
+      final remote = order.copyWith(
+        status: normalizedStatus,
+        syncStatus: shouldAutoAccept ? SyncStatus.pending : SyncStatus.synced,
+      );
       if (existingRows.isEmpty) {
         await txn.insert('orders', remote.toMap());
         for (final item in remote.items) {
           await txn.insert('order_items', item.toMap());
+        }
+        if (shouldAutoAccept) {
+          await _insertSyncEvent(
+            txn,
+            entityType: 'order_status',
+            entityId: remote.id,
+            action: 'status_update',
+            payload: remote.toJson(),
+          );
         }
         applied = remote;
         return;
@@ -390,6 +404,10 @@ class LocalDatabaseService {
       }
 
       final nextStatus = statusCanAdvance ? remote.status : current.status;
+      final queueAutoAccept =
+          shouldAutoAccept &&
+          current.status != normalizedStatus &&
+          nextStatus == normalizedStatus;
       final nextVersion = remote.version > current.version
           ? remote.version
           : current.version;
@@ -398,7 +416,9 @@ class LocalDatabaseService {
             ? current.source
             : remote.source,
         status: nextStatus,
-        syncStatus: current.syncStatus == SyncStatus.synced
+        syncStatus: queueAutoAccept
+            ? SyncStatus.pending
+            : current.syncStatus == SyncStatus.synced
             ? SyncStatus.synced
             : current.syncStatus,
         version: nextVersion,
@@ -419,6 +439,15 @@ class LocalDatabaseService {
         for (final item in remote.items) {
           await txn.insert('order_items', item.toMap());
         }
+      }
+      if (queueAutoAccept) {
+        await _insertSyncEvent(
+          txn,
+          entityType: 'order_status',
+          entityId: next.id,
+          action: 'status_update',
+          payload: next.toJson(),
+        );
       }
       applied = next.copyWith(
         items: remoteNewer && current.syncStatus == SyncStatus.synced

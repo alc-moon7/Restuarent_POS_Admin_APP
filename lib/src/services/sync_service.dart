@@ -442,7 +442,7 @@ class SyncService {
       normalized['source']?.toString(),
       fallback: sourceFallback,
     ).value;
-    normalized['status'] ??= OrderStatus.pending.value;
+    normalized['status'] ??= OrderStatus.accepted.value;
     normalized['total'] ??= items.fold<double>(
       0,
       (total, item) => total + item.lineTotal,

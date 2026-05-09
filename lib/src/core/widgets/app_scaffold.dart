@@ -132,7 +132,7 @@ class _TopWash extends StatelessWidget {
       child: Align(
         alignment: Alignment.topCenter,
         child: Container(
-          height: 220,
+          height: 154,
           decoration: BoxDecoration(
             gradient: PosGradients.softWash(opacity: 0.92),
           ),

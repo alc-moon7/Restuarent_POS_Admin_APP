@@ -15,6 +15,12 @@ import '../../models/order_status.dart';
 
 enum _OrdersView { board, list }
 
+const _adminOrderStatuses = <OrderStatus>[
+  OrderStatus.accepted,
+  OrderStatus.served,
+  OrderStatus.cancelled,
+];
+
 class OrdersScreen extends StatefulWidget {
   const OrdersScreen({super.key});
 
@@ -51,11 +57,13 @@ class _OrdersScreenState extends State<OrdersScreen> {
               .toList(growable: false);
     final orders = _filter == null
         ? filtered
-        : filtered.where((o) => o.status == _filter).toList(growable: false);
+        : filtered
+              .where((o) => o.status.adminStatus == _filter)
+              .toList(growable: false);
 
     return AppScaffold(
       title: 'Orders',
-      subtitle: 'Live order workflow — pending to served.',
+      subtitle: 'New customer orders are accepted automatically.',
       actions: [
         PrimaryButton(
           label: 'New Order',
@@ -235,11 +243,11 @@ class _StatusSummary extends StatelessWidget {
         color: PosColors.slate,
         icon: Icons.list_alt_rounded,
       ),
-      ...OrderStatus.values.map(
+      ..._adminOrderStatuses.map(
         (s) => _SummaryTile(
           status: s,
           label: s.label,
-          count: allOrders.where((o) => o.status == s).length,
+          count: allOrders.where((o) => o.status.adminStatus == s).length,
           color: _colorForStatus(s),
           icon: _iconForStatus(s),
         ),
@@ -385,22 +393,22 @@ class _StatusChip extends StatelessWidget {
 }
 
 Color _colorForStatus(OrderStatus s) {
-  return switch (s) {
-    OrderStatus.pending => PosColors.warning,
-    OrderStatus.accepted => PosColors.primary,
-    OrderStatus.preparing => PosColors.info,
-    OrderStatus.ready => PosColors.purple,
+  return switch (s.adminStatus) {
+    OrderStatus.pending => PosColors.primaryDark,
+    OrderStatus.accepted => PosColors.primaryDark,
+    OrderStatus.preparing => PosColors.primaryDark,
+    OrderStatus.ready => PosColors.primaryDark,
     OrderStatus.served => PosColors.success,
     OrderStatus.cancelled => PosColors.danger,
   };
 }
 
 IconData _iconForStatus(OrderStatus s) {
-  return switch (s) {
-    OrderStatus.pending => Icons.schedule_rounded,
+  return switch (s.adminStatus) {
+    OrderStatus.pending => Icons.check_circle_outline,
     OrderStatus.accepted => Icons.check_circle_outline,
-    OrderStatus.preparing => Icons.local_fire_department_outlined,
-    OrderStatus.ready => Icons.room_service_outlined,
+    OrderStatus.preparing => Icons.check_circle_outline,
+    OrderStatus.ready => Icons.check_circle_outline,
     OrderStatus.served => Icons.done_all_rounded,
     OrderStatus.cancelled => Icons.cancel_outlined,
   };
@@ -426,6 +434,14 @@ class _ToolbarRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      color: PosColors.background,
+      elevation: 2,
+      shadowColor: Colors.black.withValues(alpha: 0.12),
+      surfaceTintColor: Colors.transparent,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PosRadii.lg),
+        side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.36)),
+      ),
       child: Padding(
         padding: EdgeInsets.all(10),
         child: LayoutBuilder(
@@ -493,10 +509,7 @@ class _SourceDropdown extends StatelessWidget {
         labelText: 'Source',
       ),
       items: [
-        DropdownMenuItem<OrderSource?>(
-          value: null,
-          child: Text('All sources'),
-        ),
+        DropdownMenuItem<OrderSource?>(value: null, child: Text('All sources')),
         for (final s in OrderSource.values)
           DropdownMenuItem<OrderSource?>(value: s, child: Text(s.label)),
       ],
@@ -546,11 +559,9 @@ class _KanbanBoard extends StatelessWidget {
   final void Function(OrderModel order) onPrintTicket;
 
   static final _columns = <OrderStatus>[
-    OrderStatus.pending,
     OrderStatus.accepted,
-    OrderStatus.preparing,
-    OrderStatus.ready,
     OrderStatus.served,
+    OrderStatus.cancelled,
   ];
 
   @override
@@ -566,7 +577,9 @@ class _KanbanBoard extends StatelessWidget {
             separatorBuilder: (_, _) => SizedBox(width: 12),
             itemBuilder: (context, index) {
               final status = _columns[index];
-              final lane = orders.where((o) => o.status == status).toList();
+              final lane = orders
+                  .where((o) => o.status.adminStatus == status)
+                  .toList();
               return SizedBox(
                 width: 320,
                 child: _Lane(
@@ -602,14 +615,14 @@ class _Lane extends StatelessWidget {
     final color = _colorForStatus(status);
     return Container(
       decoration: BoxDecoration(
-        color: PosColors.surface,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.lg),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x0A0F2A1F),
-            blurRadius: 8,
-            offset: Offset(0, 3),
+            color: Colors.black.withValues(alpha: 0.07),
+            blurRadius: 12,
+            offset: Offset(0, 5),
           ),
         ],
       ),
@@ -618,18 +631,15 @@ class _Lane extends StatelessWidget {
           Container(
             padding: EdgeInsets.fromLTRB(12, 12, 12, 10),
             decoration: BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  color.withValues(alpha: 0.16),
-                  color.withValues(alpha: 0.04),
-                ],
-              ),
+              color: PosColors.background,
               borderRadius: BorderRadius.vertical(
                 top: Radius.circular(PosRadii.lg),
               ),
-              border: Border(bottom: BorderSide(color: PosColors.line)),
+              border: Border(
+                bottom: BorderSide(
+                  color: PosColors.lineStrong.withValues(alpha: 0.36),
+                ),
+              ),
             ),
             child: Row(
               children: [
@@ -655,12 +665,9 @@ class _Lane extends StatelessWidget {
                   ),
                 ),
                 Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 3,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                   decoration: BoxDecoration(
-                    color: Colors.white,
+                    color: PosColors.background,
                     borderRadius: BorderRadius.circular(PosRadii.pill),
                     border: Border.all(color: color.withValues(alpha: 0.32)),
                   ),
@@ -732,9 +739,8 @@ class _Lane extends StatelessWidget {
       case OrderStatus.pending:
         return OrderStatus.accepted;
       case OrderStatus.accepted:
-        return OrderStatus.preparing;
+        return OrderStatus.served;
       case OrderStatus.preparing:
-        return OrderStatus.ready;
       case OrderStatus.ready:
         return OrderStatus.served;
       case OrderStatus.served:
@@ -772,14 +778,14 @@ class _LaneCard extends StatelessWidget {
 
     return Container(
       decoration: BoxDecoration(
-        color: PosColors.surface,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x080F2A1F),
-            blurRadius: 6,
-            offset: Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.06),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -847,14 +853,13 @@ class _LaneCard extends StatelessWidget {
                 ),
                 SizedBox(height: 8),
                 Container(
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 10,
-                    vertical: 8,
-                  ),
+                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
                   decoration: BoxDecoration(
-                    color: PosColors.surfaceTinted,
+                    color: PosColors.background,
                     borderRadius: BorderRadius.circular(PosRadii.sm),
-                    border: Border.all(color: PosColors.line),
+                    border: Border.all(
+                      color: PosColors.lineStrong.withValues(alpha: 0.36),
+                    ),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -960,8 +965,8 @@ class _LaneCard extends StatelessWidget {
   String _nextLabel(OrderStatus status) {
     return switch (status) {
       OrderStatus.pending => 'Accept',
-      OrderStatus.accepted => 'Start preparing',
-      OrderStatus.preparing => 'Mark ready',
+      OrderStatus.accepted => 'Mark served',
+      OrderStatus.preparing => 'Mark served',
       OrderStatus.ready => 'Mark served',
       _ => 'Advance',
     };
@@ -1012,9 +1017,9 @@ class _MiniMeta extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
       decoration: BoxDecoration(
-        color: PosColors.surfaceTinted,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
@@ -1100,7 +1105,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
                       ),
                       child: Icon(
                         Icons.add_shopping_cart_rounded,
-                        color: Colors.white,
+                        color: PosColors.slate,
                         size: 20,
                       ),
                     ),
@@ -1331,9 +1336,16 @@ class _OrderLineEditor extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: PosColors.surfaceWarm,
-        border: Border.all(color: PosColors.line),
+        color: PosColors.background,
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
         borderRadius: BorderRadius.circular(PosRadii.md),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.04),
+            blurRadius: 8,
+            offset: Offset(0, 3),
+          ),
+        ],
       ),
       child: LayoutBuilder(
         builder: (context, constraints) {
@@ -1415,9 +1427,9 @@ class _QtyStepper extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
-        color: PosColors.surface,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
