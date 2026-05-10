@@ -29,7 +29,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
 
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 2);
     final available = widget.item.isAvailable;
     return MouseRegion(
       onEnter: (_) => setState(() => _hovering = true),
@@ -184,8 +184,6 @@ class _MenuItemCardState extends State<MenuItemCard> {
                         label: widget.item.category,
                       ),
                     ),
-                    SizedBox(width: 6),
-                    StatusBadge.sync(widget.item.syncStatus),
                   ],
                 ),
                 SizedBox(height: 4),

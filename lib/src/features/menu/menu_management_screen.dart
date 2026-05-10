@@ -19,14 +19,7 @@ class MenuManagementScreen extends StatefulWidget {
 }
 
 class _MenuManagementScreenState extends State<MenuManagementScreen> {
-  final TextEditingController _searchController = TextEditingController();
   String _selectedCategory = 'All';
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -36,17 +29,11 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       _selectedCategory = 'All';
     }
 
-    final query = _searchController.text.trim().toLowerCase();
     final items = app.menuItems
         .where((item) {
           final matchesCategory =
               _selectedCategory == 'All' || item.category == _selectedCategory;
-          final matchesQuery =
-              query.isEmpty ||
-              item.name.toLowerCase().contains(query) ||
-              item.description.toLowerCase().contains(query) ||
-              item.category.toLowerCase().contains(query);
-          return matchesCategory && matchesQuery;
+          return matchesCategory;
         })
         .toList(growable: false);
 
@@ -65,11 +52,6 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _MenuToolbar(
-            searchController: _searchController,
-            onSearchChanged: (_) => setState(() {}),
-          ),
-          SizedBox(height: 8),
           if (app.menuItems.isNotEmpty)
             _CategoryStrip(
               categories: categories,
@@ -95,7 +77,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
           else if (items.isEmpty)
             EmptyState(
               title: 'No items found',
-              message: 'Try another search term or category filter.',
+              message: 'Try another category filter.',
               icon: Icons.search_off,
             )
           else
@@ -118,6 +100,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: PosColors.background,
       builder: (context) => _MenuItemForm(initialItem: item),
     );
     if (result == null) return;
@@ -168,56 +151,6 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Menu item deleted')));
-  }
-}
-
-class _MenuToolbar extends StatelessWidget {
-  const _MenuToolbar({
-    required this.searchController,
-    required this.onSearchChanged,
-  });
-
-  final TextEditingController searchController;
-  final ValueChanged<String> onSearchChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Card(
-        margin: EdgeInsets.zero,
-        color: PosColors.background,
-        surfaceTintColor: Colors.transparent,
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-          child: TextField(
-            controller: searchController,
-            onChanged: onSearchChanged,
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: PosColors.slate,
-            ),
-            textAlignVertical: TextAlignVertical.center,
-            decoration: InputDecoration(
-              isDense: true,
-              prefixIcon: Icon(Icons.search_rounded, size: 17),
-              prefixIconConstraints: BoxConstraints.tightFor(
-                width: 32,
-                height: 32,
-              ),
-              hintText: 'Search menu',
-              hintStyle: TextStyle(
-                fontSize: 12,
-                fontWeight: FontWeight.w700,
-                color: PosColors.muted,
-              ),
-              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
-            ),
-          ),
-        ),
-      ),
-    );
   }
 }
 
@@ -281,12 +214,12 @@ class _MenuGrid extends StatelessWidget {
       builder: (context, constraints) {
         final columns = constraints.maxWidth >= 1150 ? 3 : 2;
         final childAspectRatio = constraints.maxWidth < 430
-            ? 0.78
+            ? 0.68
             : constraints.maxWidth < 720
-            ? 0.92
+            ? 0.82
             : columns == 2
-            ? 1.28
-            : 1.36;
+            ? 1.08
+            : 1.18;
         return GridView.builder(
           itemCount: items.length,
           shrinkWrap: true,
@@ -369,177 +302,202 @@ class _MenuItemFormState extends State<_MenuItemForm> {
   @override
   Widget build(BuildContext context) {
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: SingleChildScrollView(
+    final theme = Theme.of(context);
+    final inputTheme = theme.inputDecorationTheme.copyWith(
+      fillColor: PosColors.background,
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(PosRadii.md),
+        borderSide: BorderSide(color: PosColors.lineStrong),
+      ),
+    );
+    return Theme(
+      data: theme.copyWith(
+        inputDecorationTheme: inputTheme,
+        chipTheme: theme.chipTheme.copyWith(
+          backgroundColor: PosColors.background,
+          selectedColor: PosColors.primarySoft,
+        ),
+      ),
+      child: Material(
+        color: PosColors.background,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(16, 14, 16, 18),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(16, 14, 16, 18),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(
-                      child: Text(
-                        widget.initialItem == null
-                            ? 'Add Menu Item'
-                            : 'Edit Menu Item',
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                    ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 12),
-                TextFormField(
-                  controller: _nameController,
-                  textInputAction: TextInputAction.next,
-                  decoration: InputDecoration(labelText: 'Item name'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Item name is required';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _descriptionController,
-                  maxLines: 3,
-                  decoration: InputDecoration(labelText: 'Description'),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Description is required';
-                    }
-                    return null;
-                  },
-                ),
-                SizedBox(height: 10),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 560;
-                    final category = TextFormField(
-                      controller: _categoryController,
-                      decoration: InputDecoration(labelText: 'Category'),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Category is required';
-                        }
-                        return null;
-                      },
-                    );
-                    final price = TextFormField(
-                      controller: _priceController,
-                      decoration: InputDecoration(labelText: 'Price'),
-                      keyboardType: TextInputType.numberWithOptions(
-                        decimal: true,
-                      ),
-                      inputFormatters: [
-                        FilteringTextInputFormatter.allow(
-                          RegExp(r'^\d*\.?\d{0,2}'),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            widget.initialItem == null
+                                ? 'Add Menu Item'
+                                : 'Edit Menu Item',
+                            style: Theme.of(context).textTheme.titleLarge,
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close),
                         ),
                       ],
+                    ),
+                    SizedBox(height: 12),
+                    TextFormField(
+                      controller: _nameController,
+                      textInputAction: TextInputAction.next,
+                      decoration: InputDecoration(labelText: 'Item name'),
                       validator: (value) {
-                        final price = double.tryParse(value ?? '');
-                        if (price == null || price <= 0) {
-                          return 'Enter a valid price';
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Item name is required';
                         }
                         return null;
                       },
-                    );
-                    if (compact) {
-                      return Column(
-                        children: [category, SizedBox(height: 10), price],
-                      );
-                    }
-                    return Row(
-                      children: [
-                        Expanded(child: category),
-                        SizedBox(width: 12),
-                        Expanded(child: price),
-                      ],
-                    );
-                  },
-                ),
-                SizedBox(height: 10),
-                _ImagePickerField(
-                  controller: _imageController,
-                  busy: _imageBusy,
-                  onPick: _pickImage,
-                  onClear: () {
-                    _imageController.clear();
-                    setState(() {});
-                  },
-                  onChanged: (_) => setState(() {}),
-                ),
-                if (_imageController.text.trim().isNotEmpty) ...[
-                  SizedBox(height: 10),
-                  ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: AspectRatio(
-                      aspectRatio: 1.8,
-                      child: MenuImageView(
-                        imageUrl: _imageController.text.trim(),
+                    ),
+                    SizedBox(height: 10),
+                    TextFormField(
+                      controller: _descriptionController,
+                      maxLines: 3,
+                      decoration: InputDecoration(labelText: 'Description'),
+                      validator: (value) {
+                        if (value == null || value.trim().isEmpty) {
+                          return 'Description is required';
+                        }
+                        return null;
+                      },
+                    ),
+                    SizedBox(height: 10),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 560;
+                        final category = TextFormField(
+                          controller: _categoryController,
+                          decoration: InputDecoration(labelText: 'Category'),
+                          validator: (value) {
+                            if (value == null || value.trim().isEmpty) {
+                              return 'Category is required';
+                            }
+                            return null;
+                          },
+                        );
+                        final price = TextFormField(
+                          controller: _priceController,
+                          decoration: InputDecoration(labelText: 'Price'),
+                          keyboardType: TextInputType.numberWithOptions(
+                            decimal: true,
+                          ),
+                          inputFormatters: [
+                            FilteringTextInputFormatter.allow(
+                              RegExp(r'^\d*\.?\d{0,2}'),
+                            ),
+                          ],
+                          validator: (value) {
+                            final price = double.tryParse(value ?? '');
+                            if (price == null || price <= 0) {
+                              return 'Enter a valid price';
+                            }
+                            return null;
+                          },
+                        );
+                        if (compact) {
+                          return Column(
+                            children: [category, SizedBox(height: 10), price],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: category),
+                            SizedBox(width: 12),
+                            Expanded(child: price),
+                          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: 10),
+                    _ImagePickerField(
+                      controller: _imageController,
+                      busy: _imageBusy,
+                      onPick: _pickImage,
+                      onClear: () {
+                        _imageController.clear();
+                        setState(() {});
+                      },
+                      onChanged: (_) => setState(() {}),
+                    ),
+                    if (_imageController.text.trim().isNotEmpty) ...[
+                      SizedBox(height: 10),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(16),
+                        child: AspectRatio(
+                          aspectRatio: 1.8,
+                          child: MenuImageView(
+                            imageUrl: _imageController.text.trim(),
+                          ),
+                        ),
                       ),
+                    ],
+                    SizedBox(height: 10),
+                    TextFormField(
+                      controller: _prepController,
+                      decoration: InputDecoration(
+                        labelText: 'Preparation time',
+                        hintText: 'Minutes, optional',
+                      ),
+                      keyboardType: TextInputType.number,
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
                     ),
-                  ),
-                ],
-                SizedBox(height: 10),
-                TextFormField(
-                  controller: _prepController,
-                  decoration: InputDecoration(
-                    labelText: 'Preparation time',
-                    hintText: 'Minutes, optional',
-                  ),
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                ),
-                SizedBox(height: 10),
-                SwitchListTile.adaptive(
-                  value: _isAvailable,
-                  onChanged: (value) => setState(() => _isAvailable = value),
-                  contentPadding: EdgeInsets.zero,
-                  title: Text('Available for ordering'),
-                ),
-                SizedBox(height: 8),
-                Wrap(
-                  spacing: 8,
-                  children: [
-                    FilterChip(
-                      label: Text('Veg'),
-                      selected: _tags.contains('veg'),
-                      onSelected: (selected) => _toggleTag('veg', selected),
+                    SizedBox(height: 10),
+                    SwitchListTile.adaptive(
+                      value: _isAvailable,
+                      onChanged: (value) =>
+                          setState(() => _isAvailable = value),
+                      contentPadding: EdgeInsets.zero,
+                      title: Text('Available for ordering'),
                     ),
-                    FilterChip(
-                      label: Text('Spicy'),
-                      selected: _tags.contains('spicy'),
-                      onSelected: (selected) => _toggleTag('spicy', selected),
+                    SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      children: [
+                        FilterChip(
+                          label: Text('Veg'),
+                          selected: _tags.contains('veg'),
+                          onSelected: (selected) => _toggleTag('veg', selected),
+                        ),
+                        FilterChip(
+                          label: Text('Spicy'),
+                          selected: _tags.contains('spicy'),
+                          onSelected: (selected) =>
+                              _toggleTag('spicy', selected),
+                        ),
+                        FilterChip(
+                          label: Text('Popular'),
+                          selected: _tags.contains('popular'),
+                          onSelected: (selected) =>
+                              _toggleTag('popular', selected),
+                        ),
+                      ],
                     ),
-                    FilterChip(
-                      label: Text('Popular'),
-                      selected: _tags.contains('popular'),
-                      onSelected: (selected) => _toggleTag('popular', selected),
+                    SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _submit,
+                        icon: Icon(Icons.save_outlined),
+                        label: Text(
+                          widget.initialItem == null
+                              ? 'Create Item'
+                              : 'Save Item',
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _submit,
-                    icon: Icon(Icons.save_outlined),
-                    label: Text(
-                      widget.initialItem == null ? 'Create Item' : 'Save Item',
-                    ),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

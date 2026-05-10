@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -149,7 +150,17 @@ class PosAppController extends ChangeNotifier {
           !PaymentDefaults.requireBkashGate;
       lastBkashPaymentId = preferences.getString(_bkashPaymentIdKey);
       lastBkashTransactionId = preferences.getString(_bkashTransactionIdKey);
-      language = AppLanguage.parse(preferences.getString(_languageKey));
+      final deviceLanguage = AppLanguage.fromLocale(
+        ui.PlatformDispatcher.instance.locale,
+      );
+      final hasManualLanguage =
+          preferences.getBool(_languagePreferenceSetKey) ?? false;
+      language = hasManualLanguage
+          ? AppLanguage.parse(
+              preferences.getString(_languageKey),
+              fallback: deviceLanguage,
+            )
+          : deviceLanguage;
       themePreference = AppThemePreference.white;
       uiScale = (preferences.getDouble(_uiScaleKey) ?? 0.9)
           .clamp(minUiScale, maxUiScale)
@@ -636,6 +647,7 @@ class PosAppController extends ChangeNotifier {
     notifyListeners();
     final preferences = await SharedPreferences.getInstance();
     await preferences.setString(_languageKey, value.code);
+    await preferences.setBool(_languagePreferenceSetKey, true);
   }
 
   Future<void> updateThemePreference(AppThemePreference value) async {
@@ -879,6 +891,8 @@ class PosAppController extends ChangeNotifier {
   static final String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';
   static final String _uiScaleKey = 'local_pos_ui_scale';
   static final String _languageKey = 'local_pos_language';
+  static final String _languagePreferenceSetKey =
+      'local_pos_language_preference_set';
   static final String _themePreferenceKey = 'local_pos_theme_preference';
   static final String _bkashPaymentVerifiedKey =
       'local_pos_bkash_payment_verified';

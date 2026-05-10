@@ -12,7 +12,7 @@ class ReportPdfService {
   ReportPdfService();
 
   final NumberFormat _currency = NumberFormat.currency(
-    symbol: r'$',
+    symbol: '৳',
     decimalDigits: 2,
   );
   final DateFormat _date = DateFormat('MMM d, yyyy');

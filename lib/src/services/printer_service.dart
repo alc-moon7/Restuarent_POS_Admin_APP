@@ -269,7 +269,7 @@ class PrinterService {
     String? restaurantName,
     String? outletName,
   }) async {
-    final currency = NumberFormat.currency(symbol: 'Tk ', decimalDigits: 0);
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 0);
     final buffer = StringBuffer()
       ..writeln(_ticketText(restaurantName ?? 'HYBRID POS'))
       ..writeln(_ticketText(outletName ?? 'Kitchen Ticket'))
@@ -306,7 +306,7 @@ class PrinterService {
   }) async {
     final profile = await CapabilityProfile.load();
     final generator = Generator(PaperSize.mm58, profile);
-    final currency = NumberFormat.currency(symbol: 'Tk ', decimalDigits: 0);
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 0);
     final bytes = <int>[];
     bytes
       ..addAll(generator.reset())

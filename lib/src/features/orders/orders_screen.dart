@@ -7,7 +7,6 @@ import '../../core/widgets/status_badge.dart';
 import '../../models/menu_item.dart';
 import '../../models/order_item.dart';
 import '../../models/order_model.dart';
-import '../../models/order_source.dart';
 import '../../models/order_status.dart';
 
 const _adminOrderStatuses = <OrderStatus>[
@@ -26,34 +25,21 @@ class OrdersScreen extends StatefulWidget {
 
 class _OrdersScreenState extends State<OrdersScreen> {
   OrderStatus? _filter = OrderStatus.pending;
-  OrderSource? _sourceFilter;
-  String _searchQuery = '';
-  final TextEditingController _searchController = TextEditingController();
-
-  @override
-  void dispose() {
-    _searchController.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) {
     final app = AppScope.of(context);
-    final allOrders = app.ordersFor(source: _sourceFilter);
-    final query = _searchQuery.trim().toLowerCase();
-    final filtered = query.isEmpty
-        ? allOrders
-        : allOrders
-              .where((order) {
-                return order.orderNo.toLowerCase().contains(query) ||
-                    order.sequenceNo.toString().contains(query) ||
-                    order.id.toLowerCase().contains(query) ||
-                    (order.customerName ?? '').toLowerCase().contains(query) ||
-                    (order.tableNo ?? '').toLowerCase().contains(query);
-              })
-              .toList(growable: false);
+    final allOrders = app.ordersFor();
+    final canCreateOrder = app.menuItems.any((item) => item.isAvailable);
     return Scaffold(
       backgroundColor: PosColors.background,
+      floatingActionButton: FloatingActionButton(
+        tooltip: 'New order',
+        onPressed: canCreateOrder ? () => _openManualOrderForm(context) : null,
+        backgroundColor: PosColors.primary,
+        foregroundColor: PosColors.slate,
+        child: Icon(Icons.add_rounded),
+      ),
       body: SafeArea(
         child: Padding(
           padding: EdgeInsets.fromLTRB(12, 8, 12, 8),
@@ -61,26 +47,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               _OrdersHeader(
-                canCreateOrder: app.menuItems.any((item) => item.isAvailable),
-                onCreateOrder: () => _openManualOrderForm(context),
-              ),
-              SizedBox(height: 6),
-              _StatusSummary(
                 allOrders: allOrders,
                 selected: _filter,
-                onSelect: (status) => setState(() => _filter = status),
+                onFilterSelected: (status) => setState(() => _filter = status),
               ),
-              SizedBox(height: 6),
-              _ToolbarRow(
-                controller: _searchController,
-                onSearchChanged: (v) => setState(() => _searchQuery = v),
-                sourceFilter: _sourceFilter,
-                onSourceChanged: (s) => setState(() => _sourceFilter = s),
-              ),
-              SizedBox(height: 6),
+              SizedBox(height: 8),
               Expanded(
                 child: _OrdersBoard(
-                  orders: filtered,
+                  orders: allOrders,
                   selectedStatus: _filter,
                   onSelectedStatusChanged: (status) =>
                       setState(() => _filter = status),
@@ -189,12 +163,14 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
 class _OrdersHeader extends StatelessWidget {
   const _OrdersHeader({
-    required this.canCreateOrder,
-    required this.onCreateOrder,
+    required this.allOrders,
+    required this.selected,
+    required this.onFilterSelected,
   });
 
-  final bool canCreateOrder;
-  final VoidCallback onCreateOrder;
+  final List<OrderModel> allOrders;
+  final OrderStatus? selected;
+  final ValueChanged<OrderStatus?> onFilterSelected;
 
   @override
   Widget build(BuildContext context) {
@@ -254,15 +230,10 @@ class _OrdersHeader extends StatelessWidget {
             ),
           ),
           SizedBox(width: 6),
-          FilledButton.icon(
-            onPressed: canCreateOrder ? onCreateOrder : null,
-            icon: Icon(Icons.add_rounded, size: 16),
-            label: Text('New', style: TextStyle(fontSize: 12)),
-            style: FilledButton.styleFrom(
-              minimumSize: Size(0, 34),
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-            ),
+          _OrderStatusFilterButton(
+            allOrders: allOrders,
+            selected: selected,
+            onSelected: onFilterSelected,
           ),
         ],
       ),
@@ -270,229 +241,151 @@ class _OrdersHeader extends StatelessWidget {
   }
 }
 
-class _StatusSummary extends StatelessWidget {
-  const _StatusSummary({
+class _OrderStatusFilterButton extends StatelessWidget {
+  const _OrderStatusFilterButton({
     required this.allOrders,
     required this.selected,
-    required this.onSelect,
+    required this.onSelected,
   });
 
   final List<OrderModel> allOrders;
   final OrderStatus? selected;
-  final ValueChanged<OrderStatus?> onSelect;
+  final ValueChanged<OrderStatus?> onSelected;
 
   @override
   Widget build(BuildContext context) {
-    final tiles = <_SummaryTile>[
-      _SummaryTile(
-        status: OrderStatus.pending,
-        label: 'Pending',
-        subtitle: 'Orders',
-        count: allOrders
-            .where((o) => o.status.adminStatus == OrderStatus.pending)
-            .length,
-        color: PosColors.warning,
-        icon: Icons.pending_actions_outlined,
-      ),
-      _SummaryTile(
-        status: OrderStatus.accepted,
-        label: 'Accepted',
-        subtitle: 'Orders',
-        count: allOrders
-            .where((o) => o.status.adminStatus == OrderStatus.accepted)
-            .length,
-        color: PosColors.primaryDark,
-        icon: Icons.check_circle_outline,
-      ),
-      _SummaryTile(
-        status: OrderStatus.cancelled,
-        label: 'Cancelled',
-        subtitle: 'Orders',
-        count: allOrders
-            .where((o) => o.status.adminStatus == OrderStatus.cancelled)
-            .length,
-        color: PosColors.danger,
-        icon: Icons.cancel_outlined,
-      ),
-      _SummaryTile(
-        status: OrderStatus.served,
-        label: 'History',
-        subtitle: 'Served',
-        count: allOrders
-            .where((o) => o.status.adminStatus == OrderStatus.served)
-            .length,
-        color: PosColors.slate,
-        icon: Icons.history_rounded,
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        if (constraints.maxWidth >= 560) {
-          return SizedBox(
-            height: 62,
+    final tiles = _summaryTiles(allOrders);
+    final selectedTile = tiles.firstWhere(
+      (tile) => tile.status == selected?.adminStatus,
+      orElse: () => tiles.first,
+    );
+    return PopupMenuButton<OrderStatus?>(
+      initialValue: selected?.adminStatus,
+      tooltip: 'Filter orders',
+      onSelected: onSelected,
+      itemBuilder: (context) => [
+        for (final tile in tiles)
+          PopupMenuItem<OrderStatus?>(
+            value: tile.status,
             child: Row(
               children: [
-                for (var index = 0; index < tiles.length; index++) ...[
-                  if (index > 0) SizedBox(width: 8),
-                  Expanded(
-                    child: _StatusCardButton(
-                      tile: tiles[index],
-                      selected: selected == tiles[index].status,
-                      onTap: () => onSelect(tiles[index].status),
+                Icon(tile.icon, size: 17, color: tile.color),
+                SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    tile.label,
+                    style: TextStyle(
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w900,
+                      color: PosColors.slate,
                     ),
                   ),
-                ],
+                ),
+                _CountPill(count: tile.count, color: tile.color),
               ],
             ),
-          );
-        }
-
-        return SizedBox(
-          height: 112,
-          child: GridView.builder(
-            padding: EdgeInsets.zero,
-            physics: NeverScrollableScrollPhysics(),
-            itemCount: tiles.length,
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 2,
-              mainAxisExtent: 52,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-            ),
-            itemBuilder: (context, index) {
-              final tile = tiles[index];
-              return _StatusCardButton(
-                tile: tile,
-                selected: selected == tile.status,
-                onTap: () => onSelect(tile.status),
-              );
-            },
           ),
-        );
-      },
+      ],
+      child: Container(
+        height: 34,
+        padding: EdgeInsets.symmetric(horizontal: 10),
+        decoration: BoxDecoration(
+          color: PosColors.background,
+          borderRadius: BorderRadius.circular(PosRadii.md),
+          border: Border.all(
+            color: PosColors.lineStrong.withValues(alpha: 0.42),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.06),
+              blurRadius: 9,
+              offset: Offset(0, 3),
+            ),
+          ],
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.filter_list_rounded, size: 16, color: PosColors.slate),
+            SizedBox(width: 6),
+            Text(
+              'Filter',
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w900,
+                color: PosColors.slate,
+              ),
+            ),
+            SizedBox(width: 6),
+            Text(
+              selectedTile.count.toString(),
+              style: TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w900,
+                color: selectedTile.color,
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
+}
+
+List<_SummaryTile> _summaryTiles(List<OrderModel> allOrders) {
+  return <_SummaryTile>[
+    _SummaryTile(
+      status: OrderStatus.pending,
+      label: 'Pending',
+      count: allOrders
+          .where((o) => o.status.adminStatus == OrderStatus.pending)
+          .length,
+      color: PosColors.warning,
+      icon: Icons.pending_actions_outlined,
+    ),
+    _SummaryTile(
+      status: OrderStatus.accepted,
+      label: 'Accepted',
+      count: allOrders
+          .where((o) => o.status.adminStatus == OrderStatus.accepted)
+          .length,
+      color: PosColors.primaryDark,
+      icon: Icons.check_circle_outline,
+    ),
+    _SummaryTile(
+      status: OrderStatus.cancelled,
+      label: 'Cancelled',
+      count: allOrders
+          .where((o) => o.status.adminStatus == OrderStatus.cancelled)
+          .length,
+      color: PosColors.danger,
+      icon: Icons.cancel_outlined,
+    ),
+    _SummaryTile(
+      status: OrderStatus.served,
+      label: 'History',
+      count: allOrders
+          .where((o) => o.status.adminStatus == OrderStatus.served)
+          .length,
+      color: PosColors.slate,
+      icon: Icons.history_rounded,
+    ),
+  ];
 }
 
 class _SummaryTile {
   _SummaryTile({
     required this.status,
     required this.label,
-    required this.subtitle,
     required this.count,
     required this.color,
     required this.icon,
   });
   final OrderStatus? status;
   final String label;
-  final String subtitle;
   final int count;
   final Color color;
   final IconData icon;
-}
-
-class _StatusCardButton extends StatelessWidget {
-  const _StatusCardButton({
-    required this.tile,
-    required this.selected,
-    required this.onTap,
-  });
-
-  final _SummaryTile tile;
-  final bool selected;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    final background = selected ? PosColors.primary : PosColors.background;
-    final foreground = selected ? PosColors.slate : tile.color;
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(PosRadii.md),
-        child: AnimatedContainer(
-          duration: Duration(milliseconds: 180),
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-          decoration: BoxDecoration(
-            color: background,
-            borderRadius: BorderRadius.circular(PosRadii.md),
-            border: Border.all(
-              color: selected
-                  ? PosColors.primaryDark.withValues(alpha: 0.32)
-                  : PosColors.lineStrong.withValues(alpha: 0.42),
-              width: selected ? 1.4 : 1,
-            ),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withValues(alpha: selected ? 0.12 : 0.06),
-                blurRadius: selected ? 12 : 8,
-                offset: Offset(0, selected ? 5 : 3),
-              ),
-            ],
-          ),
-          child: Row(
-            children: [
-              Container(
-                width: 32,
-                height: 32,
-                decoration: BoxDecoration(
-                  color: selected
-                      ? PosColors.background.withValues(alpha: 0.48)
-                      : tile.color.withValues(alpha: 0.12),
-                  borderRadius: BorderRadius.circular(PosRadii.sm),
-                ),
-                child: Icon(tile.icon, color: foreground, size: 17),
-              ),
-              SizedBox(width: 8),
-              Expanded(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tile.label,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: PosColors.slate,
-                        fontSize: 12.5,
-                        fontWeight: FontWeight.w900,
-                        height: 1,
-                      ),
-                    ),
-                    SizedBox(height: 3),
-                    Text(
-                      tile.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: TextStyle(
-                        color: selected ? PosColors.slateSoft : PosColors.muted,
-                        fontSize: 9.5,
-                        fontWeight: FontWeight.w800,
-                        height: 1,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              SizedBox(width: 6),
-              Text(
-                tile.count.toString(),
-                style: TextStyle(
-                  color: PosColors.slate,
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 Color _colorForStatus(OrderStatus s) {
@@ -519,163 +412,6 @@ IconData _iconForStatus(OrderStatus s) {
 
 String _laneTitle(OrderStatus status) {
   return status.adminStatus == OrderStatus.served ? 'History' : status.label;
-}
-
-class _ToolbarRow extends StatelessWidget {
-  const _ToolbarRow({
-    required this.controller,
-    required this.onSearchChanged,
-    required this.sourceFilter,
-    required this.onSourceChanged,
-  });
-
-  final TextEditingController controller;
-  final ValueChanged<String> onSearchChanged;
-  final OrderSource? sourceFilter;
-  final ValueChanged<OrderSource?> onSourceChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      height: 44,
-      child: Card(
-        margin: EdgeInsets.zero,
-        color: PosColors.background,
-        elevation: 2,
-        shadowColor: Colors.black.withValues(alpha: 0.12),
-        surfaceTintColor: Colors.transparent,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(PosRadii.lg),
-          side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.36)),
-        ),
-        child: Padding(
-          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
-          child: LayoutBuilder(
-            builder: (context, constraints) {
-              final compact = constraints.maxWidth < 520;
-              final search = SizedBox(
-                height: 34,
-                child: TextField(
-                  controller: controller,
-                  onChanged: onSearchChanged,
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: PosColors.slate,
-                  ),
-                  textAlignVertical: TextAlignVertical.center,
-                  decoration: InputDecoration(
-                    isDense: true,
-                    prefixIcon: Icon(Icons.search_rounded, size: 17),
-                    prefixIconConstraints: BoxConstraints.tightFor(
-                      width: 32,
-                      height: 32,
-                    ),
-                    hintText: 'Search order',
-                    hintStyle: TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: PosColors.muted,
-                    ),
-                    contentPadding: EdgeInsets.symmetric(
-                      horizontal: 8,
-                      vertical: 0,
-                    ),
-                  ),
-                ),
-              );
-              final sourceMenu = _SourceDropdown(
-                value: sourceFilter,
-                onChanged: onSourceChanged,
-              );
-              if (compact) {
-                return Row(
-                  children: [
-                    Expanded(child: search),
-                    SizedBox(width: 6),
-                    SizedBox(width: 108, child: sourceMenu),
-                  ],
-                );
-              }
-              return Row(
-                children: [
-                  Expanded(flex: 5, child: search),
-                  SizedBox(width: 10),
-                  Expanded(flex: 3, child: sourceMenu),
-                ],
-              );
-            },
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SourceDropdown extends StatelessWidget {
-  const _SourceDropdown({required this.value, required this.onChanged});
-
-  final OrderSource? value;
-  final ValueChanged<OrderSource?> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    final label = value == null ? 'All' : _shortSourceLabel(value!);
-    return PopupMenuButton<OrderSource?>(
-      initialValue: value,
-      tooltip: 'Filter source',
-      onSelected: onChanged,
-      itemBuilder: (context) => [
-        PopupMenuItem<OrderSource?>(value: null, child: Text('All sources')),
-        for (final s in OrderSource.values)
-          PopupMenuItem<OrderSource?>(value: s, child: Text(s.label)),
-      ],
-      child: Container(
-        height: 34,
-        padding: EdgeInsets.symmetric(horizontal: 8),
-        decoration: BoxDecoration(
-          color: PosColors.background,
-          borderRadius: BorderRadius.circular(PosRadii.md),
-          border: Border.all(
-            color: PosColors.lineStrong.withValues(alpha: 0.42),
-          ),
-        ),
-        child: Row(
-          children: [
-            Icon(Icons.merge_type_rounded, size: 16, color: PosColors.muted),
-            SizedBox(width: 5),
-            Expanded(
-              child: Text(
-                label,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                  color: PosColors.slate,
-                  fontSize: 11.5,
-                  fontWeight: FontWeight.w900,
-                  height: 1,
-                ),
-              ),
-            ),
-            SizedBox(width: 3),
-            Icon(
-              Icons.keyboard_arrow_down_rounded,
-              size: 17,
-              color: PosColors.muted,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-String _shortSourceLabel(OrderSource source) {
-  return switch (source) {
-    OrderSource.localLan => 'LAN',
-    OrderSource.cloud => 'Cloud',
-    OrderSource.manual => 'Manual',
-  };
 }
 
 class _OrdersBoard extends StatefulWidget {
@@ -813,8 +549,8 @@ class _OrderLane extends StatelessWidget {
       child: Column(
         children: [
           Container(
-            height: 44,
-            padding: EdgeInsets.symmetric(horizontal: 10),
+            height: 48,
+            padding: EdgeInsets.symmetric(horizontal: 12),
             decoration: BoxDecoration(
               color: PosColors.background,
               borderRadius: BorderRadius.vertical(
@@ -829,13 +565,13 @@ class _OrderLane extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 26,
-                  height: 26,
+                  width: 28,
+                  height: 28,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(PosRadii.sm),
                   ),
-                  child: Icon(_iconForStatus(status), color: color, size: 14),
+                  child: Icon(_iconForStatus(status), color: color, size: 15),
                 ),
                 SizedBox(width: 8),
                 Expanded(
@@ -846,7 +582,7 @@ class _OrderLane extends StatelessWidget {
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.w900,
-                      fontSize: 12,
+                      fontSize: 13,
                       letterSpacing: 0,
                     ),
                   ),
@@ -953,7 +689,7 @@ class _CompactOrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 2);
     final time = _displayOrderTime(order);
     final nextStatus = _nextStatus(order.status);
     final canCancel =
@@ -974,7 +710,7 @@ class _CompactOrderCard extends StatelessWidget {
         ],
       ),
       child: Padding(
-        padding: EdgeInsets.all(9),
+        padding: EdgeInsets.all(11),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
@@ -991,7 +727,7 @@ class _CompactOrderCard extends StatelessWidget {
                     style: TextStyle(
                       color: PosColors.slate,
                       fontWeight: FontWeight.w900,
-                      fontSize: 12.5,
+                      fontSize: 13.5,
                       letterSpacing: 0,
                     ),
                   ),
@@ -1001,15 +737,15 @@ class _CompactOrderCard extends StatelessWidget {
                   style: TextStyle(
                     color: PosColors.muted,
                     fontWeight: FontWeight.w800,
-                    fontSize: 10,
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 6),
+            SizedBox(height: 8),
             Wrap(
-              spacing: 5,
-              runSpacing: 5,
+              spacing: 6,
+              runSpacing: 6,
               children: [
                 _MiniInfo(
                   Icons.person_outline,
@@ -1022,9 +758,9 @@ class _CompactOrderCard extends StatelessWidget {
                 StatusBadge.order(order.status),
               ],
             ),
-            SizedBox(height: 7),
+            SizedBox(height: 9),
             Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              padding: EdgeInsets.symmetric(horizontal: 9, vertical: 7),
               decoration: BoxDecoration(
                 color: PosColors.background,
                 borderRadius: BorderRadius.circular(PosRadii.sm),
@@ -1036,7 +772,7 @@ class _CompactOrderCard extends StatelessWidget {
                 children: [
                   for (final item in order.items.take(2))
                     Padding(
-                      padding: EdgeInsets.symmetric(vertical: 1.5),
+                      padding: EdgeInsets.symmetric(vertical: 2),
                       child: Row(
                         children: [
                           Text(
@@ -1044,7 +780,7 @@ class _CompactOrderCard extends StatelessWidget {
                             style: TextStyle(
                               color: PosColors.primaryDark,
                               fontWeight: FontWeight.w900,
-                              fontSize: 11,
+                              fontSize: 12,
                             ),
                           ),
                           SizedBox(width: 5),
@@ -1056,7 +792,7 @@ class _CompactOrderCard extends StatelessWidget {
                               style: TextStyle(
                                 color: PosColors.slateSoft,
                                 fontWeight: FontWeight.w700,
-                                fontSize: 11.2,
+                                fontSize: 12,
                               ),
                             ),
                           ),
@@ -1071,14 +807,14 @@ class _CompactOrderCard extends StatelessWidget {
                         style: TextStyle(
                           color: PosColors.muted,
                           fontWeight: FontWeight.w700,
-                          fontSize: 10.5,
+                          fontSize: 11.2,
                         ),
                       ),
                     ),
                 ],
               ),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 10),
             Row(
               children: [
                 Text(
@@ -1086,7 +822,7 @@ class _CompactOrderCard extends StatelessWidget {
                   style: TextStyle(
                     color: PosColors.primaryDark,
                     fontWeight: FontWeight.w900,
-                    fontSize: 14.5,
+                    fontSize: 15.5,
                   ),
                 ),
                 Spacer(),
@@ -1107,19 +843,20 @@ class _CompactOrderCard extends StatelessWidget {
               ],
             ),
             if (nextStatus != null) ...[
-              SizedBox(height: 7),
+              SizedBox(height: 9),
               SizedBox(
                 width: double.infinity,
-                height: 32,
+                height: 34,
                 child: FilledButton.icon(
                   onPressed: () => onStatusChanged(nextStatus),
                   icon: Icon(Icons.arrow_forward_rounded, size: 15),
                   label: Text(
                     _nextLabel(order.status),
-                    style: TextStyle(fontSize: 11.5),
+                    style: TextStyle(fontSize: 12.2),
                   ),
                   style: FilledButton.styleFrom(
                     backgroundColor: accent,
+                    foregroundColor: _foregroundForActionColor(accent),
                     padding: EdgeInsets.zero,
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
                   ),
@@ -1147,6 +884,10 @@ class _CompactOrderCard extends StatelessWidget {
       _ => 'Advance',
     };
   }
+}
+
+Color _foregroundForActionColor(Color background) {
+  return background.computeLuminance() < 0.45 ? Colors.white : PosColors.slate;
 }
 
 String _displayOrderTime(OrderModel order) {
@@ -1182,7 +923,7 @@ class _OrderNoPill extends StatelessWidget {
         style: TextStyle(
           color: PosColors.slate,
           fontWeight: FontWeight.w900,
-          fontSize: 10.8,
+          fontSize: 11.6,
         ),
       ),
     );
@@ -1206,14 +947,14 @@ class _MiniInfo extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 11, color: PosColors.slate),
+          Icon(icon, size: 12, color: PosColors.slate),
           SizedBox(width: 3),
           Text(
             label,
             style: TextStyle(
               color: PosColors.slate,
               fontWeight: FontWeight.w800,
-              fontSize: 10.5,
+              fontSize: 11.2,
             ),
           ),
         ],
@@ -1247,9 +988,9 @@ class _MiniAction extends StatelessWidget {
           onTap: onTap,
           borderRadius: BorderRadius.circular(PosRadii.sm),
           child: SizedBox(
-            width: 28,
-            height: 28,
-            child: Icon(icon, size: 15, color: c),
+            width: 30,
+            height: 30,
+            child: Icon(icon, size: 16, color: c),
           ),
         ),
       ),
@@ -1289,7 +1030,7 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
 
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 2);
     final total = _lines.fold<double>(0, (sum, line) {
       if (line.menuItemId == null) return sum;
       final item = widget.menuItems.firstWhere(

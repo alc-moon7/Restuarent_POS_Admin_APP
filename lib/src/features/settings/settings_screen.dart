@@ -195,19 +195,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 
   Future<void> _openLanguageSettings() async {
-    final app = AppScope.of(context);
-    final text = app.strings;
     await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (context) => _SettingsSectionPage(
-          title: text.languageLabel,
-          child: _LanguageCard(
-            selected: app.language,
-            text: text,
-            onChanged: app.updateLanguage,
-          ),
-        ),
-      ),
+      MaterialPageRoute<void>(builder: (context) => _LanguageSettingsPage()),
     );
   }
 
@@ -1471,6 +1460,24 @@ class _LanguageCard extends StatelessWidget {
           onSelectionChanged: (values) => onChanged(values.first),
         ),
       ],
+    );
+  }
+}
+
+class _LanguageSettingsPage extends StatelessWidget {
+  const _LanguageSettingsPage();
+
+  @override
+  Widget build(BuildContext context) {
+    final app = AppScope.of(context);
+    final text = app.strings;
+    return _SettingsSectionPage(
+      title: text.languageLabel,
+      child: _LanguageCard(
+        selected: app.language,
+        text: text,
+        onChanged: app.updateLanguage,
+      ),
     );
   }
 }

@@ -27,7 +27,7 @@ class OrderCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 2);
     final createdTime = DateFormat('MMM d, h:mm a').format(order.createdAt);
     final accent = _accentForStatus(order.status);
 

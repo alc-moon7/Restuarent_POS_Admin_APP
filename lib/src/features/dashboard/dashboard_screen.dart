@@ -34,8 +34,8 @@ class DashboardScreen extends StatelessWidget {
       );
     }
 
-    final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
-    final compactCurrency = NumberFormat.compactCurrency(symbol: r'$');
+    final currency = NumberFormat.currency(symbol: '৳', decimalDigits: 2);
+    final compactCurrency = NumberFormat.compactCurrency(symbol: '৳');
     final metrics = app.metrics;
     final sync = app.syncState;
     final report7 = app.salesReportForDays(7);

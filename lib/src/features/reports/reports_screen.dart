@@ -19,7 +19,7 @@ class ReportsScreen extends StatefulWidget {
 class _ReportsScreenState extends State<ReportsScreen> {
   final ReportPdfService _pdfService = ReportPdfService();
   final NumberFormat _currency = NumberFormat.currency(
-    symbol: r'$',
+    symbol: '৳',
     decimalDigits: 2,
   );
   final DateFormat _date = DateFormat('MMM d');

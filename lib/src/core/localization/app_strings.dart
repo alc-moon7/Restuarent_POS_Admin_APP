@@ -11,14 +11,20 @@ enum AppLanguage {
 
   Locale get locale => Locale(code);
 
-  static AppLanguage parse(String? value) {
+  static AppLanguage parse(String? value, {AppLanguage? fallback}) {
     final normalized = value?.trim().toLowerCase();
     for (final language in AppLanguage.values) {
       if (language.code == normalized || language.name == normalized) {
         return language;
       }
     }
-    return AppLanguage.bn;
+    return fallback ?? AppLanguage.bn;
+  }
+
+  static AppLanguage fromLocale(Locale locale) {
+    final code = locale.languageCode.toLowerCase();
+    if (code == AppLanguage.bn.code) return AppLanguage.bn;
+    return AppLanguage.en;
   }
 }
 
