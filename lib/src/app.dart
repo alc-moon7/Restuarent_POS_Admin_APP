@@ -67,20 +67,11 @@ class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
               GlobalWidgetsLocalizations.delegate,
               GlobalCupertinoLocalizations.delegate,
             ],
-            theme: AppTheme.light(
-              uiScale: uiScale,
-            ).copyWith(visualDensity: _visualDensityFor(uiScale)),
+            theme: AppTheme.light(uiScale: 1),
             themeMode: ThemeMode.light,
             builder: (context, child) {
-              final mediaQuery = MediaQuery.of(context);
-              final systemScale = mediaQuery.textScaler.scale(1);
-              final effectiveScale = (systemScale * uiScale)
-                  .clamp(0.76, 1.12)
-                  .toDouble();
-              return MediaQuery(
-                data: mediaQuery.copyWith(
-                  textScaler: TextScaler.linear(effectiveScale),
-                ),
+              return _WindowScale(
+                scale: uiScale,
                 child: child ?? SizedBox.shrink(),
               );
             },
@@ -92,11 +83,6 @@ class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
         },
       ),
     );
-  }
-
-  VisualDensity _visualDensityFor(double uiScale) {
-    final density = ((uiScale - 1) * 5).clamp(-0.9, 0.8).toDouble();
-    return VisualDensity(horizontal: density, vertical: density);
   }
 
   PosThemeTone _resolveTone(AppThemePreference _) {
@@ -148,6 +134,45 @@ class _LocalPosAppState extends State<LocalPosApp> with WidgetsBindingObserver {
       );
     }
     return MainShell(initialIndex: _initialShellIndex);
+  }
+}
+
+class _WindowScale extends StatelessWidget {
+  const _WindowScale({required this.scale, required this.child});
+
+  final double scale;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final mediaQuery = MediaQuery.of(context);
+    final safeScale = scale.clamp(0.78, 1.08).toDouble();
+    if ((safeScale - 1).abs() < 0.001) return child;
+
+    final size = mediaQuery.size;
+    final layoutSize = Size(size.width / safeScale, size.height / safeScale);
+
+    return ClipRect(
+      child: OverflowBox(
+        alignment: Alignment.topCenter,
+        minWidth: layoutSize.width,
+        maxWidth: layoutSize.width,
+        minHeight: layoutSize.height,
+        maxHeight: layoutSize.height,
+        child: Transform.scale(
+          scale: safeScale,
+          alignment: Alignment.topCenter,
+          child: SizedBox(
+            width: layoutSize.width,
+            height: layoutSize.height,
+            child: MediaQuery(
+              data: mediaQuery.copyWith(size: layoutSize),
+              child: child,
+            ),
+          ),
+        ),
+      ),
+    );
   }
 }
 

@@ -21,14 +21,14 @@ class SyncEventTile extends StatelessWidget {
     return Container(
       padding: EdgeInsets.all(14),
       decoration: BoxDecoration(
-        color: PosColors.surface,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.48)),
         boxShadow: [
           BoxShadow(
-            color: Color(0x080F2A1F),
-            blurRadius: 8,
-            offset: Offset(0, 2),
+            color: Colors.black.withValues(alpha: 0.05),
+            blurRadius: 10,
+            offset: Offset(0, 4),
           ),
         ],
       ),
@@ -112,14 +112,14 @@ class SyncEventTile extends StatelessWidget {
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
                 decoration: BoxDecoration(
-                  color: PosColors.surfaceTinted,
+                  color: PosColors.background,
                   borderRadius: BorderRadius.circular(PosRadii.pill),
-                  border: Border.all(color: PosColors.line),
+                  border: Border.all(color: PosColors.lineStrong),
                 ),
                 child: Text(
                   'Retry ${event.retryCount}',
                   style: TextStyle(
-                    color: PosColors.muted,
+                    color: PosColors.slate,
                     fontWeight: FontWeight.w700,
                     fontSize: 10.5,
                   ),

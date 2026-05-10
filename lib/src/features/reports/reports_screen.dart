@@ -32,8 +32,10 @@ class _ReportsScreenState extends State<ReportsScreen> {
     final app = AppScope.of(context);
     final report = app.salesReportForDays(_days);
     return AppScaffold(
-      title: 'Sales Reports',
-      subtitle: 'Daily, 7-day, and 30-day order history with PDF export.',
+      title: 'Reports',
+      subtitle: 'Sales, orders, and PDF export.',
+      showDatePill: false,
+      centerHeader: true,
       actions: [
         PrimaryButton(
           label: 'Export PDF',
@@ -53,9 +55,9 @@ class _ReportsScreenState extends State<ReportsScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _PeriodSelector(value: _days, onChanged: _setDays),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           _ReportSummary(report: report, currency: _currency),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           if (report.totalOrders == 0)
             EmptyState(
               title: 'No orders in this period',
@@ -65,7 +67,7 @@ class _ReportsScreenState extends State<ReportsScreen> {
             )
           else ...[
             _DailyBreakdown(report: report, currency: _currency, date: _date),
-            SizedBox(height: 12),
+            SizedBox(height: 8),
             _TopItems(report: report, currency: _currency),
           ],
         ],
@@ -124,24 +126,31 @@ class _PeriodSelector extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Card(
+      margin: EdgeInsets.zero,
       child: Padding(
-        padding: EdgeInsets.all(12),
+        padding: EdgeInsets.all(6),
         child: SegmentedButton<int>(
+          style: ButtonStyle(
+            visualDensity: VisualDensity.compact,
+            textStyle: WidgetStatePropertyAll(
+              TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+            ),
+          ),
           segments: [
             ButtonSegment(
               value: 1,
               label: Text('1 Day'),
-              icon: Icon(Icons.today_outlined),
+              icon: Icon(Icons.today_outlined, size: 15),
             ),
             ButtonSegment(
               value: 7,
               label: Text('7 Days'),
-              icon: Icon(Icons.date_range_outlined),
+              icon: Icon(Icons.date_range_outlined, size: 15),
             ),
             ButtonSegment(
               value: 30,
               label: Text('30 Days'),
-              icon: Icon(Icons.calendar_month_outlined),
+              icon: Icon(Icons.calendar_month_outlined, size: 15),
             ),
           ],
           selected: {value},
@@ -173,7 +182,7 @@ class _ReportSummary extends StatelessWidget {
           physics: NeverScrollableScrollPhysics(),
           mainAxisSpacing: 8,
           crossAxisSpacing: 8,
-          childAspectRatio: constraints.maxWidth >= 620 ? 2.0 : 1.35,
+          childAspectRatio: constraints.maxWidth >= 620 ? 2.55 : 1.95,
           children: [
             _ReportTile(
               label: 'Total sales',
@@ -228,20 +237,20 @@ class _ReportTile extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: EdgeInsets.all(14),
+        padding: EdgeInsets.all(8),
         child: Row(
           children: [
             Container(
-              width: 42,
-              height: 42,
+              width: 32,
+              height: 32,
               decoration: BoxDecoration(
                 color: PosColors.surface,
                 borderRadius: BorderRadius.circular(PosRadii.md),
                 border: Border.all(color: PosColors.slate),
               ),
-              child: Icon(icon, color: PosColors.slate, size: 20),
+              child: Icon(icon, color: PosColors.slate, size: 16),
             ),
-            SizedBox(width: 12),
+            SizedBox(width: 8),
             Expanded(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -252,16 +261,21 @@ class _ReportTile extends StatelessWidget {
                     style: TextStyle(
                       color: PosColors.slate,
                       fontWeight: FontWeight.w800,
-                      fontSize: 10.4,
-                      letterSpacing: 1.1,
+                      fontSize: 8.7,
+                      letterSpacing: 0.2,
                     ),
                   ),
-                  SizedBox(height: 4),
+                  SizedBox(height: 3),
                   Text(
                     value,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: TextStyle(
+                      color: PosColors.slate,
+                      fontSize: 14.5,
+                      fontWeight: FontWeight.w900,
+                      height: 1,
+                    ),
                   ),
                 ],
               ),
@@ -348,18 +362,26 @@ class _ReportCard extends StatelessWidget {
   Widget build(BuildContext context) {
     return Card(
       child: Padding(
-        padding: EdgeInsets.all(14),
+        padding: EdgeInsets.all(10),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Icon(icon, color: PosColors.primary),
-                SizedBox(width: 8),
-                Text(title, style: Theme.of(context).textTheme.titleLarge),
+                Icon(icon, color: PosColors.primary, size: 17),
+                SizedBox(width: 7),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: PosColors.slate,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: 12),
+            SizedBox(height: 8),
             child,
           ],
         ),
@@ -382,20 +404,43 @@ class _LineRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.symmetric(vertical: 8),
+      padding: EdgeInsets.symmetric(vertical: 5),
       child: Row(
         children: [
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(title, style: Theme.of(context).textTheme.titleMedium),
+                Text(
+                  title,
+                  style: TextStyle(
+                    color: PosColors.slate,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w800,
+                    height: 1,
+                  ),
+                ),
                 SizedBox(height: 2),
-                Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+                Text(
+                  subtitle,
+                  style: TextStyle(
+                    color: PosColors.muted,
+                    fontSize: 10.5,
+                    fontWeight: FontWeight.w700,
+                    height: 1,
+                  ),
+                ),
               ],
             ),
           ),
-          Text(trailing, style: Theme.of(context).textTheme.titleMedium),
+          Text(
+            trailing,
+            style: TextStyle(
+              color: PosColors.slate,
+              fontSize: 12,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
         ],
       ),
     );

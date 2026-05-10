@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../app_scope.dart';
 import '../theme/app_theme.dart';
 
 class AppScaffold extends StatelessWidget {
@@ -13,6 +12,7 @@ class AppScaffold extends StatelessWidget {
     this.showDatePill = true,
     this.showBackButton = false,
     this.pinHeader = false,
+    this.centerHeader = false,
     super.key,
   });
 
@@ -24,10 +24,11 @@ class AppScaffold extends StatelessWidget {
   final bool showDatePill;
   final bool showBackButton;
   final bool pinHeader;
+  final bool centerHeader;
 
   @override
   Widget build(BuildContext context) {
-    final spacingScale = AppScope.of(context).uiScale;
+    const spacingScale = 1.0;
     return Scaffold(
       backgroundColor: PosColors.background,
       floatingActionButton: floatingActionButton,
@@ -51,6 +52,7 @@ class AppScaffold extends StatelessWidget {
                           actions: actions,
                           showDatePill: showDatePill,
                           showBackButton: showBackButton,
+                          centerHeader: centerHeader,
                         ),
                       ),
                       Expanded(
@@ -91,6 +93,7 @@ class AppScaffold extends StatelessWidget {
                             actions: actions,
                             showDatePill: showDatePill,
                             showBackButton: showBackButton,
+                            centerHeader: centerHeader,
                           ),
                         ),
                       ),
@@ -113,13 +116,12 @@ class AppScaffold extends StatelessWidget {
 
   double _horizontalPadding(BuildContext context) {
     final width = MediaQuery.sizeOf(context).width;
-    final spacingScale = AppScope.of(context).uiScale;
     final base = width >= 1200
         ? 32.0
         : width >= 700
         ? 22.0
         : 16.0;
-    return (base * spacingScale).clamp(13.0, 38.0).toDouble();
+    return base.clamp(13.0, 38.0).toDouble();
   }
 }
 
@@ -148,6 +150,7 @@ class _Header extends StatelessWidget {
     required this.actions,
     required this.showDatePill,
     required this.showBackButton,
+    required this.centerHeader,
     this.subtitle,
   });
 
@@ -156,6 +159,7 @@ class _Header extends StatelessWidget {
   final List<Widget> actions;
   final bool showDatePill;
   final bool showBackButton;
+  final bool centerHeader;
 
   @override
   Widget build(BuildContext context) {
@@ -165,17 +169,24 @@ class _Header extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 620;
         final titleColumn = Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          crossAxisAlignment: centerHeader
+              ? CrossAxisAlignment.center
+              : CrossAxisAlignment.start,
           children: [
             if (showDatePill) ...[
               _DatePill(label: dateLabel),
               SizedBox(height: 12),
             ],
-            Text(title, style: textTheme.headlineMedium),
+            Text(
+              title,
+              textAlign: centerHeader ? TextAlign.center : TextAlign.start,
+              style: textTheme.headlineMedium,
+            ),
             if (subtitle != null) ...[
               SizedBox(height: 6),
               Text(
                 subtitle!,
+                textAlign: centerHeader ? TextAlign.center : TextAlign.start,
                 style: textTheme.bodyMedium?.copyWith(
                   fontWeight: FontWeight.w600,
                 ),
@@ -204,6 +215,25 @@ class _Header extends StatelessWidget {
                 ],
               )
             : titleColumn;
+        if (centerHeader) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Center(child: titleArea),
+              if (actions.isNotEmpty) ...[
+                SizedBox(height: 10),
+                Center(
+                  child: Wrap(
+                    alignment: WrapAlignment.center,
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: actions,
+                  ),
+                ),
+              ],
+            ],
+          );
+        }
         if (actions.isEmpty) return titleArea;
         if (compact) {
           return Column(

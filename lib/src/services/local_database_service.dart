@@ -43,6 +43,7 @@ class LocalDatabaseService {
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
+      onOpen: _ensureSchema,
     );
   }
 
@@ -754,6 +755,44 @@ class LocalDatabaseService {
       await _backfillOrderSequences(db);
       await _createIndexes(db);
     }
+  }
+
+  Future<void> _ensureSchema(Database db) async {
+    await _addColumnIfMissing(
+      db,
+      'menu_items',
+      'syncStatus',
+      "syncStatus TEXT NOT NULL DEFAULT 'synced'",
+    );
+    await _addColumnIfMissing(
+      db,
+      'menu_items',
+      'version',
+      'version INTEGER NOT NULL DEFAULT 1',
+    );
+    await _addColumnIfMissing(db, 'menu_items', 'deletedAt', 'deletedAt TEXT');
+    await _addColumnIfMissing(
+      db,
+      'orders',
+      'source',
+      "source TEXT NOT NULL DEFAULT 'cloud'",
+    );
+    await _addColumnIfMissing(
+      db,
+      'orders',
+      'syncStatus',
+      "syncStatus TEXT NOT NULL DEFAULT 'synced'",
+    );
+    await _addColumnIfMissing(
+      db,
+      'orders',
+      'version',
+      'version INTEGER NOT NULL DEFAULT 1',
+    );
+    await _addColumnIfMissing(db, 'orders', 'sequenceNo', 'sequenceNo INTEGER');
+    await _backfillOrderSequences(db);
+    await _createSyncTable(db);
+    await _createIndexes(db);
   }
 
   Future<void> _createSyncTable(Database db) async {

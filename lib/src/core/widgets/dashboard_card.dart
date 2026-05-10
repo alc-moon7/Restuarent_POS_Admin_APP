@@ -65,7 +65,7 @@ class _DashboardCardState extends State<DashboardCard> {
                     splashColor: PosColors.slate.withValues(alpha: 0.08),
                     highlightColor: PosColors.slate.withValues(alpha: 0.04),
                     child: Padding(
-                      padding: EdgeInsets.all(compact ? 11 : 14),
+                      padding: EdgeInsets.all(compact ? 8 : 10),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         mainAxisAlignment: MainAxisAlignment.center,
@@ -88,7 +88,7 @@ class _DashboardCardState extends State<DashboardCard> {
                                 ),
                             ],
                           ),
-                          SizedBox(height: compact ? 8 : 12),
+                          SizedBox(height: compact ? 6 : 8),
                           Text(
                             widget.value,
                             maxLines: 1,
@@ -105,23 +105,29 @@ class _DashboardCardState extends State<DashboardCard> {
                                             context,
                                           ).textTheme.headlineMedium)
                                     ?.copyWith(
+                                      fontSize: compact ? 16 : 20,
                                       fontWeight: FontWeight.w900,
                                       letterSpacing: 0,
                                     ),
                           ),
-                          SizedBox(height: 4),
+                          SizedBox(height: 3),
                           Text(
                             widget.title,
                             maxLines: compact ? 1 : 2,
                             overflow: TextOverflow.ellipsis,
                             style: compact
                                 ? TextStyle(
-                                    fontSize: 11.6,
+                                    fontSize: 10.6,
                                     fontWeight: FontWeight.w800,
                                     color: PosColors.slate,
-                                    height: 1.2,
+                                    height: 1.1,
                                   )
-                                : Theme.of(context).textTheme.titleMedium,
+                                : TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w800,
+                                    color: PosColors.slate,
+                                    height: 1.1,
+                                  ),
                           ),
                           if (widget.caption != null && !compact) ...[
                             SizedBox(height: 4),
@@ -155,14 +161,14 @@ class _IconBox extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: compact ? 32 : 40,
-      height: compact ? 32 : 40,
+      width: compact ? 28 : 32,
+      height: compact ? 28 : 32,
       decoration: BoxDecoration(
         color: PosColors.surface,
         borderRadius: BorderRadius.circular(compact ? 11 : 13),
         border: Border.all(color: PosColors.slate),
       ),
-      child: Icon(icon, color: PosColors.slate, size: compact ? 17 : 21),
+      child: Icon(icon, color: PosColors.slate, size: compact ? 15 : 17),
     );
   }
 }

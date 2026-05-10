@@ -3,23 +3,18 @@ import 'package:intl/intl.dart';
 
 import '../../app_scope.dart';
 import '../../core/theme/app_theme.dart';
-import '../../core/widgets/app_scaffold.dart';
-import '../../core/widgets/empty_state.dart';
-import '../../core/widgets/order_card.dart';
-import '../../core/widgets/primary_button.dart';
+import '../../core/widgets/status_badge.dart';
 import '../../models/menu_item.dart';
 import '../../models/order_item.dart';
 import '../../models/order_model.dart';
 import '../../models/order_source.dart';
 import '../../models/order_status.dart';
 
-enum _OrdersView { board, list }
-
 const _adminOrderStatuses = <OrderStatus>[
   OrderStatus.pending,
   OrderStatus.accepted,
-  OrderStatus.served,
   OrderStatus.cancelled,
+  OrderStatus.served,
 ];
 
 class OrdersScreen extends StatefulWidget {
@@ -30,11 +25,10 @@ class OrdersScreen extends StatefulWidget {
 }
 
 class _OrdersScreenState extends State<OrdersScreen> {
-  OrderStatus? _filter;
+  OrderStatus? _filter = OrderStatus.pending;
   OrderSource? _sourceFilter;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
-  _OrdersView _view = _OrdersView.board;
 
   @override
   void dispose() {
@@ -58,78 +52,46 @@ class _OrdersScreenState extends State<OrdersScreen> {
                     (order.tableNo ?? '').toLowerCase().contains(query);
               })
               .toList(growable: false);
-    final orders = _filter == null
-        ? filtered
-        : filtered
-              .where((o) => o.status.adminStatus == _filter)
-              .toList(growable: false);
-
-    return AppScaffold(
-      title: 'Orders',
-      subtitle: 'New customer orders wait here until staff accepts them.',
-      actions: [
-        PrimaryButton(
-          label: 'New Order',
-          icon: Icons.add_shopping_cart,
-          onPressed: app.menuItems.any((item) => item.isAvailable)
-              ? () => _openManualOrderForm(context)
-              : null,
-        ),
-      ],
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _StatusSummary(
-            allOrders: allOrders,
-            selected: _filter,
-            onSelect: (status) => setState(() => _filter = status),
-          ),
-          SizedBox(height: 12),
-          _ToolbarRow(
-            controller: _searchController,
-            onSearchChanged: (v) => setState(() => _searchQuery = v),
-            sourceFilter: _sourceFilter,
-            onSourceChanged: (s) => setState(() => _sourceFilter = s),
-            view: _view,
-            onViewChanged: (v) => setState(() => _view = v),
-          ),
-          SizedBox(height: 12),
-          if (app.orders.isEmpty)
-            EmptyState(
-              title: 'No orders yet',
-              message: 'Cloud customer orders will appear here after sync.',
-              icon: Icons.receipt_long_outlined,
-            )
-          else if (orders.isEmpty)
-            EmptyState(
-              title: 'No orders match the filters',
-              message: 'Try clearing the search or status filter.',
-              icon: Icons.filter_alt_off_outlined,
-            )
-          else if (_view == _OrdersView.board)
-            _KanbanBoard(
-              orders: orders,
-              onStatusChanged: (order, status) =>
-                  _changeStatus(context, order, status),
-              onPrintTicket: (order) => _showTicketPreview(context, order),
-            )
-          else
-            ListView.separated(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemBuilder: (context, index) {
-                final order = orders[index];
-                return OrderCard(
-                  order: order,
-                  onStatusChanged: (status) =>
+    return Scaffold(
+      backgroundColor: PosColors.background,
+      body: SafeArea(
+        child: Padding(
+          padding: EdgeInsets.fromLTRB(12, 8, 12, 8),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _OrdersHeader(
+                canCreateOrder: app.menuItems.any((item) => item.isAvailable),
+                onCreateOrder: () => _openManualOrderForm(context),
+              ),
+              SizedBox(height: 6),
+              _StatusSummary(
+                allOrders: allOrders,
+                selected: _filter,
+                onSelect: (status) => setState(() => _filter = status),
+              ),
+              SizedBox(height: 6),
+              _ToolbarRow(
+                controller: _searchController,
+                onSearchChanged: (v) => setState(() => _searchQuery = v),
+                sourceFilter: _sourceFilter,
+                onSourceChanged: (s) => setState(() => _sourceFilter = s),
+              ),
+              SizedBox(height: 6),
+              Expanded(
+                child: _OrdersBoard(
+                  orders: filtered,
+                  selectedStatus: _filter,
+                  onSelectedStatusChanged: (status) =>
+                      setState(() => _filter = status),
+                  onStatusChanged: (order, status) =>
                       _changeStatus(context, order, status),
-                  onPrintTicket: () => _showTicketPreview(context, order),
-                );
-              },
-              separatorBuilder: (context, index) => SizedBox(height: 10),
-              itemCount: orders.length,
-            ),
-        ],
+                  onPrintTicket: (order) => _showTicketPreview(context, order),
+                ),
+              ),
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -225,6 +187,89 @@ class _OrdersScreenState extends State<OrdersScreen> {
   }
 }
 
+class _OrdersHeader extends StatelessWidget {
+  const _OrdersHeader({
+    required this.canCreateOrder,
+    required this.onCreateOrder,
+  });
+
+  final bool canCreateOrder;
+  final VoidCallback onCreateOrder;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 44,
+      child: Row(
+        children: [
+          Container(
+            width: 34,
+            height: 34,
+            decoration: BoxDecoration(
+              color: PosColors.primary,
+              borderRadius: BorderRadius.circular(PosRadii.md),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.08),
+                  blurRadius: 10,
+                  offset: Offset(0, 4),
+                ),
+              ],
+            ),
+            child: Icon(
+              Icons.receipt_long_outlined,
+              color: PosColors.slate,
+              size: 20,
+            ),
+          ),
+          SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Orders',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                    height: 1,
+                  ),
+                ),
+                SizedBox(height: 2),
+                Text(
+                  'Accept, serve, print',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w700,
+                    color: PosColors.muted,
+                    height: 1,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          SizedBox(width: 6),
+          FilledButton.icon(
+            onPressed: canCreateOrder ? onCreateOrder : null,
+            icon: Icon(Icons.add_rounded, size: 16),
+            label: Text('New', style: TextStyle(fontSize: 12)),
+            style: FilledButton.styleFrom(
+              minimumSize: Size(0, 34),
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
 class _StatusSummary extends StatelessWidget {
   const _StatusSummary({
     required this.allOrders,
@@ -240,39 +285,92 @@ class _StatusSummary extends StatelessWidget {
   Widget build(BuildContext context) {
     final tiles = <_SummaryTile>[
       _SummaryTile(
-        status: null,
-        label: 'All',
-        count: allOrders.length,
-        color: PosColors.slate,
-        icon: Icons.list_alt_rounded,
+        status: OrderStatus.pending,
+        label: 'Pending',
+        subtitle: 'Orders',
+        count: allOrders
+            .where((o) => o.status.adminStatus == OrderStatus.pending)
+            .length,
+        color: PosColors.warning,
+        icon: Icons.pending_actions_outlined,
       ),
-      ..._adminOrderStatuses.map(
-        (s) => _SummaryTile(
-          status: s,
-          label: s.label,
-          count: allOrders.where((o) => o.status.adminStatus == s).length,
-          color: _colorForStatus(s),
-          icon: _iconForStatus(s),
-        ),
+      _SummaryTile(
+        status: OrderStatus.accepted,
+        label: 'Accepted',
+        subtitle: 'Orders',
+        count: allOrders
+            .where((o) => o.status.adminStatus == OrderStatus.accepted)
+            .length,
+        color: PosColors.primaryDark,
+        icon: Icons.check_circle_outline,
+      ),
+      _SummaryTile(
+        status: OrderStatus.cancelled,
+        label: 'Cancelled',
+        subtitle: 'Orders',
+        count: allOrders
+            .where((o) => o.status.adminStatus == OrderStatus.cancelled)
+            .length,
+        color: PosColors.danger,
+        icon: Icons.cancel_outlined,
+      ),
+      _SummaryTile(
+        status: OrderStatus.served,
+        label: 'History',
+        subtitle: 'Served',
+        count: allOrders
+            .where((o) => o.status.adminStatus == OrderStatus.served)
+            .length,
+        color: PosColors.slate,
+        icon: Icons.history_rounded,
       ),
     ];
 
-    return SizedBox(
-      height: 78,
-      child: ListView.separated(
-        scrollDirection: Axis.horizontal,
-        itemCount: tiles.length,
-        separatorBuilder: (_, _) => SizedBox(width: 8),
-        itemBuilder: (context, index) {
-          final tile = tiles[index];
-          final isSelected = selected == tile.status;
-          return _StatusChip(
-            tile: tile,
-            selected: isSelected,
-            onTap: () => onSelect(tile.status),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        if (constraints.maxWidth >= 560) {
+          return SizedBox(
+            height: 62,
+            child: Row(
+              children: [
+                for (var index = 0; index < tiles.length; index++) ...[
+                  if (index > 0) SizedBox(width: 8),
+                  Expanded(
+                    child: _StatusCardButton(
+                      tile: tiles[index],
+                      selected: selected == tiles[index].status,
+                      onTap: () => onSelect(tiles[index].status),
+                    ),
+                  ),
+                ],
+              ],
+            ),
           );
-        },
-      ),
+        }
+
+        return SizedBox(
+          height: 112,
+          child: GridView.builder(
+            padding: EdgeInsets.zero,
+            physics: NeverScrollableScrollPhysics(),
+            itemCount: tiles.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 2,
+              mainAxisExtent: 52,
+              crossAxisSpacing: 8,
+              mainAxisSpacing: 8,
+            ),
+            itemBuilder: (context, index) {
+              final tile = tiles[index];
+              return _StatusCardButton(
+                tile: tile,
+                selected: selected == tile.status,
+                onTap: () => onSelect(tile.status),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }
@@ -281,19 +379,21 @@ class _SummaryTile {
   _SummaryTile({
     required this.status,
     required this.label,
+    required this.subtitle,
     required this.count,
     required this.color,
     required this.icon,
   });
   final OrderStatus? status;
   final String label;
+  final String subtitle;
   final int count;
   final Color color;
   final IconData icon;
 }
 
-class _StatusChip extends StatelessWidget {
-  const _StatusChip({
+class _StatusCardButton extends StatelessWidget {
+  const _StatusCardButton({
     required this.tile,
     required this.selected,
     required this.onTap,
@@ -305,6 +405,8 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final background = selected ? PosColors.primary : PosColors.background;
+    final foreground = selected ? PosColors.slate : tile.color;
     return Material(
       color: Colors.transparent,
       child: InkWell(
@@ -312,80 +414,78 @@ class _StatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(PosRadii.md),
         child: AnimatedContainer(
           duration: Duration(milliseconds: 180),
-          padding: EdgeInsets.fromLTRB(14, 10, 16, 10),
+          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
           decoration: BoxDecoration(
-            gradient: selected
-                ? LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      tile.color.withValues(alpha: 0.18),
-                      tile.color.withValues(alpha: 0.08),
-                    ],
-                  )
-                : null,
-            color: selected ? null : PosColors.surface,
+            color: background,
             borderRadius: BorderRadius.circular(PosRadii.md),
             border: Border.all(
               color: selected
-                  ? tile.color.withValues(alpha: 0.45)
-                  : PosColors.line,
-              width: selected ? 1.5 : 1,
+                  ? PosColors.primaryDark.withValues(alpha: 0.32)
+                  : PosColors.lineStrong.withValues(alpha: 0.42),
+              width: selected ? 1.4 : 1,
             ),
-            boxShadow: selected
-                ? [
-                    BoxShadow(
-                      color: tile.color.withValues(alpha: 0.18),
-                      blurRadius: 12,
-                      offset: Offset(0, 6),
-                    ),
-                  ]
-                : [
-                    BoxShadow(
-                      color: Color(0x0A0F2A1F),
-                      blurRadius: 6,
-                      offset: Offset(0, 2),
-                    ),
-                  ],
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: selected ? 0.12 : 0.06),
+                blurRadius: selected ? 12 : 8,
+                offset: Offset(0, selected ? 5 : 3),
+              ),
+            ],
           ),
           child: Row(
-            mainAxisSize: MainAxisSize.min,
             children: [
               Container(
                 width: 32,
                 height: 32,
                 decoration: BoxDecoration(
-                  color: tile.color.withValues(alpha: 0.16),
+                  color: selected
+                      ? PosColors.background.withValues(alpha: 0.48)
+                      : tile.color.withValues(alpha: 0.12),
                   borderRadius: BorderRadius.circular(PosRadii.sm),
                 ),
-                child: Icon(tile.icon, color: tile.color, size: 17),
+                child: Icon(tile.icon, color: foreground, size: 17),
               ),
-              SizedBox(width: 10),
-              Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    tile.count.toString(),
-                    style: TextStyle(
-                      color: selected ? tile.color : PosColors.slate,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 17,
-                      letterSpacing: 0,
-                      height: 1.0,
+              SizedBox(width: 8),
+              Expanded(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      tile.label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: PosColors.slate,
+                        fontSize: 12.5,
+                        fontWeight: FontWeight.w900,
+                        height: 1,
+                      ),
                     ),
-                  ),
-                  SizedBox(height: 2),
-                  Text(
-                    tile.label.toUpperCase(),
-                    style: TextStyle(
-                      color: selected ? tile.color : PosColors.muted,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 9.6,
-                      letterSpacing: 0.8,
+                    SizedBox(height: 3),
+                    Text(
+                      tile.subtitle,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TextStyle(
+                        color: selected ? PosColors.slateSoft : PosColors.muted,
+                        fontSize: 9.5,
+                        fontWeight: FontWeight.w800,
+                        height: 1,
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
+              ),
+              SizedBox(width: 6),
+              Text(
+                tile.count.toString(),
+                style: TextStyle(
+                  color: PosColors.slate,
+                  fontSize: 18,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
               ),
             ],
           ),
@@ -417,80 +517,95 @@ IconData _iconForStatus(OrderStatus s) {
   };
 }
 
+String _laneTitle(OrderStatus status) {
+  return status.adminStatus == OrderStatus.served ? 'History' : status.label;
+}
+
 class _ToolbarRow extends StatelessWidget {
   const _ToolbarRow({
     required this.controller,
     required this.onSearchChanged,
     required this.sourceFilter,
     required this.onSourceChanged,
-    required this.view,
-    required this.onViewChanged,
   });
 
   final TextEditingController controller;
   final ValueChanged<String> onSearchChanged;
   final OrderSource? sourceFilter;
   final ValueChanged<OrderSource?> onSourceChanged;
-  final _OrdersView view;
-  final ValueChanged<_OrdersView> onViewChanged;
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      color: PosColors.background,
-      elevation: 2,
-      shadowColor: Colors.black.withValues(alpha: 0.12),
-      surfaceTintColor: Colors.transparent,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(PosRadii.lg),
-        side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.36)),
-      ),
-      child: Padding(
-        padding: EdgeInsets.all(10),
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final compact = constraints.maxWidth < 720;
-            final search = TextField(
-              controller: controller,
-              onChanged: onSearchChanged,
-              decoration: InputDecoration(
-                prefixIcon: Icon(Icons.search_rounded),
-                hintText: 'Order #, customer, table…',
-              ),
-            );
-            final sourceMenu = _SourceDropdown(
-              value: sourceFilter,
-              onChanged: onSourceChanged,
-            );
-            final viewToggle = _ViewToggle(
-              value: view,
-              onChanged: onViewChanged,
-            );
-            if (compact) {
-              return Column(
-                children: [
-                  search,
-                  SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Expanded(child: sourceMenu),
-                      SizedBox(width: 8),
-                      viewToggle,
-                    ],
+    return SizedBox(
+      height: 44,
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: PosColors.background,
+        elevation: 2,
+        shadowColor: Colors.black.withValues(alpha: 0.12),
+        surfaceTintColor: Colors.transparent,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PosRadii.lg),
+          side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.36)),
+        ),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final compact = constraints.maxWidth < 520;
+              final search = SizedBox(
+                height: 34,
+                child: TextField(
+                  controller: controller,
+                  onChanged: onSearchChanged,
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: PosColors.slate,
                   ),
+                  textAlignVertical: TextAlignVertical.center,
+                  decoration: InputDecoration(
+                    isDense: true,
+                    prefixIcon: Icon(Icons.search_rounded, size: 17),
+                    prefixIconConstraints: BoxConstraints.tightFor(
+                      width: 32,
+                      height: 32,
+                    ),
+                    hintText: 'Search order',
+                    hintStyle: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: PosColors.muted,
+                    ),
+                    contentPadding: EdgeInsets.symmetric(
+                      horizontal: 8,
+                      vertical: 0,
+                    ),
+                  ),
+                ),
+              );
+              final sourceMenu = _SourceDropdown(
+                value: sourceFilter,
+                onChanged: onSourceChanged,
+              );
+              if (compact) {
+                return Row(
+                  children: [
+                    Expanded(child: search),
+                    SizedBox(width: 6),
+                    SizedBox(width: 108, child: sourceMenu),
+                  ],
+                );
+              }
+              return Row(
+                children: [
+                  Expanded(flex: 5, child: search),
+                  SizedBox(width: 10),
+                  Expanded(flex: 3, child: sourceMenu),
                 ],
               );
-            }
-            return Row(
-              children: [
-                Expanded(flex: 5, child: search),
-                SizedBox(width: 10),
-                Expanded(flex: 3, child: sourceMenu),
-                SizedBox(width: 10),
-                viewToggle,
-              ],
-            );
-          },
+            },
+          ),
         ),
       ),
     );
@@ -505,135 +620,201 @@ class _SourceDropdown extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return DropdownButtonFormField<OrderSource?>(
+    final label = value == null ? 'All' : _shortSourceLabel(value!);
+    return PopupMenuButton<OrderSource?>(
       initialValue: value,
-      decoration: InputDecoration(
-        prefixIcon: Icon(Icons.merge_type_rounded),
-        labelText: 'Source',
-      ),
-      items: [
-        DropdownMenuItem<OrderSource?>(value: null, child: Text('All sources')),
+      tooltip: 'Filter source',
+      onSelected: onChanged,
+      itemBuilder: (context) => [
+        PopupMenuItem<OrderSource?>(value: null, child: Text('All sources')),
         for (final s in OrderSource.values)
-          DropdownMenuItem<OrderSource?>(value: s, child: Text(s.label)),
+          PopupMenuItem<OrderSource?>(value: s, child: Text(s.label)),
       ],
-      onChanged: onChanged,
+      child: Container(
+        height: 34,
+        padding: EdgeInsets.symmetric(horizontal: 8),
+        decoration: BoxDecoration(
+          color: PosColors.background,
+          borderRadius: BorderRadius.circular(PosRadii.md),
+          border: Border.all(
+            color: PosColors.lineStrong.withValues(alpha: 0.42),
+          ),
+        ),
+        child: Row(
+          children: [
+            Icon(Icons.merge_type_rounded, size: 16, color: PosColors.muted),
+            SizedBox(width: 5),
+            Expanded(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: TextStyle(
+                  color: PosColors.slate,
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w900,
+                  height: 1,
+                ),
+              ),
+            ),
+            SizedBox(width: 3),
+            Icon(
+              Icons.keyboard_arrow_down_rounded,
+              size: 17,
+              color: PosColors.muted,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
 
-class _ViewToggle extends StatelessWidget {
-  const _ViewToggle({required this.value, required this.onChanged});
-
-  final _OrdersView value;
-  final ValueChanged<_OrdersView> onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return SegmentedButton<_OrdersView>(
-      style: ButtonStyle(visualDensity: VisualDensity.compact),
-      segments: [
-        ButtonSegment(
-          value: _OrdersView.board,
-          icon: Icon(Icons.view_kanban_rounded),
-          tooltip: 'Board',
-        ),
-        ButtonSegment(
-          value: _OrdersView.list,
-          icon: Icon(Icons.view_list_rounded),
-          tooltip: 'List',
-        ),
-      ],
-      selected: {value},
-      showSelectedIcon: false,
-      onSelectionChanged: (set) => onChanged(set.first),
-    );
-  }
+String _shortSourceLabel(OrderSource source) {
+  return switch (source) {
+    OrderSource.localLan => 'LAN',
+    OrderSource.cloud => 'Cloud',
+    OrderSource.manual => 'Manual',
+  };
 }
 
-class _KanbanBoard extends StatelessWidget {
-  const _KanbanBoard({
+class _OrdersBoard extends StatefulWidget {
+  const _OrdersBoard({
     required this.orders,
+    required this.selectedStatus,
+    required this.onSelectedStatusChanged,
     required this.onStatusChanged,
     required this.onPrintTicket,
   });
 
   final List<OrderModel> orders;
+  final OrderStatus? selectedStatus;
+  final ValueChanged<OrderStatus> onSelectedStatusChanged;
   final void Function(OrderModel order, OrderStatus status) onStatusChanged;
   final void Function(OrderModel order) onPrintTicket;
 
-  static final _columns = <OrderStatus>[
-    OrderStatus.pending,
-    OrderStatus.accepted,
-    OrderStatus.served,
-    OrderStatus.cancelled,
-  ];
+  @override
+  State<_OrdersBoard> createState() => _OrdersBoardState();
+}
+
+class _OrdersBoardState extends State<_OrdersBoard> {
+  PageController? _ordersPageController;
+
+  PageController get _pageController => _ordersPageController ??=
+      PageController(initialPage: _pageForStatus(widget.selectedStatus));
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController;
+  }
+
+  @override
+  void didUpdateWidget(covariant _OrdersBoard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.selectedStatus != widget.selectedStatus) {
+      _scheduleFocus();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ordersPageController?.dispose();
+    super.dispose();
+  }
+
+  int _pageForStatus(OrderStatus? status) {
+    final index = status == null
+        ? 0
+        : _adminOrderStatuses.indexOf(status.adminStatus);
+    return index < 0 ? 0 : index;
+  }
+
+  void _scheduleFocus() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final controller = _ordersPageController;
+      if (!mounted || controller == null || !controller.hasClients) return;
+      final target = _pageForStatus(widget.selectedStatus);
+      final current = (controller.page ?? controller.initialPage).round();
+      if (current == target) return;
+      controller.animateToPage(
+        target,
+        duration: Duration(milliseconds: 260),
+        curve: Curves.easeOutCubic,
+      );
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        return SizedBox(
-          height: 560,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            physics: BouncingScrollPhysics(),
-            itemCount: _columns.length,
-            separatorBuilder: (_, _) => SizedBox(width: 12),
-            itemBuilder: (context, index) {
-              final status = _columns[index];
-              final lane = orders
-                  .where((o) => o.status.adminStatus == status)
-                  .toList();
-              return SizedBox(
-                width: 320,
-                child: _Lane(
-                  status: status,
-                  orders: lane,
-                  onStatusChanged: onStatusChanged,
-                  onPrintTicket: onPrintTicket,
-                ),
-              );
-            },
-          ),
+    final statuses = _adminOrderStatuses;
+    return PageView.builder(
+      controller: _pageController,
+      physics: PageScrollPhysics(parent: BouncingScrollPhysics()),
+      itemCount: statuses.length,
+      onPageChanged: (index) {
+        widget.onSelectedStatusChanged(statuses[index]);
+      },
+      itemBuilder: (context, index) {
+        final status = statuses[index];
+        final laneOrders = widget.orders
+            .where((order) => order.status.adminStatus == status)
+            .toList(growable: false);
+        return _OrderLane(
+          status: status,
+          orders: laneOrders,
+          isSelected: widget.selectedStatus?.adminStatus == status,
+          onStatusChanged: widget.onStatusChanged,
+          onPrintTicket: widget.onPrintTicket,
         );
       },
     );
   }
 }
 
-class _Lane extends StatelessWidget {
-  const _Lane({
+class _OrderLane extends StatelessWidget {
+  const _OrderLane({
     required this.status,
     required this.orders,
+    required this.isSelected,
     required this.onStatusChanged,
     required this.onPrintTicket,
   });
 
   final OrderStatus status;
   final List<OrderModel> orders;
+  final bool isSelected;
   final void Function(OrderModel order, OrderStatus status) onStatusChanged;
   final void Function(OrderModel order) onPrintTicket;
 
   @override
   Widget build(BuildContext context) {
     final color = _colorForStatus(status);
-    return Container(
+    return DecoratedBox(
       decoration: BoxDecoration(
         color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.lg),
-        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
+        border: Border.all(
+          color: isSelected
+              ? PosColors.primaryDark.withValues(alpha: 0.42)
+              : PosColors.lineStrong.withValues(alpha: 0.36),
+          width: isSelected ? 1.4 : 1,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.07),
-            blurRadius: 12,
-            offset: Offset(0, 5),
+            color: isSelected
+                ? PosColors.primary.withValues(alpha: 0.28)
+                : Colors.black.withValues(alpha: 0.07),
+            blurRadius: isSelected ? 16 : 12,
+            offset: Offset(0, isSelected ? 7 : 5),
           ),
         ],
       ),
       child: Column(
         children: [
           Container(
-            padding: EdgeInsets.fromLTRB(12, 12, 12, 10),
+            height: 44,
+            padding: EdgeInsets.symmetric(horizontal: 10),
             decoration: BoxDecoration(
               color: PosColors.background,
               borderRadius: BorderRadius.vertical(
@@ -648,87 +829,47 @@ class _Lane extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 30,
-                  height: 30,
+                  width: 26,
+                  height: 26,
                   decoration: BoxDecoration(
                     color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(PosRadii.sm),
                   ),
-                  child: Icon(_iconForStatus(status), color: color, size: 16),
+                  child: Icon(_iconForStatus(status), color: color, size: 14),
                 ),
-                SizedBox(width: 10),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    status.label.toUpperCase(),
+                    _laneTitle(status),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                     style: TextStyle(
                       color: color,
                       fontWeight: FontWeight.w900,
                       fontSize: 12,
-                      letterSpacing: 1.0,
+                      letterSpacing: 0,
                     ),
                   ),
                 ),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: PosColors.background,
-                    borderRadius: BorderRadius.circular(PosRadii.pill),
-                    border: Border.all(color: color.withValues(alpha: 0.32)),
-                  ),
-                  child: Text(
-                    orders.length.toString(),
-                    style: TextStyle(
-                      color: color,
-                      fontWeight: FontWeight.w900,
-                      fontSize: 11.5,
-                    ),
-                  ),
-                ),
+                _CountPill(count: orders.length, color: color),
               ],
             ),
           ),
           Expanded(
             child: orders.isEmpty
-                ? Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(20),
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            _iconForStatus(status),
-                            color: color.withValues(alpha: 0.45),
-                            size: 28,
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'No ${status.label.toLowerCase()} orders',
-                            style: TextStyle(
-                              color: PosColors.muted,
-                              fontWeight: FontWeight.w700,
-                              fontSize: 11.6,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  )
+                ? _LaneEmpty(status: status, color: color)
                 : ListView.separated(
-                    padding: EdgeInsets.all(10),
+                    padding: EdgeInsets.all(8),
                     itemCount: orders.length,
                     separatorBuilder: (_, _) => SizedBox(height: 8),
-                    itemBuilder: (context, i) {
-                      final order = orders[i];
-                      return _LaneCard(
+                    itemBuilder: (context, index) {
+                      final order = orders[index];
+                      return _CompactOrderCard(
                         order: order,
                         accent: color,
-                        onAdvance: () {
-                          final next = _nextStatus(order.status);
-                          if (next != null) onStatusChanged(order, next);
-                        },
-                        onCancel: () =>
-                            onStatusChanged(order, OrderStatus.cancelled),
                         onPrint: () => onPrintTicket(order),
+                        onStatusChanged: (status) =>
+                            onStatusChanged(order, status),
                       );
                     },
                   ),
@@ -737,45 +878,84 @@ class _Lane extends StatelessWidget {
       ),
     );
   }
+}
 
-  OrderStatus? _nextStatus(OrderStatus current) {
-    switch (current) {
-      case OrderStatus.pending:
-        return OrderStatus.accepted;
-      case OrderStatus.accepted:
-        return OrderStatus.served;
-      case OrderStatus.preparing:
-      case OrderStatus.ready:
-        return OrderStatus.served;
-      case OrderStatus.served:
-      case OrderStatus.cancelled:
-        return null;
-    }
+class _CountPill extends StatelessWidget {
+  const _CountPill({required this.count, required this.color});
+
+  final int count;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.12),
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+      ),
+      child: Text(
+        count.toString(),
+        style: TextStyle(
+          color: color,
+          fontWeight: FontWeight.w900,
+          fontSize: 11,
+        ),
+      ),
+    );
   }
 }
 
-class _LaneCard extends StatelessWidget {
-  const _LaneCard({
+class _LaneEmpty extends StatelessWidget {
+  const _LaneEmpty({required this.status, required this.color});
+
+  final OrderStatus status;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(_iconForStatus(status), color: color.withValues(alpha: 0.45)),
+            SizedBox(height: 6),
+            Text(
+              'No ${_laneTitle(status).toLowerCase()} orders',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: PosColors.muted,
+                fontWeight: FontWeight.w700,
+                fontSize: 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _CompactOrderCard extends StatelessWidget {
+  const _CompactOrderCard({
     required this.order,
     required this.accent,
-    required this.onAdvance,
-    required this.onCancel,
     required this.onPrint,
+    required this.onStatusChanged,
   });
 
   final OrderModel order;
   final Color accent;
-  final VoidCallback onAdvance;
-  final VoidCallback onCancel;
   final VoidCallback onPrint;
+  final ValueChanged<OrderStatus> onStatusChanged;
 
   @override
   Widget build(BuildContext context) {
     final currency = NumberFormat.currency(symbol: r'$', decimalDigits: 2);
-    final time = DateFormat('h:mm a').format(order.createdAt);
-    final canAdvance =
-        order.status != OrderStatus.served &&
-        order.status != OrderStatus.cancelled;
+    final time = _displayOrderTime(order);
+    final nextStatus = _nextStatus(order.status);
     final canCancel =
         order.status != OrderStatus.served &&
         order.status != OrderStatus.cancelled;
@@ -788,214 +968,262 @@ class _LaneCard extends StatelessWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.black.withValues(alpha: 0.06),
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            blurRadius: 9,
+            offset: Offset(0, 3),
           ),
         ],
       ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          Container(
-            height: 3,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [accent, accent.withValues(alpha: 0.4)],
-              ),
-              borderRadius: BorderRadius.vertical(
-                top: Radius.circular(PosRadii.md),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(12),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+      child: Padding(
+        padding: EdgeInsets.all(9),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
               children: [
-                Row(
-                  children: [
-                    Container(
-                      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-                      decoration: BoxDecoration(
-                        color: PosColors.primary,
-                        borderRadius: BorderRadius.circular(PosRadii.pill),
-                      ),
-                      child: Text(
-                        order.displaySequence,
-                        style: TextStyle(
-                          color: PosColors.slate,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: 7),
-                    Expanded(
-                      child: Text(
-                        order.orderNo,
-                        style: TextStyle(
-                          color: PosColors.slate,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 14.5,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ),
-                    Text(
-                      time,
-                      style: TextStyle(
-                        color: PosColors.muted,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11,
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 6),
-                Wrap(
-                  spacing: 6,
-                  runSpacing: 4,
-                  children: [
-                    _MiniMeta(
-                      icon: Icons.person_outline,
-                      label: order.customerName ?? 'Walk-in',
-                    ),
-                    _MiniMeta(
-                      icon: Icons.table_restaurant_outlined,
-                      label: 'T${order.tableNo ?? '·'}',
-                    ),
-                    _MiniMeta(
-                      icon: Icons.shopping_bag_outlined,
-                      label:
-                          '${order.items.length} item${order.items.length == 1 ? '' : 's'}',
-                    ),
-                  ],
-                ),
-                SizedBox(height: 8),
-                Container(
-                  padding: EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                  decoration: BoxDecoration(
-                    color: PosColors.background,
-                    borderRadius: BorderRadius.circular(PosRadii.sm),
-                    border: Border.all(
-                      color: PosColors.lineStrong.withValues(alpha: 0.36),
+                _OrderNoPill(order.displaySequence),
+                SizedBox(width: 6),
+                Expanded(
+                  child: Text(
+                    order.orderNo,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: PosColors.slate,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 12.5,
+                      letterSpacing: 0,
                     ),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final item in order.items.take(3))
-                        Padding(
-                          padding: EdgeInsets.symmetric(vertical: 1.5),
-                          child: Row(
-                            children: [
-                              Text(
-                                '${item.qty}×',
-                                style: TextStyle(
-                                  color: PosColors.primary,
-                                  fontWeight: FontWeight.w900,
-                                  fontSize: 11.5,
-                                ),
-                              ),
-                              SizedBox(width: 6),
-                              Expanded(
-                                child: Text(
-                                  item.name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: TextStyle(
-                                    color: PosColors.slateSoft,
-                                    fontSize: 12,
-                                    fontWeight: FontWeight.w600,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      if (order.items.length > 3)
-                        Padding(
-                          padding: EdgeInsets.only(top: 3),
-                          child: Text(
-                            '+ ${order.items.length - 3} more',
+                ),
+                Text(
+                  time,
+                  style: TextStyle(
+                    color: PosColors.muted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 10,
+                  ),
+                ),
+              ],
+            ),
+            SizedBox(height: 6),
+            Wrap(
+              spacing: 5,
+              runSpacing: 5,
+              children: [
+                _MiniInfo(
+                  Icons.person_outline,
+                  order.customerName ?? 'Walk-in',
+                ),
+                _MiniInfo(
+                  Icons.table_restaurant_outlined,
+                  'T${order.tableNo ?? '-'}',
+                ),
+                StatusBadge.order(order.status),
+              ],
+            ),
+            SizedBox(height: 7),
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+              decoration: BoxDecoration(
+                color: PosColors.background,
+                borderRadius: BorderRadius.circular(PosRadii.sm),
+                border: Border.all(
+                  color: PosColors.lineStrong.withValues(alpha: 0.28),
+                ),
+              ),
+              child: Column(
+                children: [
+                  for (final item in order.items.take(2))
+                    Padding(
+                      padding: EdgeInsets.symmetric(vertical: 1.5),
+                      child: Row(
+                        children: [
+                          Text(
+                            '${item.qty}x',
                             style: TextStyle(
-                              color: PosColors.muted,
+                              color: PosColors.primaryDark,
+                              fontWeight: FontWeight.w900,
                               fontSize: 11,
-                              fontWeight: FontWeight.w700,
                             ),
                           ),
+                          SizedBox(width: 5),
+                          Expanded(
+                            child: Text(
+                              item.name,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                color: PosColors.slateSoft,
+                                fontWeight: FontWeight.w700,
+                                fontSize: 11.2,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (order.items.length > 2)
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        '+ ${order.items.length - 2} more',
+                        style: TextStyle(
+                          color: PosColors.muted,
+                          fontWeight: FontWeight.w700,
+                          fontSize: 10.5,
                         ),
-                    ],
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            SizedBox(height: 8),
+            Row(
+              children: [
+                Text(
+                  currency.format(order.total),
+                  style: TextStyle(
+                    color: PosColors.primaryDark,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14.5,
                   ),
                 ),
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    Text(
-                      currency.format(order.total),
-                      style: TextStyle(
-                        color: PosColors.primaryDark,
-                        fontWeight: FontWeight.w900,
-                        fontSize: 16,
-                        letterSpacing: 0,
-                      ),
-                    ),
-                    Spacer(),
-                    _CardIconBtn(
-                      icon: Icons.print_outlined,
-                      tooltip: 'Print ticket',
-                      onTap: onPrint,
-                    ),
-                    SizedBox(width: 6),
-                    if (canCancel)
-                      _CardIconBtn(
-                        icon: Icons.close_rounded,
-                        tooltip: 'Cancel order',
-                        onTap: onCancel,
-                        color: PosColors.danger,
-                      ),
-                  ],
+                Spacer(),
+                _MiniAction(
+                  icon: Icons.print_outlined,
+                  tooltip: 'Print',
+                  onTap: onPrint,
                 ),
-                if (canAdvance) ...[
-                  SizedBox(height: 10),
-                  SizedBox(
-                    width: double.infinity,
-                    child: FilledButton.icon(
-                      onPressed: onAdvance,
-                      icon: Icon(Icons.arrow_forward_rounded, size: 17),
-                      label: Text(
-                        _nextLabel(order.status),
-                        style: TextStyle(fontSize: 12.5),
-                      ),
-                      style: FilledButton.styleFrom(
-                        backgroundColor: accent,
-                        padding: EdgeInsets.symmetric(vertical: 9),
-                      ),
-                    ),
+                if (canCancel) ...[
+                  SizedBox(width: 5),
+                  _MiniAction(
+                    icon: Icons.close_rounded,
+                    tooltip: 'Cancel',
+                    color: PosColors.danger,
+                    onTap: () => onStatusChanged(OrderStatus.cancelled),
                   ),
                 ],
               ],
+            ),
+            if (nextStatus != null) ...[
+              SizedBox(height: 7),
+              SizedBox(
+                width: double.infinity,
+                height: 32,
+                child: FilledButton.icon(
+                  onPressed: () => onStatusChanged(nextStatus),
+                  icon: Icon(Icons.arrow_forward_rounded, size: 15),
+                  label: Text(
+                    _nextLabel(order.status),
+                    style: TextStyle(fontSize: 11.5),
+                  ),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: accent,
+                    padding: EdgeInsets.zero,
+                    tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                  ),
+                ),
+              ),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  OrderStatus? _nextStatus(OrderStatus status) {
+    return switch (status.adminStatus) {
+      OrderStatus.pending => OrderStatus.accepted,
+      OrderStatus.accepted => OrderStatus.served,
+      _ => null,
+    };
+  }
+
+  String _nextLabel(OrderStatus status) {
+    return switch (status.adminStatus) {
+      OrderStatus.pending => 'Accept',
+      OrderStatus.accepted => 'Mark served',
+      _ => 'Advance',
+    };
+  }
+}
+
+String _displayOrderTime(OrderModel order) {
+  final timestamp =
+      order.status.adminStatus == OrderStatus.served ||
+          order.status.adminStatus == OrderStatus.cancelled
+      ? order.updatedAt
+      : order.createdAt;
+  final local = timestamp.toLocal();
+  final now = DateTime.now();
+  final isToday =
+      local.year == now.year &&
+      local.month == now.month &&
+      local.day == now.day;
+  return DateFormat(isToday ? 'h:mm a' : 'MMM d, h:mm a').format(local);
+}
+
+class _OrderNoPill extends StatelessWidget {
+  const _OrderNoPill(this.label);
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+      decoration: BoxDecoration(
+        color: PosColors.primary,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: PosColors.slate,
+          fontWeight: FontWeight.w900,
+          fontSize: 10.8,
+        ),
+      ),
+    );
+  }
+}
+
+class _MiniInfo extends StatelessWidget {
+  const _MiniInfo(this.icon, this.label);
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(icon, size: 11, color: PosColors.slate),
+          SizedBox(width: 3),
+          Text(
+            label,
+            style: TextStyle(
+              color: PosColors.slate,
+              fontWeight: FontWeight.w800,
+              fontSize: 10.5,
             ),
           ),
         ],
       ),
     );
   }
-
-  String _nextLabel(OrderStatus status) {
-    return switch (status) {
-      OrderStatus.pending => 'Accept',
-      OrderStatus.accepted => 'Mark served',
-      OrderStatus.preparing => 'Mark served',
-      OrderStatus.ready => 'Mark served',
-      _ => 'Advance',
-    };
-  }
 }
 
-class _CardIconBtn extends StatelessWidget {
-  const _CardIconBtn({
+class _MiniAction extends StatelessWidget {
+  const _MiniAction({
     required this.icon,
     required this.tooltip,
     required this.onTap,
@@ -1018,44 +1246,12 @@ class _CardIconBtn extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(PosRadii.sm),
-          child: Padding(
-            padding: EdgeInsets.all(7),
-            child: Icon(icon, color: c, size: 16),
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: Icon(icon, size: 15, color: c),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _MiniMeta extends StatelessWidget {
-  const _MiniMeta({required this.icon, required this.label});
-  final IconData icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
-      decoration: BoxDecoration(
-        color: PosColors.background,
-        borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.lineStrong.withValues(alpha: 0.36)),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Icon(icon, size: 11.5, color: PosColors.muted),
-          SizedBox(width: 4),
-          Text(
-            label,
-            style: TextStyle(
-              color: PosColors.slateSoft,
-              fontWeight: FontWeight.w700,
-              fontSize: 10.6,
-            ),
-          ),
-        ],
       ),
     );
   }

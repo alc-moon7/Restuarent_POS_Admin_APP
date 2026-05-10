@@ -80,7 +80,7 @@ class StatusBadge extends StatelessWidget {
           Text(
             label,
             style: TextStyle(
-              color: color,
+              color: PosColors.slate,
               fontWeight: FontWeight.w900,
               fontSize: dense ? 10.6 : 11.4,
               letterSpacing: 0.2,

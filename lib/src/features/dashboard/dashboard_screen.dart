@@ -9,7 +9,7 @@ import '../../core/widgets/error_view.dart';
 import '../../core/widgets/loading_view.dart';
 import '../../core/widgets/mini_bar_chart.dart';
 import '../../core/widgets/primary_button.dart';
-import '../../core/widgets/status_badge.dart';
+import '../../models/order_status.dart';
 import '../../models/sales_report.dart';
 
 class DashboardScreen extends StatelessWidget {
@@ -39,19 +39,25 @@ class DashboardScreen extends StatelessWidget {
     final metrics = app.metrics;
     final sync = app.syncState;
     final report7 = app.salesReportForDays(7);
+    final restaurantName = app.restaurantName.trim().isEmpty
+        ? 'Restaurant'
+        : app.restaurantName.trim();
+    final pendingNow = app.orders
+        .where((order) => order.status.adminStatus == OrderStatus.pending)
+        .length;
+    final acceptedNow = app.orders
+        .where((order) => order.status.adminStatus == OrderStatus.accepted)
+        .length;
 
     return AppScaffold(
-      title: _greeting(
-        app.restaurantName.isEmpty ? 'Admin' : app.restaurantName,
-      ),
-      subtitle: 'Live overview of menu, orders, and cloud sync.',
+      title: 'Home',
+      showDatePill: false,
+      centerHeader: true,
       actions: [
-        StatusBadge(
-          label: sync.cloudConnected ? 'Cloud Live' : 'Cloud Queued',
-          color: sync.cloudConnected ? PosColors.success : PosColors.warning,
-          icon: sync.cloudConnected
-              ? Icons.cloud_done_outlined
-              : Icons.cloud_queue_outlined,
+        _HomeHeaderDetails(
+          restaurantName: restaurantName,
+          greeting: _greeting(),
+          cloudConnected: sync.cloudConnected,
         ),
       ],
       child: Column(
@@ -60,13 +66,16 @@ class DashboardScreen extends StatelessWidget {
           _HeroPanel(
             todaySales: metrics.totalSales,
             todayOrders: metrics.todayOrders,
+            openOrders: metrics.pendingOrders,
             sevenDayReport: report7,
             currency: currency,
             compactCurrency: compactCurrency,
+            onOpenOrders: () => onNavigate(0),
+            onOpenReports: () => onNavigate(3),
           ),
-          SizedBox(height: 18),
+          SizedBox(height: 14),
           _SectionLabel(icon: Icons.bolt_rounded, label: "Today's pulse"),
-          SizedBox(height: 10),
+          SizedBox(height: 8),
           _PulseGrid(
             cards: [
               DashboardCard(
@@ -77,23 +86,23 @@ class DashboardScreen extends StatelessWidget {
                 onTap: () => onNavigate(0),
               ),
               DashboardCard(
-                title: 'Accepted now',
-                value: metrics.pendingOrders.toString(),
-                icon: Icons.check_circle_outline,
+                title: 'Pending',
+                value: pendingNow.toString(),
+                icon: Icons.pending_actions_outlined,
                 color: PosColors.warning,
                 onTap: () => onNavigate(0),
               ),
               DashboardCard(
-                title: 'Completed',
-                value: metrics.completedOrders.toString(),
-                icon: Icons.done_all,
+                title: 'Accepted',
+                value: acceptedNow.toString(),
+                icon: Icons.check_circle_outline,
                 color: PosColors.success,
                 onTap: () => onNavigate(0),
               ),
               DashboardCard(
                 title: 'Avg ticket',
                 value: report7.averageOrderValue == 0
-                    ? '—'
+                    ? '-'
                     : currency.format(report7.averageOrderValue),
                 icon: Icons.trending_up_outlined,
                 color: PosColors.info,
@@ -101,15 +110,15 @@ class DashboardScreen extends StatelessWidget {
               ),
             ],
           ),
-          SizedBox(height: 18),
+          SizedBox(height: 14),
           _SectionLabel(
             icon: Icons.insights_rounded,
             label: 'Revenue & catalog',
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 8),
           LayoutBuilder(
             builder: (context, constraints) {
-              final wide = constraints.maxWidth >= 920;
+              final wide = constraints.maxWidth >= 860;
               final revenueCard = _RevenueBreakdownCard(
                 weekSales: metrics.sevenDaySales,
                 monthSales: metrics.thirtyDaySales,
@@ -125,41 +134,150 @@ class DashboardScreen extends StatelessWidget {
               );
               if (!wide) {
                 return Column(
-                  children: [revenueCard, SizedBox(height: 10), catalogCard],
+                  children: [revenueCard, SizedBox(height: 8), catalogCard],
                 );
               }
               return Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(child: revenueCard),
-                  SizedBox(width: 10),
+                  SizedBox(width: 8),
                   Expanded(child: catalogCard),
                 ],
               );
             },
           ),
-          SizedBox(height: 18),
+          SizedBox(height: 14),
           _SectionLabel(icon: Icons.flash_on_rounded, label: 'Quick actions'),
-          SizedBox(height: 10),
+          SizedBox(height: 8),
           _QuickActions(onNavigate: onNavigate, onSyncNow: app.syncNow),
-          SizedBox(height: 16),
-          _CloudHintCard(
-            connected: sync.cloudConnected,
-            cloudUrl: app.cloudConfig.baseUrl,
-          ),
         ],
       ),
     );
   }
 
-  String _greeting(String name) {
+  String _greeting() {
     final hour = DateTime.now().hour;
-    final part = hour < 12
+    return hour < 12
         ? 'Good morning'
         : hour < 17
         ? 'Good afternoon'
         : 'Good evening';
-    return '$part, $name';
+  }
+}
+
+class _HomeHeaderDetails extends StatelessWidget {
+  const _HomeHeaderDetails({
+    required this.restaurantName,
+    required this.greeting,
+    required this.cloudConnected,
+  });
+
+  final String restaurantName;
+  final String greeting;
+  final bool cloudConnected;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          greeting,
+          textAlign: TextAlign.center,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: PosColors.slate,
+            fontWeight: FontWeight.w900,
+            fontSize: 13,
+            height: 1.1,
+          ),
+        ),
+        SizedBox(height: 7),
+        Container(
+          constraints: BoxConstraints(maxWidth: 280),
+          padding: EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+          decoration: BoxDecoration(
+            color: PosColors.surface,
+            borderRadius: BorderRadius.circular(PosRadii.pill),
+            border: Border.all(color: PosColors.lineStrong),
+            boxShadow: [
+              BoxShadow(
+                color: PosColors.primary.withValues(alpha: 0.18),
+                blurRadius: 12,
+                offset: Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.restaurant_menu_rounded,
+                color: PosColors.slate,
+                size: 16,
+              ),
+              SizedBox(width: 7),
+              Flexible(
+                child: Text(
+                  restaurantName,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: PosColors.slate,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 14,
+                    letterSpacing: 0,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+        SizedBox(height: 7),
+        _CloudHeaderStatus(connected: cloudConnected),
+      ],
+    );
+  }
+}
+
+class _CloudHeaderStatus extends StatelessWidget {
+  const _CloudHeaderStatus({required this.connected});
+
+  final bool connected;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = connected ? PosColors.success : PosColors.warning;
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+      decoration: BoxDecoration(
+        color: PosColors.background,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+        border: Border.all(color: PosColors.lineStrong),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(
+            connected ? Icons.check_circle_rounded : Icons.pending_rounded,
+            color: color,
+            size: 15,
+          ),
+          SizedBox(width: 6),
+          Text(
+            connected ? 'Cloud Connected' : 'Cloud Queue',
+            style: TextStyle(
+              color: PosColors.slate,
+              fontWeight: FontWeight.w900,
+              fontSize: 11.5,
+              height: 1,
+            ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -174,25 +292,16 @@ class _SectionLabel extends StatelessWidget {
     return Row(
       children: [
         Container(
-          width: 28,
-          height: 28,
+          width: 27,
+          height: 27,
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                PosColors.primary.withValues(alpha: 0.20),
-                PosColors.primary.withValues(alpha: 0.08),
-              ],
-            ),
+            color: PosColors.surface,
             borderRadius: BorderRadius.circular(PosRadii.sm),
-            border: Border.all(
-              color: PosColors.primary.withValues(alpha: 0.20),
-            ),
+            border: Border.all(color: PosColors.lineStrong),
           ),
-          child: Icon(icon, color: PosColors.primary, size: 16),
+          child: Icon(icon, color: PosColors.slate, size: 15),
         ),
-        SizedBox(width: 10),
+        SizedBox(width: 8),
         Text(
           label,
           style: TextStyle(
@@ -211,219 +320,246 @@ class _HeroPanel extends StatelessWidget {
   const _HeroPanel({
     required this.todaySales,
     required this.todayOrders,
+    required this.openOrders,
     required this.sevenDayReport,
     required this.currency,
     required this.compactCurrency,
+    required this.onOpenOrders,
+    required this.onOpenReports,
   });
 
   final double todaySales;
   final int todayOrders;
+  final int openOrders;
   final SalesReport sevenDayReport;
   final NumberFormat currency;
   final NumberFormat compactCurrency;
+  final VoidCallback onOpenOrders;
+  final VoidCallback onOpenReports;
 
   @override
   Widget build(BuildContext context) {
     final daily = sevenDayReport.dailyBreakdown;
-    final values = daily.map<double>((d) => d.sales).toList();
+    final values = daily.map<double>((day) => day.sales).toList();
     final labels = daily
-        .map<String>((d) => DateFormat('E').format(d.date).substring(0, 1))
+        .map<String>((day) => DateFormat('E').format(day.date).substring(0, 1))
         .toList();
     final yesterday = values.length >= 2 ? values[values.length - 2] : 0.0;
-    final today = values.isEmpty ? 0.0 : values.last;
-    final delta = today - yesterday;
+    final delta = todaySales - yesterday;
     final pct = yesterday == 0 ? null : (delta / yesterday) * 100;
 
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(PosRadii.lg),
-      child: Container(
-        decoration: BoxDecoration(
-          color: PosColors.background,
-          borderRadius: BorderRadius.circular(PosRadii.lg),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.07),
-              blurRadius: 16,
-              offset: Offset(0, 6),
-            ),
-          ],
-          border: Border.all(
-            color: PosColors.lineStrong.withValues(alpha: 0.36),
-          ),
-        ),
-        child: Stack(
-          children: [
-            Positioned(
-              right: -60,
-              top: -60,
-              child: Container(
-                width: 220,
-                height: 220,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [Colors.transparent, Colors.transparent],
-                  ),
-                ),
+    return Card(
+      color: PosColors.background,
+      surfaceTintColor: Colors.transparent,
+      clipBehavior: Clip.antiAlias,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(PosRadii.lg),
+        side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.42)),
+      ),
+      child: Padding(
+        padding: EdgeInsets.all(14),
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final wide = constraints.maxWidth >= 620;
+            final summary = _HeroSummary(
+              todaySales: todaySales,
+              todayOrders: todayOrders,
+              openOrders: openOrders,
+              delta: delta,
+              pct: pct,
+              weekSales: values.fold<double>(
+                0,
+                (total, value) => total + value,
               ),
-            ),
-            Positioned(
-              left: -40,
-              bottom: -50,
-              child: Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [Colors.transparent, Colors.transparent],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(20),
-              child: LayoutBuilder(
-                builder: (context, constraints) {
-                  final wide = constraints.maxWidth >= 620;
-                  final summary = _heroSummary(
-                    context,
-                    today,
-                    delta,
-                    pct,
-                    values,
-                  );
-                  final chart = _heroChart(values, labels);
-                  if (!wide) {
-                    return Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [summary, SizedBox(height: 18), chart],
-                    );
-                  }
-                  return Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(flex: 5, child: summary),
-                      SizedBox(width: 18),
-                      Expanded(flex: 5, child: chart),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
+              currency: currency,
+              compactCurrency: compactCurrency,
+              onOpenOrders: onOpenOrders,
+              onOpenReports: onOpenReports,
+            );
+            final chart = _HeroChart(
+              values: values,
+              labels: labels,
+              compactCurrency: compactCurrency,
+            );
+            if (!wide) {
+              return Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [summary, SizedBox(height: 14), chart],
+              );
+            }
+            return Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(flex: 5, child: summary),
+                SizedBox(width: 14),
+                Expanded(flex: 5, child: chart),
+              ],
+            );
+          },
         ),
       ),
     );
   }
+}
 
-  Widget _heroSummary(
-    BuildContext context,
-    double today,
-    double delta,
-    double? pct,
-    List<double> values,
-  ) {
+class _HeroSummary extends StatelessWidget {
+  const _HeroSummary({
+    required this.todaySales,
+    required this.todayOrders,
+    required this.openOrders,
+    required this.delta,
+    required this.pct,
+    required this.weekSales,
+    required this.currency,
+    required this.compactCurrency,
+    required this.onOpenOrders,
+    required this.onOpenReports,
+  });
+
+  final double todaySales;
+  final int todayOrders;
+  final int openOrders;
+  final double delta;
+  final double? pct;
+  final double weekSales;
+  final NumberFormat currency;
+  final NumberFormat compactCurrency;
+  final VoidCallback onOpenOrders;
+  final VoidCallback onOpenReports;
+
+  @override
+  Widget build(BuildContext context) {
     final positive = delta >= 0;
-    final arrow = positive
-        ? Icons.trending_up_rounded
-        : Icons.trending_down_rounded;
     final pctLabel = pct == null
-        ? 'no data yesterday'
-        : '${positive ? '+' : ''}${pct.toStringAsFixed(1)}% vs yesterday';
+        ? 'No previous day data'
+        : '${positive ? '+' : ''}${pct!.toStringAsFixed(1)}% vs yesterday';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
+        Row(
+          children: [
+            Container(
+              padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+              decoration: BoxDecoration(
+                color: PosColors.surface,
+                borderRadius: BorderRadius.circular(PosRadii.pill),
+                border: Border.all(color: PosColors.lineStrong),
+              ),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.today_rounded, size: 13, color: PosColors.slate),
+                  SizedBox(width: 5),
+                  Text(
+                    'TODAY LIVE',
+                    style: TextStyle(
+                      color: PosColors.slate,
+                      fontWeight: FontWeight.w900,
+                      fontSize: 10,
+                      letterSpacing: 0.7,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            Spacer(),
+            _SmallAction(label: 'Orders', onTap: onOpenOrders),
+            SizedBox(width: 6),
+            _SmallAction(label: 'Reports', onTap: onOpenReports),
+          ],
+        ),
+        SizedBox(height: 12),
+        Text(
+          currency.format(todaySales),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: TextStyle(
+            color: PosColors.slate,
+            fontWeight: FontWeight.w900,
+            fontSize: 30,
+            letterSpacing: 0,
+            height: 1,
+          ),
+        ),
+        SizedBox(height: 8),
         Container(
-          padding: EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+          padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
           decoration: BoxDecoration(
-            color: PosColors.surfaceTinted,
+            color: positive
+                ? PosColors.success.withValues(alpha: 0.10)
+                : PosColors.danger.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(PosRadii.pill),
-            border: Border.all(color: PosColors.line),
+            border: Border.all(
+              color: positive
+                  ? PosColors.success.withValues(alpha: 0.28)
+                  : PosColors.danger.withValues(alpha: 0.28),
+            ),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.today_rounded, size: 13, color: PosColors.slate),
-              SizedBox(width: 6),
+              Icon(
+                positive
+                    ? Icons.trending_up_rounded
+                    : Icons.trending_down_rounded,
+                color: positive ? PosColors.success : PosColors.danger,
+                size: 14,
+              ),
+              SizedBox(width: 5),
               Text(
-                'TODAY · LIVE',
+                pctLabel,
                 style: TextStyle(
                   color: PosColors.slate,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 10.4,
-                  letterSpacing: 1.2,
+                  fontWeight: FontWeight.w800,
+                  fontSize: 11,
                 ),
               ),
             ],
           ),
         ),
         SizedBox(height: 12),
-        Text(
-          currency.format(today),
-          style: TextStyle(
-            color: PosColors.slate,
-            fontWeight: FontWeight.w900,
-            fontSize: 38,
-            letterSpacing: 0,
-            height: 1.0,
-          ),
-        ),
-        SizedBox(height: 8),
-        Row(
-          children: [
-            Container(
-              padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: positive
-                    ? PosColors.primaryGlow.withValues(alpha: 0.28)
-                    : PosColors.danger.withValues(alpha: 0.28),
-                borderRadius: BorderRadius.circular(PosRadii.pill),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Icon(arrow, color: PosColors.slate, size: 13),
-                  SizedBox(width: 4),
-                  Text(
-                    pctLabel,
-                    style: TextStyle(
-                      color: PosColors.slate,
-                      fontWeight: FontWeight.w800,
-                      fontSize: 11,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        SizedBox(height: 14),
-        Row(
+        Wrap(
+          spacing: 7,
+          runSpacing: 7,
           children: [
             _HeroChip(
               icon: Icons.receipt_long_rounded,
               label: '$todayOrders orders',
             ),
-            SizedBox(width: 8),
+            _HeroChip(
+              icon: Icons.pending_actions_rounded,
+              label: '$openOrders open',
+            ),
             _HeroChip(
               icon: Icons.calendar_view_week_rounded,
-              label:
-                  '${compactCurrency.format(values.fold<double>(0, (s, v) => s + v))} this week',
+              label: '${compactCurrency.format(weekSales)} week',
             ),
           ],
         ),
       ],
     );
   }
+}
 
-  Widget _heroChart(List<double> values, List<String> labels) {
+class _HeroChart extends StatelessWidget {
+  const _HeroChart({
+    required this.values,
+    required this.labels,
+    required this.compactCurrency,
+  });
+
+  final List<double> values;
+  final List<String> labels;
+  final NumberFormat compactCurrency;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.fromLTRB(14, 12, 14, 10),
+      padding: EdgeInsets.fromLTRB(12, 10, 12, 8),
       decoration: BoxDecoration(
-        color: PosColors.surfaceTinted,
+        color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.md),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -431,19 +567,19 @@ class _HeroPanel extends StatelessWidget {
           Text(
             'LAST 7 DAYS',
             style: TextStyle(
-              color: PosColors.muted,
+              color: PosColors.slate,
               fontWeight: FontWeight.w900,
-              fontSize: 10.4,
-              letterSpacing: 1.2,
+              fontSize: 10.2,
+              letterSpacing: 0.9,
             ),
           ),
-          SizedBox(height: 10),
+          SizedBox(height: 8),
           MiniBarChart(
             values: values,
             labels: labels,
             color: PosColors.slate,
-            height: 100,
-            formatValue: (v) => compactCurrency.format(v),
+            height: 92,
+            formatValue: (value) => compactCurrency.format(value),
           ),
         ],
       ),
@@ -453,29 +589,30 @@ class _HeroPanel extends StatelessWidget {
 
 class _HeroChip extends StatelessWidget {
   const _HeroChip({required this.icon, required this.label});
+
   final IconData icon;
   final String label;
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 6),
       decoration: BoxDecoration(
-        color: PosColors.surfaceTinted,
+        color: PosColors.surface,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
           Icon(icon, color: PosColors.slate, size: 14),
-          SizedBox(width: 6),
+          SizedBox(width: 5),
           Text(
             label,
             style: TextStyle(
               color: PosColors.slate,
               fontWeight: FontWeight.w800,
-              fontSize: 11.5,
+              fontSize: 11,
             ),
           ),
         ],
@@ -494,24 +631,24 @@ class _PulseGrid extends StatelessWidget {
     return LayoutBuilder(
       builder: (context, constraints) {
         final width = constraints.maxWidth;
-        final columns = width >= 1080
+        final columns = width >= 980
             ? 4
-            : width >= 700
-            ? 4
-            : width >= 380
+            : width >= 360
             ? 2
             : 1;
         return GridView.count(
           crossAxisCount: columns,
           shrinkWrap: true,
           physics: NeverScrollableScrollPhysics(),
-          mainAxisSpacing: 10,
-          crossAxisSpacing: 10,
-          childAspectRatio: width >= 1080
+          mainAxisSpacing: 8,
+          crossAxisSpacing: 8,
+          childAspectRatio: width >= 980
+              ? 2.35
+              : width >= 520
               ? 2.05
-              : width >= 700
-              ? 1.6
-              : 1.42,
+              : width >= 360
+              ? 1.75
+              : 2.45,
           children: cards,
         );
       },
@@ -542,59 +679,51 @@ class _RevenueBreakdownCard extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(13),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: PosColors.surface,
-                    borderRadius: BorderRadius.circular(PosRadii.sm),
-                    border: Border.all(color: PosColors.lineStrong),
-                  ),
-                  child: Icon(
-                    Icons.payments_rounded,
-                    color: PosColors.slate,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 10),
+                _IconBox(icon: Icons.payments_rounded),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Revenue',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
                 TextButton(
                   onPressed: onOpenReports,
+                  style: TextButton.styleFrom(
+                    visualDensity: VisualDensity.compact,
+                    padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text('Reports'),
-                      SizedBox(width: 2),
-                      Icon(Icons.chevron_right_rounded, size: 18),
+                      Icon(Icons.chevron_right_rounded, size: 17),
                     ],
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 14),
+            SizedBox(height: 12),
             _RevenueRow(
               label: 'This week',
               value: currency.format(weekSales),
               ratio: ratio,
               color: PosColors.primary,
             ),
-            SizedBox(height: 14),
+            SizedBox(height: 12),
             _RevenueRow(
               label: 'This month',
               value: currency.format(monthSales),
-              ratio: 1.0,
-              color: PosColors.info,
+              ratio: 1,
+              color: PosColors.warning,
             ),
           ],
         ),
@@ -629,8 +758,7 @@ class _RevenueRow extends StatelessWidget {
                 style: TextStyle(
                   color: PosColors.muted,
                   fontWeight: FontWeight.w800,
-                  fontSize: 11.6,
-                  letterSpacing: 0.6,
+                  fontSize: 11.5,
                 ),
               ),
             ),
@@ -639,8 +767,7 @@ class _RevenueRow extends StatelessWidget {
               style: TextStyle(
                 color: PosColors.slate,
                 fontWeight: FontWeight.w900,
-                fontSize: 16.5,
-                letterSpacing: 0,
+                fontSize: 14,
               ),
             ),
           ],
@@ -650,7 +777,7 @@ class _RevenueRow extends StatelessWidget {
           borderRadius: BorderRadius.circular(PosRadii.pill),
           child: TweenAnimationBuilder<double>(
             tween: Tween(begin: 0, end: ratio),
-            duration: Duration(milliseconds: 700),
+            duration: Duration(milliseconds: 600),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
               return LinearProgressIndicator(
@@ -691,36 +818,25 @@ class _CatalogHealthCard extends StatelessWidget {
       surfaceTintColor: Colors.transparent,
       clipBehavior: Clip.antiAlias,
       child: Padding(
-        padding: EdgeInsets.all(16),
+        padding: EdgeInsets.all(13),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Row(
               children: [
-                Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: PosColors.surface,
-                    borderRadius: BorderRadius.circular(PosRadii.sm),
-                    border: Border.all(color: PosColors.lineStrong),
-                  ),
-                  child: Icon(
-                    Icons.restaurant_menu_rounded,
-                    color: PosColors.slate,
-                    size: 20,
-                  ),
-                ),
-                SizedBox(width: 10),
+                _IconBox(icon: Icons.restaurant_menu_rounded),
+                SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Catalog & sync',
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                    ),
                   ),
                 ),
               ],
             ),
-            SizedBox(height: 14),
+            SizedBox(height: 12),
             Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
@@ -729,10 +845,9 @@ class _CatalogHealthCard extends StatelessWidget {
                   label: 'Available',
                   value: '$available/$total',
                 ),
-                SizedBox(width: 14),
+                SizedBox(width: 12),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       _MiniStat(
                         icon: Icons.check_circle_outline,
@@ -740,14 +855,14 @@ class _CatalogHealthCard extends StatelessWidget {
                         label: 'Available items',
                         value: available.toString(),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 7),
                       _MiniStat(
                         icon: Icons.pause_circle_outline,
                         color: PosColors.warning,
                         label: 'Paused items',
                         value: paused.toString(),
                       ),
-                      SizedBox(height: 8),
+                      SizedBox(height: 7),
                       _MiniStat(
                         icon: Icons.sync_problem_outlined,
                         color: pendingSync == 0
@@ -761,22 +876,22 @@ class _CatalogHealthCard extends StatelessWidget {
                 ),
               ],
             ),
-            SizedBox(height: 14),
+            SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onOpenMenu,
-                    icon: Icon(Icons.menu_book_outlined, size: 17),
-                    label: Text('Open menu'),
+                    icon: Icon(Icons.menu_book_outlined, size: 16),
+                    label: FittedBox(child: Text('Open menu')),
                   ),
                 ),
                 SizedBox(width: 8),
                 Expanded(
                   child: OutlinedButton.icon(
                     onPressed: onOpenSync,
-                    icon: Icon(Icons.sync_rounded, size: 17),
-                    label: Text('Sync log'),
+                    icon: Icon(Icons.sync_rounded, size: 16),
+                    label: FittedBox(child: Text('Sync')),
                   ),
                 ),
               ],
@@ -802,50 +917,66 @@ class _RingStat extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 96,
-      height: 96,
+      width: 86,
+      height: 86,
       child: Stack(
         alignment: Alignment.center,
         children: [
           TweenAnimationBuilder<double>(
-            tween: Tween(begin: 0, end: ratio),
-            duration: Duration(milliseconds: 800),
+            tween: Tween(begin: 0, end: ratio.clamp(0, 1).toDouble()),
+            duration: Duration(milliseconds: 700),
             curve: Curves.easeOutCubic,
             builder: (context, value, _) {
               return SizedBox(
-                width: 96,
-                height: 96,
+                width: 86,
+                height: 86,
                 child: CircularProgressIndicator(
                   value: value,
                   strokeWidth: 8,
                   backgroundColor: PosColors.mutedSoft,
-                  valueColor: AlwaysStoppedAnimation<Color>(PosColors.success),
+                  valueColor: AlwaysStoppedAnimation<Color>(PosColors.primary),
                 ),
               );
             },
           ),
-          Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Text(
-                value,
-                style: TextStyle(
-                  color: PosColors.slate,
-                  fontWeight: FontWeight.w900,
-                  fontSize: 16,
-                  letterSpacing: 0,
+          Container(
+            width: 66,
+            height: 66,
+            decoration: BoxDecoration(
+              color: PosColors.background,
+              shape: BoxShape.circle,
+              border: Border.all(color: PosColors.lineStrong),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  value,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: PosColors.slate,
+                    fontWeight: FontWeight.w900,
+                    fontSize: 13,
+                    letterSpacing: 0,
+                    height: 1,
+                  ),
                 ),
-              ),
-              Text(
-                label.toUpperCase(),
-                style: TextStyle(
-                  color: PosColors.muted,
-                  fontWeight: FontWeight.w800,
-                  fontSize: 9,
-                  letterSpacing: 0.8,
+                SizedBox(height: 3),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TextStyle(
+                    color: PosColors.muted,
+                    fontWeight: FontWeight.w800,
+                    fontSize: 8.5,
+                    letterSpacing: 0,
+                    height: 1,
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ],
       ),
@@ -874,11 +1005,11 @@ class _MiniStat extends StatelessWidget {
           width: 26,
           height: 26,
           decoration: BoxDecoration(
-            color: PosColors.surface,
+            color: color.withValues(alpha: 0.10),
             borderRadius: BorderRadius.circular(PosRadii.xs),
-            border: Border.all(color: PosColors.lineStrong),
+            border: Border.all(color: color.withValues(alpha: 0.26)),
           ),
-          child: Icon(icon, color: PosColors.slate, size: 14),
+          child: Icon(icon, color: color, size: 14),
         ),
         SizedBox(width: 8),
         Expanded(
@@ -886,8 +1017,8 @@ class _MiniStat extends StatelessWidget {
             label,
             style: TextStyle(
               color: PosColors.muted,
-              fontWeight: FontWeight.w700,
-              fontSize: 12.2,
+              fontWeight: FontWeight.w800,
+              fontSize: 12,
             ),
           ),
         ),
@@ -896,7 +1027,7 @@ class _MiniStat extends StatelessWidget {
           style: TextStyle(
             color: PosColors.slate,
             fontWeight: FontWeight.w900,
-            fontSize: 13.5,
+            fontSize: 13,
           ),
         ),
       ],
@@ -916,10 +1047,10 @@ class _QuickActions extends StatelessWidget {
       color: PosColors.background,
       surfaceTintColor: Colors.transparent,
       child: Padding(
-        padding: EdgeInsets.all(14),
+        padding: EdgeInsets.all(12),
         child: Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 8,
+          runSpacing: 8,
           children: [
             PrimaryButton(
               label: 'Add Menu Item',
@@ -953,7 +1084,7 @@ class _QuickActions extends StatelessWidget {
               },
             ),
             PrimaryButton(
-              label: 'Cloud Settings',
+              label: 'Settings',
               icon: Icons.settings_outlined,
               secondary: true,
               onPressed: () => onNavigate(4),
@@ -965,159 +1096,53 @@ class _QuickActions extends StatelessWidget {
   }
 }
 
-class _CloudHintCard extends StatelessWidget {
-  const _CloudHintCard({required this.connected, required this.cloudUrl});
+class _SmallAction extends StatelessWidget {
+  const _SmallAction({required this.label, required this.onTap});
 
-  final bool connected;
-  final String cloudUrl;
+  final String label;
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    final color = connected ? PosColors.success : PosColors.warning;
-    return Card(
-      color: PosColors.background,
-      surfaceTintColor: Colors.transparent,
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned(
-            top: -40,
-            right: -30,
-            child: Container(
-              width: 160,
-              height: 160,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [Colors.transparent, Colors.transparent],
-                ),
-              ),
-            ),
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(PosRadii.pill),
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: 8, vertical: 5),
+        decoration: BoxDecoration(
+          color: PosColors.surface,
+          borderRadius: BorderRadius.circular(PosRadii.pill),
+          border: Border.all(color: PosColors.lineStrong),
+        ),
+        child: Text(
+          label,
+          style: TextStyle(
+            color: PosColors.slate,
+            fontSize: 10.5,
+            fontWeight: FontWeight.w900,
           ),
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Container(
-                  width: 46,
-                  height: 46,
-                  decoration: BoxDecoration(
-                    color: PosColors.surface,
-                    borderRadius: BorderRadius.circular(PosRadii.md),
-                    border: Border.all(color: PosColors.lineStrong),
-                  ),
-                  child: Icon(
-                    connected
-                        ? Icons.cloud_done_rounded
-                        : Icons.cloud_queue_rounded,
-                    color: PosColors.slate,
-                    size: 24,
-                  ),
-                ),
-                SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              connected
-                                  ? 'Cloud ordering is connected'
-                                  : 'Cloud changes will sync when reachable',
-                              style: Theme.of(context).textTheme.titleMedium,
-                            ),
-                          ),
-                          Container(
-                            padding: EdgeInsets.symmetric(
-                              horizontal: 8,
-                              vertical: 3,
-                            ),
-                            decoration: BoxDecoration(
-                              color: PosColors.surface,
-                              borderRadius: BorderRadius.circular(
-                                PosRadii.pill,
-                              ),
-                              border: Border.all(color: PosColors.lineStrong),
-                            ),
-                            child: Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 7,
-                                  height: 7,
-                                  decoration: BoxDecoration(
-                                    color: color,
-                                    shape: BoxShape.circle,
-                                    boxShadow: [
-                                      BoxShadow(color: color, blurRadius: 6),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(width: 6),
-                                Text(
-                                  connected ? 'LIVE' : 'QUEUED',
-                                  style: TextStyle(
-                                    color: PosColors.slate,
-                                    fontWeight: FontWeight.w900,
-                                    fontSize: 10,
-                                    letterSpacing: 1.0,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                      SizedBox(height: 8),
-                      Text(
-                        'Customer websites should use the cloud API configured for this app.',
-                        style: Theme.of(context).textTheme.bodyMedium,
-                      ),
-                      SizedBox(height: 8),
-                      Container(
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 7,
-                        ),
-                        decoration: BoxDecoration(
-                          color: PosColors.surfaceTinted,
-                          borderRadius: BorderRadius.circular(PosRadii.sm),
-                          border: Border.all(color: PosColors.line),
-                        ),
-                        child: Row(
-                          children: [
-                            Icon(
-                              Icons.link_rounded,
-                              size: 14,
-                              color: PosColors.muted,
-                            ),
-                            SizedBox(width: 6),
-                            Expanded(
-                              child: SelectableText(
-                                cloudUrl,
-                                maxLines: 1,
-                                style: TextStyle(
-                                  fontFamily: 'monospace',
-                                  fontSize: 11.5,
-                                  color: PosColors.slateSoft,
-                                  fontWeight: FontWeight.w600,
-                                ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
+        ),
       ),
+    );
+  }
+}
+
+class _IconBox extends StatelessWidget {
+  const _IconBox({required this.icon});
+
+  final IconData icon;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 32,
+      height: 32,
+      decoration: BoxDecoration(
+        color: PosColors.surface,
+        borderRadius: BorderRadius.circular(PosRadii.sm),
+        border: Border.all(color: PosColors.lineStrong),
+      ),
+      child: Icon(icon, color: PosColors.slate, size: 17),
     );
   }
 }

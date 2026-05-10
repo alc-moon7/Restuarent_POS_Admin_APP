@@ -60,14 +60,14 @@ class _MenuItemCardState extends State<MenuItemCard> {
             ),
           ),
           child: Padding(
-            padding: EdgeInsets.all(10),
+            padding: EdgeInsets.all(7),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(PosRadii.md),
-                  child: AspectRatio(
-                    aspectRatio: 1.82,
+                Expanded(
+                  flex: 7,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(PosRadii.sm),
                     child: Stack(
                       fit: StackFit.expand,
                       children: [
@@ -102,8 +102,8 @@ class _MenuItemCardState extends State<MenuItemCard> {
                           ),
                         ),
                         Positioned(
-                          left: 10,
-                          bottom: 10,
+                          left: 8,
+                          bottom: 7,
                           child: StatusBadge(
                             label: available ? 'Available' : 'Paused',
                             color: available
@@ -115,8 +115,8 @@ class _MenuItemCardState extends State<MenuItemCard> {
                           ),
                         ),
                         Positioned(
-                          right: 10,
-                          top: 10,
+                          right: 8,
+                          top: 7,
                           child: Container(
                             decoration: BoxDecoration(
                               color: Colors.white.withValues(alpha: 0.96),
@@ -133,15 +133,15 @@ class _MenuItemCardState extends State<MenuItemCard> {
                             ),
                             child: Padding(
                               padding: EdgeInsets.symmetric(
-                                horizontal: 12,
-                                vertical: 7,
+                                horizontal: 8,
+                                vertical: 4,
                               ),
                               child: Text(
                                 currency.format(widget.item.price),
                                 style: TextStyle(
                                   color: PosColors.primaryDark,
                                   fontWeight: FontWeight.w900,
-                                  fontSize: 12.5,
+                                  fontSize: 10.8,
                                   letterSpacing: 0,
                                 ),
                               ),
@@ -152,13 +152,14 @@ class _MenuItemCardState extends State<MenuItemCard> {
                     ),
                   ),
                 ),
-                SizedBox(height: 7),
+                SizedBox(height: 6),
                 Text(
                   widget.item.name,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontSize: 14.5,
+                    fontSize: 12.8,
                     fontWeight: FontWeight.w900,
                     letterSpacing: 0,
+                    height: 1,
                   ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
@@ -168,9 +169,13 @@ class _MenuItemCardState extends State<MenuItemCard> {
                   widget.item.description,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.bodyMedium,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    fontSize: 10.8,
+                    fontWeight: FontWeight.w700,
+                    height: 1.1,
+                  ),
                 ),
-                SizedBox(height: 5),
+                SizedBox(height: 4),
                 Row(
                   children: [
                     Expanded(
@@ -183,28 +188,38 @@ class _MenuItemCardState extends State<MenuItemCard> {
                     StatusBadge.sync(widget.item.syncStatus),
                   ],
                 ),
-                SizedBox(height: 5),
+                SizedBox(height: 4),
                 Divider(height: 1),
-                SizedBox(height: 1),
+                Spacer(),
                 Row(
                   children: [
                     Expanded(
-                      child: SwitchListTile.adaptive(
-                        value: widget.item.isAvailable,
-                        onChanged: widget.onAvailabilityChanged,
-                        contentPadding: EdgeInsets.zero,
-                        dense: true,
-                        visualDensity: VisualDensity.compact,
-                        title: Text(
-                          widget.item.isAvailable ? 'Active' : 'Paused',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w800,
-                            color: widget.item.isAvailable
-                                ? PosColors.success
-                                : PosColors.muted,
-                            fontSize: 13,
+                      child: Row(
+                        children: [
+                          Transform.scale(
+                            scale: 0.72,
+                            alignment: Alignment.centerLeft,
+                            child: Switch.adaptive(
+                              value: widget.item.isAvailable,
+                              onChanged: widget.onAvailabilityChanged,
+                            ),
                           ),
-                        ),
+                          Expanded(
+                            child: Text(
+                              widget.item.isAvailable ? 'Active' : 'Paused',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: TextStyle(
+                                fontWeight: FontWeight.w800,
+                                color: widget.item.isAvailable
+                                    ? PosColors.success
+                                    : PosColors.muted,
+                                fontSize: 10.5,
+                                height: 1,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                     _IconAction(
@@ -213,7 +228,7 @@ class _MenuItemCardState extends State<MenuItemCard> {
                       onPressed: widget.onEdit,
                       color: PosColors.slate,
                     ),
-                    SizedBox(width: 6),
+                    SizedBox(width: 5),
                     _IconAction(
                       icon: Icons.delete_outline,
                       tooltip: 'Delete menu item',
@@ -258,8 +273,8 @@ class _IconAction extends StatelessWidget {
           onTap: onPressed,
           borderRadius: BorderRadius.circular(PosRadii.sm),
           child: Padding(
-            padding: EdgeInsets.all(8),
-            child: Icon(icon, color: color, size: 19),
+            padding: EdgeInsets.all(6),
+            child: Icon(icon, color: color, size: 16),
           ),
         ),
       ),
@@ -276,7 +291,7 @@ class _SmallPill extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 4),
       decoration: BoxDecoration(
         color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.pill),
@@ -285,14 +300,14 @@ class _SmallPill extends StatelessWidget {
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(icon, size: 13, color: PosColors.muted),
-          SizedBox(width: 5),
+          Icon(icon, size: 11, color: PosColors.muted),
+          SizedBox(width: 4),
           Text(
             label,
             style: TextStyle(
               color: PosColors.slateSoft,
               fontWeight: FontWeight.w700,
-              fontSize: 11,
+              fontSize: 10,
             ),
           ),
         ],

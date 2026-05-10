@@ -288,7 +288,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
             key: _formKey,
             child: Column(
               children: [
-                Card(
+                _settingsCard(
                   child: Padding(
                     padding: EdgeInsets.symmetric(horizontal: 12, vertical: 6),
                     child: SwitchListTile.adaptive(
@@ -731,6 +731,46 @@ class _SettingsScreenState extends State<SettingsScreen> {
   }
 }
 
+Card _settingsCard({
+  required Widget child,
+  Clip clipBehavior = Clip.none,
+  EdgeInsetsGeometry? margin,
+}) {
+  return Card(
+    margin: margin,
+    color: PosColors.background,
+    surfaceTintColor: Colors.transparent,
+    elevation: 2,
+    shadowColor: Colors.black.withValues(alpha: 0.12),
+    clipBehavior: clipBehavior,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(PosRadii.lg),
+      side: BorderSide(color: PosColors.lineStrong.withValues(alpha: 0.48)),
+    ),
+    child: child,
+  );
+}
+
+BoxDecoration _settingsBoxDecoration({
+  double radius = PosRadii.md,
+  Color? borderColor,
+}) {
+  return BoxDecoration(
+    color: PosColors.background,
+    borderRadius: BorderRadius.circular(radius),
+    border: Border.all(
+      color: borderColor ?? PosColors.lineStrong.withValues(alpha: 0.48),
+    ),
+    boxShadow: [
+      BoxShadow(
+        color: Colors.black.withValues(alpha: 0.05),
+        blurRadius: 10,
+        offset: Offset(0, 4),
+      ),
+    ],
+  );
+}
+
 class _InlineSyncStatus extends StatelessWidget {
   const _InlineSyncStatus({required this.app});
 
@@ -828,11 +868,7 @@ class _InlineSyncStatus extends StatelessWidget {
           Container(
             width: double.infinity,
             padding: EdgeInsets.symmetric(horizontal: 10, vertical: 10),
-            decoration: BoxDecoration(
-              color: PosColors.surface,
-              borderRadius: BorderRadius.circular(PosRadii.md),
-              border: Border.all(color: PosColors.line),
-            ),
+            decoration: _settingsBoxDecoration(),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -841,7 +877,7 @@ class _InlineSyncStatus extends StatelessWidget {
                     Icon(
                       Icons.cloud_sync_outlined,
                       size: 16,
-                      color: PosColors.primary,
+                      color: PosColors.slate,
                     ),
                     SizedBox(width: 8),
                     Expanded(
@@ -941,15 +977,11 @@ class _InlineSyncChip extends StatelessWidget {
     final isPending = value.label.toLowerCase() == 'pending';
     final chip = Container(
       padding: EdgeInsets.fromLTRB(isPending ? 1 : 6, 9, 8, 9),
-      decoration: BoxDecoration(
-        color: PosColors.surface,
-        borderRadius: BorderRadius.circular(PosRadii.sm),
-        border: Border.all(color: PosColors.line),
-      ),
+      decoration: _settingsBoxDecoration(radius: PosRadii.sm),
       child: isLastSync
           ? Row(
               children: [
-                Icon(value.icon, color: PosColors.primary, size: 13),
+                Icon(value.icon, color: PosColors.slate, size: 13),
                 SizedBox(width: 5),
                 Text(
                   value.label,
@@ -1006,7 +1038,7 @@ class _InlineSyncChip extends StatelessWidget {
               mainAxisSize: MainAxisSize.max,
               mainAxisAlignment: MainAxisAlignment.start,
               children: [
-                Icon(value.icon, color: PosColors.primary, size: 13),
+                Icon(value.icon, color: PosColors.slate, size: 13),
                 SizedBox(width: 5),
                 Text(
                   value.label,
@@ -1058,16 +1090,12 @@ class _CloudSyncChip extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 8, vertical: 9),
-      decoration: BoxDecoration(
-        color: PosColors.surface,
-        borderRadius: BorderRadius.circular(PosRadii.sm),
-        border: Border.all(color: PosColors.line),
-      ),
+      decoration: _settingsBoxDecoration(radius: PosRadii.sm),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.start,
         mainAxisSize: MainAxisSize.max,
         children: [
-          Icon(Icons.cloud_outlined, color: PosColors.primary, size: 13),
+          Icon(Icons.cloud_outlined, color: PosColors.slate, size: 13),
           SizedBox(width: 5),
           Text(
             'Cloud',
@@ -1089,7 +1117,7 @@ class _CloudSyncChip extends StatelessWidget {
             style: Theme.of(context).textTheme.bodySmall?.copyWith(
               fontSize: 12,
               fontWeight: FontWeight.w900,
-              color: enabled ? PosColors.success : PosColors.danger,
+              color: PosColors.slate,
               shadows: [
                 Shadow(
                   color: PosColors.slate.withValues(alpha: 0.22),
@@ -1165,7 +1193,8 @@ class _SettingsNavTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return _settingsCard(
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         borderRadius: BorderRadius.circular(PosRadii.lg),
         onTap: onTap,
@@ -1177,11 +1206,11 @@ class _SettingsNavTile extends StatelessWidget {
                 width: 36,
                 height: 36,
                 decoration: BoxDecoration(
-                  gradient: PosGradients.cardTint(PosColors.primary),
+                  color: PosColors.background,
                   borderRadius: BorderRadius.circular(PosRadii.sm),
-                  border: Border.all(color: PosColors.line),
+                  border: Border.all(color: PosColors.lineStrong),
                 ),
-                child: Icon(icon, color: PosColors.primary, size: 18),
+                child: Icon(icon, color: PosColors.slate, size: 18),
               ),
               SizedBox(width: 10),
               Expanded(
@@ -1245,7 +1274,7 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return _settingsCard(
       clipBehavior: Clip.antiAlias,
       child: Padding(
         padding: EdgeInsets.all(16),
@@ -1259,13 +1288,11 @@ class _SectionCard extends StatelessWidget {
                   width: 38,
                   height: 38,
                   decoration: BoxDecoration(
-                    gradient: PosGradients.cardTint(PosColors.primary),
+                    color: PosColors.background,
                     borderRadius: BorderRadius.circular(PosRadii.md),
-                    border: Border.all(
-                      color: PosColors.primary.withValues(alpha: 0.20),
-                    ),
+                    border: Border.all(color: PosColors.lineStrong),
                   ),
-                  child: Icon(icon, color: PosColors.primary, size: 19),
+                  child: Icon(icon, color: PosColors.slate, size: 19),
                 ),
                 SizedBox(width: 10),
                 Expanded(
@@ -1317,107 +1344,92 @@ class _DisplaySizeCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final percent = (value * 100).round();
-    return Card(
+    return _settingsCard(
       clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: PosGradients.cardTint(PosColors.primary),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(16),
-            child: Column(
+      child: Padding(
+        padding: EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: 42,
-                      height: 42,
-                      decoration: BoxDecoration(
-                        gradient: PosGradients.brand,
-                        borderRadius: BorderRadius.circular(PosRadii.md),
-                        boxShadow: PosShadows.glow,
-                      ),
-                      child: Icon(
-                        Icons.text_fields_rounded,
-                        color: PosColors.slate,
-                        size: 20,
-                      ),
-                    ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            text.displaySize,
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          SizedBox(height: 3),
-                          Text(
-                            text.displaySizeSubtitle,
-                            style: Theme.of(context).textTheme.bodyMedium,
-                          ),
-                        ],
-                      ),
-                    ),
-                    _ScalePill(label: label, percent: percent),
-                  ],
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: BoxDecoration(
+                    color: PosColors.background,
+                    borderRadius: BorderRadius.circular(PosRadii.md),
+                    border: Border.all(color: PosColors.lineStrong),
+                  ),
+                  child: Icon(
+                    Icons.fit_screen_rounded,
+                    color: PosColors.slate,
+                    size: 20,
+                  ),
                 ),
-                SizedBox(height: 14),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    _PresetChip(
-                      label: text.compact,
-                      selected: value <= 0.88,
-                      onTap: () => onPreset(0.84),
-                    ),
-                    _PresetChip(
-                      label: text.comfortable,
-                      selected: value > 0.88 && value < 0.98,
-                      onTap: () => onPreset(0.92),
-                    ),
-                    _PresetChip(
-                      label: text.large,
-                      selected: value >= 0.98,
-                      onTap: () => onPreset(1.02),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 10),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.remove_rounded,
-                      color: PosColors.muted,
-                      size: 18,
-                    ),
-                    Expanded(
-                      child: Slider(
-                        value: value,
-                        min: PosAppController.minUiScale,
-                        max: PosAppController.maxUiScale,
-                        divisions: 15,
-                        label: '$percent%',
-                        onChanged: onChanged,
-                        onChangeEnd: onChangeEnd,
+                SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        text.displaySize,
+                        style: Theme.of(context).textTheme.titleLarge,
                       ),
-                    ),
-                    Icon(Icons.add_rounded, color: PosColors.muted, size: 18),
-                  ],
+                      SizedBox(height: 3),
+                      Text(
+                        text.displaySizeSubtitle,
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ],
+                  ),
+                ),
+                _ScalePill(label: label, percent: percent),
+              ],
+            ),
+            SizedBox(height: 14),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                _PresetChip(
+                  label: text.compact,
+                  selected: value <= 0.88,
+                  onTap: () => onPreset(0.84),
+                ),
+                _PresetChip(
+                  label: text.comfortable,
+                  selected: value > 0.88 && value < 0.98,
+                  onTap: () => onPreset(0.92),
+                ),
+                _PresetChip(
+                  label: text.large,
+                  selected: value >= 0.98,
+                  onTap: () => onPreset(1.02),
                 ),
               ],
             ),
-          ),
-        ],
+            SizedBox(height: 10),
+            Row(
+              children: [
+                Icon(Icons.remove_rounded, color: PosColors.muted, size: 18),
+                Expanded(
+                  child: Slider(
+                    value: value,
+                    min: PosAppController.minUiScale,
+                    max: PosAppController.maxUiScale,
+                    divisions: 15,
+                    label: '$percent%',
+                    onChanged: onChanged,
+                    onChangeEnd: onChangeEnd,
+                  ),
+                ),
+                Icon(Icons.add_rounded, color: PosColors.muted, size: 18),
+              ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -1474,14 +1486,14 @@ class _ScalePill extends StatelessWidget {
     return Container(
       padding: EdgeInsets.symmetric(horizontal: 10, vertical: 7),
       decoration: BoxDecoration(
-        color: PosColors.surface,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(PosRadii.pill),
-        border: Border.all(color: PosColors.line),
+        border: Border.all(color: PosColors.lineStrong),
       ),
       child: Text(
         '$label - $percent%',
         style: TextStyle(
-          color: PosColors.primary,
+          color: PosColors.slate,
           fontWeight: FontWeight.w900,
           fontSize: 11.4,
           letterSpacing: 0,
@@ -1509,10 +1521,10 @@ class _PresetChip extends StatelessWidget {
       selected: selected,
       onSelected: (_) => onTap(),
       avatar: selected
-          ? Icon(Icons.check_rounded, size: 16, color: PosColors.primary)
+          ? Icon(Icons.check_rounded, size: 16, color: PosColors.slate)
           : null,
       labelStyle: TextStyle(
-        color: selected ? PosColors.primary : PosColors.slate,
+        color: PosColors.slate,
         fontWeight: FontWeight.w900,
       ),
     );
@@ -1640,14 +1652,12 @@ class _PrinterSettingsCard extends StatelessWidget {
           width: double.infinity,
           padding: EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: state.connected
-                ? PosColors.success.withValues(alpha: 0.09)
-                : PosColors.mutedSoft,
+            color: PosColors.background,
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
               color: state.connected
                   ? PosColors.success.withValues(alpha: 0.24)
-                  : PosColors.line,
+                  : PosColors.lineStrong.withValues(alpha: 0.48),
             ),
           ),
           child: Row(
@@ -1757,14 +1767,12 @@ class _PrinterDeviceTile extends StatelessWidget {
       margin: EdgeInsets.only(bottom: 8),
       padding: EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: selected
-            ? PosColors.primary.withValues(alpha: 0.08)
-            : PosColors.surface,
+        color: PosColors.background,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(
           color: selected
               ? PosColors.primary.withValues(alpha: 0.24)
-              : PosColors.line,
+              : PosColors.lineStrong.withValues(alpha: 0.48),
         ),
       ),
       child: Row(
@@ -1837,7 +1845,7 @@ class _DangerCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
+    return _settingsCard(
       child: Padding(
         padding: EdgeInsets.all(14),
         child: Row(

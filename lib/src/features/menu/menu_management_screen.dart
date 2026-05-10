@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:intl/intl.dart';
 
 import '../../app_scope.dart';
 import '../../core/theme/app_theme.dart';
@@ -51,11 +50,11 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
         })
         .toList(growable: false);
 
-    final stats = _MenuStats.from(app.menuItems);
-
     return AppScaffold(
-      title: 'Menu Management',
-      subtitle: 'Create, edit, and control availability across the cloud menu.',
+      title: 'Menu',
+      subtitle: 'Manage food items and availability.',
+      showDatePill: false,
+      centerHeader: true,
       actions: [
         PrimaryButton(
           label: 'Add Item',
@@ -66,16 +65,11 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          _StatsStrip(
-            stats: stats,
-            currency: NumberFormat.compactCurrency(symbol: r'$'),
-          ),
-          SizedBox(height: 14),
           _MenuToolbar(
             searchController: _searchController,
             onSearchChanged: (_) => setState(() {}),
           ),
-          SizedBox(height: 12),
+          SizedBox(height: 8),
           if (app.menuItems.isNotEmpty)
             _CategoryStrip(
               categories: categories,
@@ -85,7 +79,7 @@ class _MenuManagementScreenState extends State<MenuManagementScreen> {
                   : app.menuItems.where((i) => i.category == cat).length,
               onSelected: (value) => setState(() => _selectedCategory = value),
             ),
-          SizedBox(height: 14),
+          SizedBox(height: 8),
           if (app.menuItems.isEmpty)
             EmptyState(
               title: 'No menu items yet',
@@ -188,147 +182,40 @@ class _MenuToolbar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: EdgeInsets.all(12),
-        child: TextField(
-          controller: searchController,
-          onChanged: onSearchChanged,
-          decoration: InputDecoration(
-            prefixIcon: Icon(Icons.search_rounded),
-            hintText: 'Search by item, description, or category',
+    return SizedBox(
+      height: 44,
+      child: Card(
+        margin: EdgeInsets.zero,
+        color: PosColors.background,
+        surfaceTintColor: Colors.transparent,
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: 5, vertical: 4),
+          child: TextField(
+            controller: searchController,
+            onChanged: onSearchChanged,
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              color: PosColors.slate,
+            ),
+            textAlignVertical: TextAlignVertical.center,
+            decoration: InputDecoration(
+              isDense: true,
+              prefixIcon: Icon(Icons.search_rounded, size: 17),
+              prefixIconConstraints: BoxConstraints.tightFor(
+                width: 32,
+                height: 32,
+              ),
+              hintText: 'Search menu',
+              hintStyle: TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: PosColors.muted,
+              ),
+              contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 0),
+            ),
           ),
         ),
-      ),
-    );
-  }
-}
-
-class _StatsStrip extends StatelessWidget {
-  const _StatsStrip({required this.stats, required this.currency});
-
-  final _MenuStats stats;
-  final NumberFormat currency;
-
-  @override
-  Widget build(BuildContext context) {
-    final values = [
-      _StatValue(
-        label: 'Items',
-        value: stats.total.toString(),
-        icon: Icons.restaurant_menu_rounded,
-        color: PosColors.primary,
-      ),
-      _StatValue(
-        label: 'Available',
-        value: stats.available.toString(),
-        icon: Icons.check_circle_outline,
-        color: PosColors.success,
-      ),
-      _StatValue(
-        label: 'Categories',
-        value: stats.categories.toString(),
-        icon: Icons.category_outlined,
-        color: PosColors.info,
-      ),
-      _StatValue(
-        label: 'Avg Price',
-        value: stats.averagePrice == 0
-            ? '-'
-            : currency.format(stats.averagePrice),
-        icon: Icons.payments_outlined,
-        color: PosColors.warning,
-      ),
-    ];
-
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 900
-            ? 4
-            : constraints.maxWidth >= 560
-            ? 2
-            : 1;
-        return GridView.count(
-          crossAxisCount: columns,
-          shrinkWrap: true,
-          physics: NeverScrollableScrollPhysics(),
-          crossAxisSpacing: 8,
-          mainAxisSpacing: 8,
-          childAspectRatio: columns == 1 ? 3.6 : 2.65,
-          children: values
-              .map((value) => _MenuStatTile(value: value))
-              .toList(growable: false),
-        );
-      },
-    );
-  }
-}
-
-class _MenuStatTile extends StatelessWidget {
-  const _MenuStatTile({required this.value});
-
-  final _StatValue value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: PosGradients.cardTint(value.color),
-              ),
-            ),
-          ),
-          Padding(
-            padding: EdgeInsets.all(12),
-            child: Row(
-              children: [
-                Container(
-                  width: 38,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    color: value.color.withValues(alpha: 0.14),
-                    borderRadius: BorderRadius.circular(PosRadii.md),
-                    border: Border.all(
-                      color: value.color.withValues(alpha: 0.22),
-                    ),
-                  ),
-                  child: Icon(value.icon, color: value.color, size: 19),
-                ),
-                SizedBox(width: 10),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        value.value,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.titleLarge,
-                      ),
-                      SizedBox(height: 2),
-                      Text(
-                        value.label.toUpperCase(),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: TextStyle(
-                          color: PosColors.muted,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 10,
-                          letterSpacing: 0.8,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ],
       ),
     );
   }
@@ -350,7 +237,7 @@ class _CategoryStrip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: 42,
+      height: 36,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: categories.length,
@@ -362,55 +249,15 @@ class _CategoryStrip extends StatelessWidget {
             selected: selected,
             label: Text('$category (${countOf(category)})'),
             onSelected: (_) => onSelected(category),
+            labelStyle: TextStyle(fontSize: 11, fontWeight: FontWeight.w800),
+            visualDensity: VisualDensity.compact,
+            materialTapTargetSize: MaterialTapTargetSize.shrinkWrap,
             avatar: selected
-                ? Icon(Icons.check_rounded, size: 16, color: PosColors.primary)
+                ? Icon(Icons.check_rounded, size: 14, color: PosColors.primary)
                 : null,
           );
         },
       ),
-    );
-  }
-}
-
-class _StatValue {
-  _StatValue({
-    required this.label,
-    required this.value,
-    required this.icon,
-    required this.color,
-  });
-
-  final String label;
-  final String value;
-  final IconData icon;
-  final Color color;
-}
-
-class _MenuStats {
-  _MenuStats({
-    required this.total,
-    required this.available,
-    required this.categories,
-    required this.averagePrice,
-  });
-
-  final int total;
-  final int available;
-  final int categories;
-  final double averagePrice;
-
-  static _MenuStats from(List<MenuItem> items) {
-    final total = items.length;
-    final available = items.where((item) => item.isAvailable).length;
-    final categories = items.map((item) => item.category).toSet().length;
-    final averagePrice = total == 0
-        ? 0.0
-        : items.fold<double>(0, (sum, item) => sum + item.price) / total;
-    return _MenuStats(
-      total: total,
-      available: available,
-      categories: categories,
-      averagePrice: averagePrice,
     );
   }
 }
@@ -432,11 +279,14 @@ class _MenuGrid extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final columns = constraints.maxWidth >= 1150
-            ? 3
-            : constraints.maxWidth >= 720
-            ? 2
-            : 1;
+        final columns = constraints.maxWidth >= 1150 ? 3 : 2;
+        final childAspectRatio = constraints.maxWidth < 430
+            ? 0.78
+            : constraints.maxWidth < 720
+            ? 0.92
+            : columns == 2
+            ? 1.28
+            : 1.36;
         return GridView.builder(
           itemCount: items.length,
           shrinkWrap: true,
@@ -445,11 +295,7 @@ class _MenuGrid extends StatelessWidget {
             crossAxisCount: columns,
             crossAxisSpacing: 10,
             mainAxisSpacing: 10,
-            childAspectRatio: columns == 1
-                ? 1.08
-                : columns == 2
-                ? 1.02
-                : 1.08,
+            childAspectRatio: childAspectRatio,
           ),
           itemBuilder: (context, index) {
             final item = items[index];
