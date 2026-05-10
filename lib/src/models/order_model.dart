@@ -15,6 +15,7 @@ class OrderModel {
     this.source = OrderSource.cloud,
     this.syncStatus = SyncStatus.synced,
     this.version = 1,
+    this.sequenceNo = 0,
     this.customerName,
     this.tableNo,
     this.note,
@@ -31,8 +32,11 @@ class OrderModel {
   final List<OrderItem> items;
   final SyncStatus syncStatus;
   final int version;
+  final int sequenceNo;
   final DateTime createdAt;
   final DateTime updatedAt;
+
+  String get displaySequence => sequenceNo > 0 ? '#$sequenceNo' : '#-';
 
   OrderModel copyWith({
     String? id,
@@ -46,6 +50,7 @@ class OrderModel {
     List<OrderItem>? items,
     SyncStatus? syncStatus,
     int? version,
+    int? sequenceNo,
     DateTime? createdAt,
     DateTime? updatedAt,
   }) {
@@ -61,6 +66,7 @@ class OrderModel {
       items: items ?? this.items,
       syncStatus: syncStatus ?? this.syncStatus,
       version: version ?? this.version,
+      sequenceNo: sequenceNo ?? this.sequenceNo,
       createdAt: createdAt ?? this.createdAt,
       updatedAt: updatedAt ?? this.updatedAt,
     );
@@ -78,6 +84,7 @@ class OrderModel {
       'total': total,
       'syncStatus': syncStatus.value,
       'version': version,
+      'sequenceNo': sequenceNo,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -98,6 +105,7 @@ class OrderModel {
       'items': items.map((item) => item.toJson()).toList(growable: false),
       'syncStatus': syncStatus.value,
       'version': version,
+      'sequenceNo': sequenceNo,
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
     };
@@ -115,12 +123,14 @@ class OrderModel {
       note: map['note'] as String?,
       source: OrderSource.parse(map['source'] as String?),
       status:
-          OrderStatus.tryParse(map['status'] as String?) ??
-          OrderStatus.accepted,
+          OrderStatus.tryParse(map['status'] as String?) ?? OrderStatus.pending,
       total: (map['total'] as num).toDouble(),
       items: items,
       syncStatus: SyncStatus.parse(map['syncStatus'] as String?),
       version: map['version'] as int? ?? 1,
+      sequenceNo: map['sequenceNo'] is num
+          ? (map['sequenceNo'] as num).toInt()
+          : 0,
       createdAt: DateTime.parse(map['createdAt'] as String),
       updatedAt: DateTime.parse(map['updatedAt'] as String),
     );

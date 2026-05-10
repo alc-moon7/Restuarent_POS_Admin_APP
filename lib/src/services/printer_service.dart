@@ -149,9 +149,7 @@ class PrinterService {
         macPrinterAddress: printer.address,
       );
       if (!connected) {
-        throw PrinterException(
-          'Could not connect to the selected printer.',
-        );
+        throw PrinterException('Could not connect to the selected printer.');
       }
       final preferences = await SharedPreferences.getInstance();
       await preferences.setString(_printerNameKey, printer.name);
@@ -275,6 +273,7 @@ class PrinterService {
     final buffer = StringBuffer()
       ..writeln(_ticketText(restaurantName ?? 'HYBRID POS'))
       ..writeln(_ticketText(outletName ?? 'Kitchen Ticket'))
+      ..writeln('Serial: ${order.displaySequence}')
       ..writeln('Order: ${order.orderNo}')
       ..writeln('Source: ${order.source.label}')
       ..writeln('Table: ${order.tableNo ?? 'Takeaway'}')
@@ -331,7 +330,7 @@ class PrinterService {
       ..addAll(generator.hr())
       ..addAll(
         generator.text(
-          'ORDER ${_ticketText(order.orderNo)}',
+          '${order.displaySequence}  ORDER ${_ticketText(order.orderNo)}',
           styles: PosStyles(align: PosAlign.center, bold: true),
         ),
       )
@@ -382,11 +381,7 @@ class PrinterService {
       ..addAll(generator.hr())
       ..addAll(
         generator.row([
-          PosColumn(
-            text: 'TOTAL',
-            width: 5,
-            styles: PosStyles(bold: true),
-          ),
+          PosColumn(text: 'TOTAL', width: 5, styles: PosStyles(bold: true)),
           PosColumn(
             text: currency.format(order.total),
             width: 7,

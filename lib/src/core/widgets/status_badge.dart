@@ -94,7 +94,7 @@ class StatusBadge extends StatelessWidget {
   static Color _colorForOrderStatus(OrderStatus status) {
     switch (status.adminStatus) {
       case OrderStatus.pending:
-        return PosColors.primaryDark;
+        return PosColors.warning;
       case OrderStatus.accepted:
         return PosColors.primaryDark;
       case OrderStatus.preparing:
@@ -111,7 +111,7 @@ class StatusBadge extends StatelessWidget {
   static IconData _iconForOrderStatus(OrderStatus status) {
     switch (status.adminStatus) {
       case OrderStatus.pending:
-        return Icons.check_circle_outline;
+        return Icons.pending_actions_outlined;
       case OrderStatus.accepted:
         return Icons.check_circle_outline;
       case OrderStatus.preparing:

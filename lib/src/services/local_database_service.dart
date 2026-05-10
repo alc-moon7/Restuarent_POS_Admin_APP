@@ -39,7 +39,7 @@ class LocalDatabaseService {
     final databasePath = path.join(documentsDirectory.path, 'local_pos.db');
     _database = await openDatabase(
       databasePath,
-      version: 2,
+      version: 3,
       onConfigure: (db) async => db.execute('PRAGMA foreign_keys = ON'),
       onCreate: _createSchema,
       onUpgrade: _upgradeSchema,
@@ -225,7 +225,7 @@ class LocalDatabaseService {
       'orders',
       where: where.isEmpty ? null : where.join(' AND '),
       whereArgs: whereArgs.isEmpty ? null : whereArgs,
-      orderBy: 'createdAt DESC',
+      orderBy: 'sequenceNo DESC, createdAt DESC',
     );
 
     final orders = <OrderModel>[];
@@ -320,11 +320,12 @@ class LocalDatabaseService {
       final model = OrderModel(
         id: orderId,
         orderNo: _buildOrderNumber(now),
+        sequenceNo: await _nextOrderSequence(txn),
         customerName: _cleanNullable(customerName),
         tableNo: _cleanNullable(tableNo),
         note: _cleanNullable(note),
         source: source,
-        status: OrderStatus.accepted,
+        status: OrderStatus.pending,
         total: total,
         items: orderItems,
         syncStatus: createSyncEvent ? SyncStatus.pending : SyncStatus.synced,
@@ -367,27 +368,21 @@ class LocalDatabaseService {
         whereArgs: [order.id],
         limit: 1,
       );
-      final normalizedStatus = order.status.adminStatus;
-      final shouldAutoAccept = normalizedStatus != order.status;
       final remote = order.copyWith(
-        status: normalizedStatus,
-        syncStatus: shouldAutoAccept ? SyncStatus.pending : SyncStatus.synced,
+        status: order.status.adminStatus,
+        syncStatus: SyncStatus.synced,
       );
       if (existingRows.isEmpty) {
-        await txn.insert('orders', remote.toMap());
-        for (final item in remote.items) {
+        final next = remote.copyWith(
+          sequenceNo: remote.sequenceNo > 0
+              ? remote.sequenceNo
+              : await _nextOrderSequence(txn),
+        );
+        await txn.insert('orders', next.toMap());
+        for (final item in next.items) {
           await txn.insert('order_items', item.toMap());
         }
-        if (shouldAutoAccept) {
-          await _insertSyncEvent(
-            txn,
-            entityType: 'order_status',
-            entityId: remote.id,
-            action: 'status_update',
-            payload: remote.toJson(),
-          );
-        }
-        applied = remote;
+        applied = next;
         return;
       }
 
@@ -404,10 +399,6 @@ class LocalDatabaseService {
       }
 
       final nextStatus = statusCanAdvance ? remote.status : current.status;
-      final queueAutoAccept =
-          shouldAutoAccept &&
-          current.status != normalizedStatus &&
-          nextStatus == normalizedStatus;
       final nextVersion = remote.version > current.version
           ? remote.version
           : current.version;
@@ -416,9 +407,7 @@ class LocalDatabaseService {
             ? current.source
             : remote.source,
         status: nextStatus,
-        syncStatus: queueAutoAccept
-            ? SyncStatus.pending
-            : current.syncStatus == SyncStatus.synced
+        syncStatus: current.syncStatus == SyncStatus.synced
             ? SyncStatus.synced
             : current.syncStatus,
         version: nextVersion,
@@ -439,15 +428,6 @@ class LocalDatabaseService {
         for (final item in remote.items) {
           await txn.insert('order_items', item.toMap());
         }
-      }
-      if (queueAutoAccept) {
-        await _insertSyncEvent(
-          txn,
-          entityType: 'order_status',
-          entityId: next.id,
-          action: 'status_update',
-          payload: next.toJson(),
-        );
       }
       applied = next.copyWith(
         items: remoteNewer && current.syncStatus == SyncStatus.synced
@@ -696,6 +676,7 @@ class LocalDatabaseService {
         total REAL NOT NULL,
         syncStatus TEXT NOT NULL DEFAULT 'synced',
         version INTEGER NOT NULL DEFAULT 1,
+        sequenceNo INTEGER NOT NULL,
         createdAt TEXT NOT NULL,
         updatedAt TEXT NOT NULL
       )
@@ -763,6 +744,16 @@ class LocalDatabaseService {
       await _createSyncTable(db);
       await _createIndexes(db);
     }
+    if (oldVersion < 3) {
+      await _addColumnIfMissing(
+        db,
+        'orders',
+        'sequenceNo',
+        'sequenceNo INTEGER',
+      );
+      await _backfillOrderSequences(db);
+      await _createIndexes(db);
+    }
   }
 
   Future<void> _createSyncTable(Database db) async {
@@ -810,6 +801,38 @@ class LocalDatabaseService {
     final exists = columns.any((row) => row['name'] == column);
     if (!exists) {
       await db.execute('ALTER TABLE $table ADD COLUMN $definition');
+    }
+  }
+
+  Future<int> _nextOrderSequence(DatabaseExecutor db) async {
+    final rows = await db.rawQuery(
+      'SELECT COALESCE(MAX(sequenceNo), 0) + 1 AS nextSequence FROM orders',
+    );
+    final value = rows.first['nextSequence'];
+    return value is num ? value.toInt() : 1;
+  }
+
+  Future<void> _backfillOrderSequences(Database db) async {
+    final rows = await db.query(
+      'orders',
+      columns: ['id', 'sequenceNo'],
+      orderBy: 'createdAt ASC, orderNo ASC',
+    );
+    var next = 1;
+    for (final row in rows) {
+      final rawCurrent = row['sequenceNo'];
+      final current = rawCurrent is num ? rawCurrent.toInt() : null;
+      if (current != null && current > 0) {
+        if (current >= next) next = current + 1;
+        continue;
+      }
+      await db.update(
+        'orders',
+        {'sequenceNo': next},
+        where: 'id = ?',
+        whereArgs: [row['id']],
+      );
+      next++;
     }
   }
 

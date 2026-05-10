@@ -7,6 +7,7 @@ import '../theme/app_theme.dart';
 import 'status_badge.dart';
 
 const _adminOrderStatusOptions = <OrderStatus>[
+  OrderStatus.pending,
   OrderStatus.accepted,
   OrderStatus.served,
   OrderStatus.cancelled,
@@ -77,9 +78,21 @@ class OrderCard extends StatelessWidget {
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
-                              Text(
-                                order.orderNo,
-                                style: Theme.of(context).textTheme.titleLarge,
+                              Row(
+                                children: [
+                                  _SequencePill(label: order.displaySequence),
+                                  SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      order.orderNo,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleLarge,
+                                    ),
+                                  ),
+                                ],
                               ),
                               SizedBox(height: 6),
                               Wrap(
@@ -334,7 +347,11 @@ class OrderCard extends StatelessWidget {
                                           .toList(growable: false),
                                       onChanged: (status) {
                                         if (status != null &&
-                                            status != order.status) {
+                                            status !=
+                                                order.status.adminStatus &&
+                                            order.status.canTransitionTo(
+                                              status,
+                                            )) {
                                           onStatusChanged(status);
                                         }
                                       },
@@ -371,7 +388,7 @@ class OrderCard extends StatelessWidget {
   Color _accentForStatus(OrderStatus status) {
     switch (status.adminStatus) {
       case OrderStatus.pending:
-        return PosColors.primaryDark;
+        return PosColors.warning;
       case OrderStatus.accepted:
         return PosColors.primaryDark;
       case OrderStatus.preparing:
@@ -386,6 +403,33 @@ class OrderCard extends StatelessWidget {
   }
 }
 
+class _SequencePill extends StatelessWidget {
+  const _SequencePill({required this.label});
+
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.symmetric(horizontal: 9, vertical: 5),
+      decoration: BoxDecoration(
+        color: PosColors.primary,
+        borderRadius: BorderRadius.circular(PosRadii.pill),
+        border: Border.all(color: PosColors.primaryDark.withValues(alpha: 0.2)),
+      ),
+      child: Text(
+        label,
+        style: TextStyle(
+          color: PosColors.slate,
+          fontWeight: FontWeight.w900,
+          fontSize: 12,
+          letterSpacing: 0,
+        ),
+      ),
+    );
+  }
+}
+
 class _OrderMark extends StatelessWidget {
   const _OrderMark({required this.status});
 
@@ -394,7 +438,7 @@ class _OrderMark extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final color = switch (status.adminStatus) {
-      OrderStatus.pending => PosColors.primaryDark,
+      OrderStatus.pending => PosColors.warning,
       OrderStatus.accepted => PosColors.primaryDark,
       OrderStatus.preparing => PosColors.primaryDark,
       OrderStatus.ready => PosColors.primaryDark,

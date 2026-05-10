@@ -734,7 +734,8 @@ class PosAppController extends ChangeNotifier {
   List<OrderModel> ordersFor({OrderStatus? status, OrderSource? source}) {
     return orders
         .where((order) {
-          final matchesStatus = status == null || order.status == status;
+          final matchesStatus =
+              status == null || order.status.adminStatus == status;
           final matchesSource = source == null || order.source == source;
           return matchesStatus && matchesSource;
         })

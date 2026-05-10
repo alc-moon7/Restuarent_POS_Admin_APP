@@ -11,7 +11,7 @@ enum OrderStatus {
   String get label {
     switch (this) {
       case OrderStatus.pending:
-        return 'Accepted';
+        return 'Pending';
       case OrderStatus.accepted:
         return 'Accepted';
       case OrderStatus.preparing:
@@ -28,6 +28,7 @@ enum OrderStatus {
   OrderStatus get adminStatus {
     switch (this) {
       case OrderStatus.pending:
+        return OrderStatus.pending;
       case OrderStatus.preparing:
       case OrderStatus.ready:
         return OrderStatus.accepted;
@@ -38,7 +39,10 @@ enum OrderStatus {
     }
   }
 
-  bool get isOpen => adminStatus == OrderStatus.accepted;
+  bool get isOpen {
+    final status = adminStatus;
+    return status == OrderStatus.pending || status == OrderStatus.accepted;
+  }
 
   int get priority {
     switch (this) {
@@ -65,6 +69,9 @@ enum OrderStatus {
     if (target == OrderStatus.cancelled) return current != OrderStatus.served;
     if (current == OrderStatus.cancelled) {
       return target == OrderStatus.cancelled;
+    }
+    if (current == OrderStatus.pending) {
+      return target == OrderStatus.accepted;
     }
     return current == OrderStatus.accepted && target == OrderStatus.served;
   }

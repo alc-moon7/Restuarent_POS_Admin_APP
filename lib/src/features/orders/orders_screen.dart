@@ -16,6 +16,7 @@ import '../../models/order_status.dart';
 enum _OrdersView { board, list }
 
 const _adminOrderStatuses = <OrderStatus>[
+  OrderStatus.pending,
   OrderStatus.accepted,
   OrderStatus.served,
   OrderStatus.cancelled,
@@ -51,6 +52,8 @@ class _OrdersScreenState extends State<OrdersScreen> {
         : allOrders
               .where((order) {
                 return order.orderNo.toLowerCase().contains(query) ||
+                    order.sequenceNo.toString().contains(query) ||
+                    order.id.toLowerCase().contains(query) ||
                     (order.customerName ?? '').toLowerCase().contains(query) ||
                     (order.tableNo ?? '').toLowerCase().contains(query);
               })
@@ -63,7 +66,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
 
     return AppScaffold(
       title: 'Orders',
-      subtitle: 'New customer orders are accepted automatically.',
+      subtitle: 'New customer orders wait here until staff accepts them.',
       actions: [
         PrimaryButton(
           label: 'New Order',
@@ -394,7 +397,7 @@ class _StatusChip extends StatelessWidget {
 
 Color _colorForStatus(OrderStatus s) {
   return switch (s.adminStatus) {
-    OrderStatus.pending => PosColors.primaryDark,
+    OrderStatus.pending => PosColors.warning,
     OrderStatus.accepted => PosColors.primaryDark,
     OrderStatus.preparing => PosColors.primaryDark,
     OrderStatus.ready => PosColors.primaryDark,
@@ -405,7 +408,7 @@ Color _colorForStatus(OrderStatus s) {
 
 IconData _iconForStatus(OrderStatus s) {
   return switch (s.adminStatus) {
-    OrderStatus.pending => Icons.check_circle_outline,
+    OrderStatus.pending => Icons.pending_actions_outlined,
     OrderStatus.accepted => Icons.check_circle_outline,
     OrderStatus.preparing => Icons.check_circle_outline,
     OrderStatus.ready => Icons.check_circle_outline,
@@ -559,6 +562,7 @@ class _KanbanBoard extends StatelessWidget {
   final void Function(OrderModel order) onPrintTicket;
 
   static final _columns = <OrderStatus>[
+    OrderStatus.pending,
     OrderStatus.accepted,
     OrderStatus.served,
     OrderStatus.cancelled,
@@ -810,6 +814,23 @@ class _LaneCard extends StatelessWidget {
               children: [
                 Row(
                   children: [
+                    Container(
+                      padding: EdgeInsets.symmetric(horizontal: 7, vertical: 3),
+                      decoration: BoxDecoration(
+                        color: PosColors.primary,
+                        borderRadius: BorderRadius.circular(PosRadii.pill),
+                      ),
+                      child: Text(
+                        order.displaySequence,
+                        style: TextStyle(
+                          color: PosColors.slate,
+                          fontWeight: FontWeight.w900,
+                          fontSize: 11,
+                          letterSpacing: 0,
+                        ),
+                      ),
+                    ),
+                    SizedBox(width: 7),
                     Expanded(
                       child: Text(
                         order.orderNo,
