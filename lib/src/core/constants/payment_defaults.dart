@@ -3,7 +3,7 @@ class PaymentDefaults {
 
   static bool requireBkashGate = bool.fromEnvironment(
     'POS_REQUIRE_BKASH_GATE',
-    defaultValue: true,
+    defaultValue: false,
   );
 
   static String sandboxAmountText = String.fromEnvironment(

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -425,12 +426,19 @@ class CloudApiService {
       headers['Idempotency-Key'] = idempotencyKey;
     }
     final encodedBody = body == null ? null : jsonEncode(body);
-    final response = await _request(
-      method,
-      uri,
-      headers,
-      encodedBody,
-    ).timeout(Duration(seconds: 12));
+    final http.Response response;
+    try {
+      response = await _request(
+        method,
+        uri,
+        headers,
+        encodedBody,
+      ).timeout(Duration(seconds: 12));
+    } on TimeoutException {
+      throw CloudApiException(
+        'Cloud request timed out. Check internet or cloud server.',
+      );
+    }
     final decoded = response.body.trim().isEmpty
         ? <String, Object?>{}
         : jsonDecode(response.body);

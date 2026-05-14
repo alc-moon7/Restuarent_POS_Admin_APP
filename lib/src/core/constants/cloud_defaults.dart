@@ -26,9 +26,30 @@ class CloudDefaults {
 
   static String resolveBaseUrl(String? override) {
     final trimmed = override?.trim();
-    if (trimmed == null || trimmed.isEmpty || trimmed == placeholderBaseUrl) {
+    if (trimmed == null ||
+        trimmed.isEmpty ||
+        trimmed == placeholderBaseUrl ||
+        _isLocalOrPrivateUrl(trimmed)) {
       return baseUrl;
     }
     return trimmed;
+  }
+
+  static bool _isLocalOrPrivateUrl(String value) {
+    final uri = Uri.tryParse(value);
+    final host = uri?.host.toLowerCase() ?? '';
+    if (host.isEmpty) return false;
+    if (host == 'localhost' || host == '127.0.0.1' || host == '0.0.0.0') {
+      return true;
+    }
+    if (host.startsWith('192.168.') || host.startsWith('10.')) {
+      return true;
+    }
+    final parts = host.split('.');
+    if (parts.length == 4 && parts.first == '172') {
+      final second = int.tryParse(parts[1]);
+      return second != null && second >= 16 && second <= 31;
+    }
+    return false;
   }
 }

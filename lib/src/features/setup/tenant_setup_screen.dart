@@ -64,38 +64,50 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
                     child: ConstrainedBox(
                       constraints: BoxConstraints(maxWidth: 620),
                       child: Card(
+                        color: PosColors.background,
+                        surfaceTintColor: Colors.transparent,
+                        elevation: 0,
+                        shadowColor: Colors.black.withValues(alpha: 0.10),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(PosRadii.xl),
+                          side: BorderSide(color: PosColors.lineStrong),
+                        ),
                         clipBehavior: Clip.antiAlias,
-                        child: Padding(
-                          padding: EdgeInsets.all(24),
-                          child: _showCreate
-                              ? _CreateAccountForm(
-                                  formKey: _createFormKey,
-                                  restaurantController: _restaurantController,
-                                  outletController: _outletController,
-                                  emailController: _emailController,
-                                  usernameController: _usernameController,
-                                  passwordController: _passwordController,
-                                  busy: app.busy,
-                                  error: app.lastError,
-                                  onSubmit: app.busy ? null : _createAccount,
-                                  onBackToLogin: () {
-                                    setState(() => _showCreate = false);
-                                  },
-                                  requiredValidator: _required,
-                                )
-                              : _LoginForm(
-                                  formKey: _loginFormKey,
-                                  loginIdController: _loginIdController,
-                                  passwordController: _loginPasswordController,
-                                  busy: app.busy,
-                                  error: app.lastError,
-                                  onLogin: app.busy ? null : _login,
-                                  onCreateAccount: () {
-                                    setState(() => _showCreate = true);
-                                  },
-                                  onForgotPassword: _forgotPassword,
-                                  requiredValidator: _required,
-                                ),
+                        child: Theme(
+                          data: _whiteFormTheme(context),
+                          child: Padding(
+                            padding: EdgeInsets.all(24),
+                            child: _showCreate
+                                ? _CreateAccountForm(
+                                    formKey: _createFormKey,
+                                    restaurantController: _restaurantController,
+                                    outletController: _outletController,
+                                    emailController: _emailController,
+                                    usernameController: _usernameController,
+                                    passwordController: _passwordController,
+                                    busy: app.busy,
+                                    error: app.lastError,
+                                    onSubmit: app.busy ? null : _createAccount,
+                                    onBackToLogin: () {
+                                      setState(() => _showCreate = false);
+                                    },
+                                    requiredValidator: _required,
+                                  )
+                                : _LoginForm(
+                                    formKey: _loginFormKey,
+                                    loginIdController: _loginIdController,
+                                    passwordController:
+                                        _loginPasswordController,
+                                    busy: app.busy,
+                                    error: app.lastError,
+                                    onLogin: app.busy ? null : _login,
+                                    onCreateAccount: () {
+                                      setState(() => _showCreate = true);
+                                    },
+                                    onForgotPassword: _forgotPassword,
+                                    requiredValidator: _required,
+                                  ),
+                          ),
                         ),
                       ),
                     ),
@@ -141,9 +153,9 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
       widget.onProvisioned();
       return;
     }
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(app.lastError ?? 'Login failed')),
-    );
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(app.lastError ?? 'Login failed')));
   }
 
   Future<void> _forgotPassword() async {
@@ -175,65 +187,40 @@ class _TenantSetupScreenState extends State<TenantSetupScreen> {
   }
 }
 
+ThemeData _whiteFormTheme(BuildContext context) {
+  final base = Theme.of(context);
+  final border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(PosRadii.md),
+    borderSide: BorderSide(color: PosColors.lineStrong),
+  );
+  return base.copyWith(
+    cardColor: PosColors.background,
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      filled: true,
+      fillColor: PosColors.background,
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: BorderSide(color: PosColors.primaryDark, width: 1.4),
+      ),
+      prefixIconColor: PosColors.muted,
+      labelStyle: TextStyle(
+        color: PosColors.muted,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+  );
+}
+
 class _SetupWash extends StatelessWidget {
   const _SetupWash();
 
   @override
   Widget build(BuildContext context) {
     return IgnorePointer(
-      child: Stack(
-        children: [
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                  colors: [
-                    PosColors.primarySoft,
-                    PosColors.accentSoft.withValues(alpha: 0.45),
-                    PosColors.background,
-                  ],
-                ),
-              ),
-              child: SizedBox.expand(),
-            ),
-          ),
-          Positioned(
-            top: -100,
-            left: -80,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    PosColors.primaryGlow.withValues(alpha: 0.18),
-                    PosColors.primaryGlow.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-          Positioned(
-            bottom: -120,
-            right: -90,
-            child: Container(
-              width: 320,
-              height: 320,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                gradient: RadialGradient(
-                  colors: [
-                    PosColors.accent.withValues(alpha: 0.12),
-                    PosColors.accent.withValues(alpha: 0),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ],
+      child: DecoratedBox(
+        decoration: BoxDecoration(color: PosColors.background),
+        child: SizedBox.expand(),
       ),
     );
   }
@@ -272,9 +259,9 @@ class _LoginForm extends StatelessWidget {
         children: [
           Text(
             'Log in',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              fontSize: 30,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontSize: 30),
           ),
           SizedBox(height: 16),
           TextFormField(
@@ -369,9 +356,9 @@ class _CreateAccountForm extends StatelessWidget {
         children: [
           Text(
             'Create account',
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
-              fontSize: 30,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.displaySmall?.copyWith(fontSize: 30),
           ),
           SizedBox(height: 16),
           TextFormField(

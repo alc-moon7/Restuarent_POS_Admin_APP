@@ -72,6 +72,8 @@ class PosAppController extends ChangeNotifier {
   final List<StreamSubscription<Object?>> _subscriptions = [];
   final Set<String> _knownOrderIds = <String>{};
   final Set<String> _autoPrintInFlight = <String>{};
+  Timer? _cloudOrderRefreshTimer;
+  bool _cloudOrderRefreshInFlight = false;
 
   bool initialized = false;
   bool busy = false;
@@ -225,6 +227,7 @@ class PosAppController extends ChangeNotifier {
         unawaited(syncService.syncNow());
       }
       initialized = true;
+      _restartCloudOrderRefreshTimer();
       lastError = null;
     } catch (error) {
       lastError = 'App initialization failed: $error';
@@ -385,6 +388,7 @@ class PosAppController extends ChangeNotifier {
         cloudConfig: cloudConfig,
         serverConfig: serverConfig,
       );
+      _restartCloudOrderRefreshTimer();
       if (isTenantReady && cloudConfig.canSync) {
         unawaited(syncService.syncNow());
       }
@@ -396,7 +400,7 @@ class PosAppController extends ChangeNotifier {
     required String outletName,
   }) async {
     return _runBusy(() async {
-      await _provisionTenantInternal(
+      await _provisionTenantWithFallback(
         restaurantName: restaurantName,
         outletName: outletName,
       );
@@ -411,7 +415,7 @@ class PosAppController extends ChangeNotifier {
     required String password,
   }) async {
     return _runBusy(() async {
-      await _provisionTenantInternal(
+      await _provisionTenantWithFallback(
         restaurantName: restaurantName,
         outletName: outletName,
       );
@@ -420,6 +424,7 @@ class PosAppController extends ChangeNotifier {
       _accountPassword = password;
       isLoggedIn = true;
       await _persistAccountAuth();
+      _restartCloudOrderRefreshTimer();
     });
   }
 
@@ -429,6 +434,14 @@ class PosAppController extends ChangeNotifier {
   }) async {
     return _runBusy(() async {
       final id = usernameOrEmail.trim().toLowerCase();
+      if (_canUseLocalAccount(usernameOrEmail: id, password: password)) {
+        await _loginLocalAccount(usernameOrEmail: id, password: password);
+        if (cloudConfig.canSync) {
+          unawaited(syncService.syncNow());
+        }
+        return;
+      }
+
       final cloudErrors = <Object>[];
       if (cloudConfig.hasValidBaseUrl) {
         try {
@@ -441,7 +454,7 @@ class PosAppController extends ChangeNotifier {
 
       if (accountUsername.trim().isEmpty || _accountPassword.isEmpty) {
         if (cloudErrors.isNotEmpty) {
-          throw Exception(cloudErrors.first.toString());
+          throw Exception(_friendlyLoginError(cloudErrors.first));
         }
         throw Exception(
           'No account found on this device. Please create account first.',
@@ -449,6 +462,34 @@ class PosAppController extends ChangeNotifier {
       }
       await _loginLocalAccount(usernameOrEmail: id, password: password);
     });
+  }
+
+  bool _canUseLocalAccount({
+    required String usernameOrEmail,
+    required String password,
+  }) {
+    if (accountUsername.trim().isEmpty || _accountPassword.isEmpty) {
+      return false;
+    }
+    final usernameMatch =
+        accountUsername.trim().toLowerCase() == usernameOrEmail;
+    final emailMatch = accountEmail.trim().toLowerCase() == usernameOrEmail;
+    return (usernameMatch || emailMatch) && _accountPassword == password;
+  }
+
+  String _friendlyLoginError(Object error) {
+    final raw = error.toString();
+    if (_isCloudTimeout(error)) {
+      return 'Cloud server is not reachable. If this is a new device, create account once. Existing local accounts can still log in offline.';
+    }
+    return raw.replaceFirst('Exception: ', '');
+  }
+
+  bool _isCloudTimeout(Object error) {
+    final raw = error.toString().toLowerCase();
+    return raw.contains('timeoutexception') ||
+        raw.contains('future not completed') ||
+        raw.contains('timed out');
   }
 
   Future<void> _loginCloudAccount({
@@ -483,6 +524,7 @@ class PosAppController extends ChangeNotifier {
     await _persistSettings();
     await _persistAccountAuth();
     syncService.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
+    _restartCloudOrderRefreshTimer();
     unawaited(syncService.syncNow());
   }
 
@@ -503,11 +545,14 @@ class PosAppController extends ChangeNotifier {
     }
     isLoggedIn = true;
     await _persistAccountAuth();
+    _restartCloudOrderRefreshTimer();
   }
 
   Future<void> logOut() async {
     isLoggedIn = false;
     lastError = null;
+    _cloudOrderRefreshTimer?.cancel();
+    _cloudOrderRefreshTimer = null;
     final preferences = await SharedPreferences.getInstance();
     await preferences.setBool(_accountLoggedInKey, false);
     notifyListeners();
@@ -626,6 +671,7 @@ class PosAppController extends ChangeNotifier {
         cloudConfig: cloudConfig,
         serverConfig: serverConfig,
       );
+      _restartCloudOrderRefreshTimer();
       if (cloudConfig.canSync) {
         await syncService.syncNow();
       }
@@ -756,6 +802,7 @@ class PosAppController extends ChangeNotifier {
 
   @override
   void dispose() {
+    _cloudOrderRefreshTimer?.cancel();
     for (final subscription in _subscriptions) {
       unawaited(subscription.cancel());
     }
@@ -774,12 +821,22 @@ class PosAppController extends ChangeNotifier {
       await action();
       return true;
     } catch (error) {
-      lastError = error.toString();
+      lastError = _friendlyActionError(error);
       return false;
     } finally {
       busy = false;
       notifyListeners();
     }
+  }
+
+  String _friendlyActionError(Object error) {
+    final raw = error.toString();
+    if (raw.contains('TimeoutException') ||
+        raw.contains('Future not completed') ||
+        raw.toLowerCase().contains('timed out')) {
+      return 'Request timed out. Check internet/cloud server, then try again.';
+    }
+    return raw.replaceFirst('Exception: ', '');
   }
 
   Future<void> _persistSettings() async {
@@ -810,6 +867,62 @@ class PosAppController extends ChangeNotifier {
     await preferences.setString(_accountUsernameKey, accountUsername);
     await preferences.setString(_accountPasswordKey, _accountPassword);
     await preferences.setBool(_accountLoggedInKey, isLoggedIn);
+  }
+
+  Future<void> _provisionTenantWithFallback({
+    required String restaurantName,
+    required String outletName,
+  }) async {
+    try {
+      await _provisionTenantInternal(
+        restaurantName: restaurantName,
+        outletName: outletName,
+      );
+    } catch (error) {
+      if (!_isCloudTimeout(error)) rethrow;
+      await _provisionTenantLocally(
+        restaurantName: restaurantName,
+        outletName: outletName,
+      );
+      lastError = null;
+    }
+  }
+
+  Future<void> _provisionTenantLocally({
+    required String restaurantName,
+    required String outletName,
+  }) async {
+    final cleanRestaurant = restaurantName.trim().isEmpty
+        ? 'Restaurant'
+        : restaurantName.trim();
+    final cleanOutlet = outletName.trim().isEmpty
+        ? 'Main Outlet'
+        : outletName.trim();
+    final shortServerId = serverConfig.serverId.trim().isEmpty
+        ? _uuid.v4()
+        : serverConfig.serverId.trim();
+    final restaurantId = serverConfig.restaurantId.trim().isEmpty
+        ? 'rest_${_uuid.v4().replaceAll('-', '').substring(0, 12)}'
+        : serverConfig.restaurantId.trim();
+    final outletId = serverConfig.outletId.trim().isEmpty
+        ? 'outlet_${_uuid.v4().replaceAll('-', '').substring(0, 12)}'
+        : serverConfig.outletId.trim();
+    serverConfig = serverConfig.copyWith(
+      serverId: shortServerId,
+      restaurantId: restaurantId,
+      outletId: outletId,
+      restaurantName: cleanRestaurant,
+      outletName: cleanOutlet,
+    );
+    cloudConfig = cloudConfig.copyWith(
+      enabled: false,
+      deviceToken: cloudConfig.deviceToken.trim().isEmpty
+          ? 'local_${shortServerId.replaceAll('-', '')}'
+          : cloudConfig.deviceToken,
+    );
+    await _persistSettings();
+    syncService.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
+    _restartCloudOrderRefreshTimer();
   }
 
   Future<void> _provisionTenantInternal({
@@ -843,7 +956,38 @@ class PosAppController extends ChangeNotifier {
     );
     await _persistSettings();
     syncService.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
+    _restartCloudOrderRefreshTimer();
     unawaited(syncService.syncNow());
+  }
+
+  void _restartCloudOrderRefreshTimer() {
+    _cloudOrderRefreshTimer?.cancel();
+    _cloudOrderRefreshTimer = null;
+    if (!initialized || !isLoggedIn || !isTenantReady || !cloudConfig.canSync) {
+      return;
+    }
+
+    _cloudOrderRefreshTimer = Timer.periodic(
+      Duration(seconds: 8),
+      (_) => unawaited(_refreshCloudOrdersInBackground()),
+    );
+    unawaited(_refreshCloudOrdersInBackground());
+  }
+
+  Future<void> _refreshCloudOrdersInBackground() async {
+    if (_cloudOrderRefreshInFlight ||
+        !initialized ||
+        !isLoggedIn ||
+        !isTenantReady ||
+        !cloudConfig.canSync) {
+      return;
+    }
+    _cloudOrderRefreshInFlight = true;
+    try {
+      await syncService.refreshCloudChanges();
+    } finally {
+      _cloudOrderRefreshInFlight = false;
+    }
   }
 
   Future<void> _persistBkashPayment(BkashPaymentSession session) async {

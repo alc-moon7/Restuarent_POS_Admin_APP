@@ -269,6 +269,38 @@ class SyncService {
     await syncNow();
   }
 
+  Future<void> refreshCloudChanges() async {
+    if (_state.isSyncing || !_cloudConfig.canSync) return;
+    if (!_online) {
+      _online = await _connectivity.hasInternetAccess();
+      if (!_online) return;
+    }
+
+    try {
+      await _cloudApi.testHealth();
+      await _connectCloudRealtime();
+      final pulled = await _pullCloudChanges();
+      if (pulled > 0) {
+        _addLog('Imported $pulled cloud update${pulled == 1 ? '' : 's'}.');
+        _state = _state.copyWith(
+          cloudConnected: true,
+          lastSyncAt: DateTime.now(),
+          clearError: true,
+        );
+      } else {
+        _state = _state.copyWith(cloudConnected: true, clearError: true);
+      }
+    } catch (error) {
+      _state = _state.copyWith(
+        cloudConnected: false,
+        lastError: error.toString(),
+      );
+    } finally {
+      await refreshSummary();
+      _emitState();
+    }
+  }
+
   Future<void> refreshSummary() async {
     final summary = await _database.getSyncSummary();
     _state = _state.copyWith(

@@ -99,6 +99,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
       context: context,
       isScrollControlled: true,
       useSafeArea: true,
+      backgroundColor: PosColors.background,
       builder: (context) => _ManualOrderForm(menuItems: menuItems),
     );
     if (result == null) return;
@@ -1007,6 +1008,40 @@ class _ManualOrderForm extends StatefulWidget {
   State<_ManualOrderForm> createState() => _ManualOrderFormState();
 }
 
+ThemeData _whiteOrderFormTheme(BuildContext context) {
+  final base = Theme.of(context);
+  final border = OutlineInputBorder(
+    borderRadius: BorderRadius.circular(PosRadii.md),
+    borderSide: BorderSide(color: PosColors.lineStrong),
+  );
+  return base.copyWith(
+    inputDecorationTheme: base.inputDecorationTheme.copyWith(
+      filled: true,
+      fillColor: PosColors.background,
+      border: border,
+      enabledBorder: border,
+      focusedBorder: border.copyWith(
+        borderSide: BorderSide(color: PosColors.primaryDark, width: 1.4),
+      ),
+      prefixIconColor: PosColors.muted,
+      labelStyle: TextStyle(
+        color: PosColors.muted,
+        fontWeight: FontWeight.w700,
+      ),
+    ),
+    outlinedButtonTheme: OutlinedButtonThemeData(
+      style: OutlinedButton.styleFrom(
+        backgroundColor: PosColors.primary,
+        foregroundColor: PosColors.slate,
+        side: BorderSide(color: PosColors.primaryDark),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(PosRadii.sm + 2),
+        ),
+      ),
+    ),
+  );
+}
+
 class _ManualOrderFormState extends State<_ManualOrderForm> {
   final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _customerController = TextEditingController();
@@ -1040,206 +1075,215 @@ class _ManualOrderFormState extends State<_ManualOrderForm> {
       return sum + item.price * line.qty;
     });
     final bottomInset = MediaQuery.viewInsetsOf(context).bottom;
-    return Padding(
-      padding: EdgeInsets.only(bottom: bottomInset),
-      child: SingleChildScrollView(
+    return Theme(
+      data: _whiteOrderFormTheme(context),
+      child: Material(
+        color: PosColors.background,
+        surfaceTintColor: Colors.transparent,
         child: Padding(
-          padding: EdgeInsets.fromLTRB(18, 14, 18, 20),
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
+          padding: EdgeInsets.only(bottom: bottomInset),
+          child: SingleChildScrollView(
+            child: Padding(
+              padding: EdgeInsets.fromLTRB(18, 14, 18, 20),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: 40,
-                      height: 40,
-                      decoration: BoxDecoration(
-                        gradient: PosGradients.brand,
-                        borderRadius: BorderRadius.circular(PosRadii.sm + 2),
-                        boxShadow: PosShadows.glow,
-                      ),
-                      child: Icon(
-                        Icons.add_shopping_cart_rounded,
-                        color: PosColors.slate,
-                        size: 20,
+                    Row(
+                      children: [
+                        Container(
+                          width: 40,
+                          height: 40,
+                          decoration: BoxDecoration(
+                            gradient: PosGradients.brand,
+                            borderRadius: BorderRadius.circular(
+                              PosRadii.sm + 2,
+                            ),
+                            boxShadow: PosShadows.glow,
+                          ),
+                          child: Icon(
+                            Icons.add_shopping_cart_rounded,
+                            color: PosColors.slate,
+                            size: 20,
+                          ),
+                        ),
+                        SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Create Manual Order',
+                                style: Theme.of(context).textTheme.titleLarge,
+                              ),
+                              Text(
+                                'Add walk-in or phone orders manually',
+                                style: TextStyle(
+                                  color: PosColors.muted,
+                                  fontWeight: FontWeight.w600,
+                                  fontSize: 11.6,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        IconButton(
+                          onPressed: () => Navigator.pop(context),
+                          icon: Icon(Icons.close),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 16),
+                    LayoutBuilder(
+                      builder: (context, constraints) {
+                        final compact = constraints.maxWidth < 560;
+                        final customer = TextField(
+                          controller: _customerController,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: 'Customer name',
+                            hintText: 'Optional',
+                            prefixIcon: Icon(Icons.person_outline),
+                          ),
+                        );
+                        final table = TextField(
+                          controller: _tableController,
+                          textInputAction: TextInputAction.next,
+                          decoration: InputDecoration(
+                            labelText: 'Table number',
+                            hintText: 'Optional',
+                            prefixIcon: Icon(Icons.table_restaurant_outlined),
+                          ),
+                        );
+                        if (compact) {
+                          return Column(
+                            children: [customer, SizedBox(height: 10), table],
+                          );
+                        }
+                        return Row(
+                          children: [
+                            Expanded(child: customer),
+                            SizedBox(width: 12),
+                            Expanded(child: table),
+                          ],
+                        );
+                      },
+                    ),
+                    SizedBox(height: 10),
+                    TextField(
+                      controller: _noteController,
+                      maxLines: 2,
+                      decoration: InputDecoration(
+                        labelText: 'Order note',
+                        hintText: 'Optional',
+                        prefixIcon: Icon(Icons.notes_rounded),
                       ),
                     ),
-                    SizedBox(width: 12),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
+                    SizedBox(height: 16),
+                    Row(
+                      children: [
+                        Icon(
+                          Icons.shopping_basket_outlined,
+                          size: 18,
+                          color: PosColors.primary,
+                        ),
+                        SizedBox(width: 8),
+                        Text(
+                          'Items',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        Spacer(),
+                        Text(
+                          '${_lines.length} line${_lines.length == 1 ? '' : 's'}',
+                          style: TextStyle(
+                            color: PosColors.muted,
+                            fontWeight: FontWeight.w700,
+                            fontSize: 11.6,
+                          ),
+                        ),
+                      ],
+                    ),
+                    SizedBox(height: 8),
+                    ..._lines.asMap().entries.map((entry) {
+                      return Padding(
+                        padding: EdgeInsets.only(bottom: 10),
+                        child: _OrderLineEditor(
+                          line: entry.value,
+                          menuItems: widget.menuItems,
+                          canRemove: _lines.length > 1,
+                          onChanged: () => setState(() {}),
+                          onRemove: () {
+                            setState(() => _lines.removeAt(entry.key));
+                          },
+                        ),
+                      );
+                    }),
+                    OutlinedButton.icon(
+                      onPressed: () {
+                        setState(
+                          () => _lines.add(
+                            _DraftOrderLine(
+                              menuItemId: widget.menuItems.first.id,
+                            ),
+                          ),
+                        );
+                      },
+                      icon: Icon(Icons.add),
+                      label: Text('Add another item'),
+                    ),
+                    SizedBox(height: 16),
+                    Container(
+                      padding: EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        color: PosColors.background,
+                        borderRadius: BorderRadius.circular(PosRadii.md),
+                        border: Border.all(color: PosColors.lineStrong),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.05),
+                            blurRadius: 10,
+                            offset: Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: Row(
                         children: [
                           Text(
-                            'Create Manual Order',
-                            style: Theme.of(context).textTheme.titleLarge,
-                          ),
-                          Text(
-                            'Add walk-in or phone orders manually',
+                            'TOTAL',
                             style: TextStyle(
                               color: PosColors.muted,
-                              fontWeight: FontWeight.w600,
-                              fontSize: 11.6,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 11.5,
+                              letterSpacing: 1.4,
+                            ),
+                          ),
+                          Spacer(),
+                          Text(
+                            currency.format(total),
+                            style: TextStyle(
+                              color: PosColors.primaryDark,
+                              fontWeight: FontWeight.w900,
+                              fontSize: 22,
+                              letterSpacing: 0,
                             ),
                           ),
                         ],
                       ),
                     ),
-                    IconButton(
-                      onPressed: () => Navigator.pop(context),
-                      icon: Icon(Icons.close),
-                    ),
-                  ],
-                ),
-                SizedBox(height: 16),
-                LayoutBuilder(
-                  builder: (context, constraints) {
-                    final compact = constraints.maxWidth < 560;
-                    final customer = TextField(
-                      controller: _customerController,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: 'Customer name',
-                        hintText: 'Optional',
-                        prefixIcon: Icon(Icons.person_outline),
-                      ),
-                    );
-                    final table = TextField(
-                      controller: _tableController,
-                      textInputAction: TextInputAction.next,
-                      decoration: InputDecoration(
-                        labelText: 'Table number',
-                        hintText: 'Optional',
-                        prefixIcon: Icon(Icons.table_restaurant_outlined),
-                      ),
-                    );
-                    if (compact) {
-                      return Column(
-                        children: [customer, SizedBox(height: 10), table],
-                      );
-                    }
-                    return Row(
-                      children: [
-                        Expanded(child: customer),
-                        SizedBox(width: 12),
-                        Expanded(child: table),
-                      ],
-                    );
-                  },
-                ),
-                SizedBox(height: 10),
-                TextField(
-                  controller: _noteController,
-                  maxLines: 2,
-                  decoration: InputDecoration(
-                    labelText: 'Order note',
-                    hintText: 'Optional',
-                    prefixIcon: Icon(Icons.notes_rounded),
-                  ),
-                ),
-                SizedBox(height: 16),
-                Row(
-                  children: [
-                    Icon(
-                      Icons.shopping_basket_outlined,
-                      size: 18,
-                      color: PosColors.primary,
-                    ),
-                    SizedBox(width: 8),
-                    Text(
-                      'Items',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    Spacer(),
-                    Text(
-                      '${_lines.length} line${_lines.length == 1 ? '' : 's'}',
-                      style: TextStyle(
-                        color: PosColors.muted,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 11.6,
+                    SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      child: FilledButton.icon(
+                        onPressed: _submit,
+                        icon: Icon(Icons.receipt_long_outlined),
+                        label: Text('Create Order'),
                       ),
                     ),
                   ],
                 ),
-                SizedBox(height: 8),
-                ..._lines.asMap().entries.map((entry) {
-                  return Padding(
-                    padding: EdgeInsets.only(bottom: 10),
-                    child: _OrderLineEditor(
-                      line: entry.value,
-                      menuItems: widget.menuItems,
-                      canRemove: _lines.length > 1,
-                      onChanged: () => setState(() {}),
-                      onRemove: () {
-                        setState(() => _lines.removeAt(entry.key));
-                      },
-                    ),
-                  );
-                }),
-                OutlinedButton.icon(
-                  onPressed: () {
-                    setState(
-                      () => _lines.add(
-                        _DraftOrderLine(menuItemId: widget.menuItems.first.id),
-                      ),
-                    );
-                  },
-                  icon: Icon(Icons.add),
-                  label: Text('Add another item'),
-                ),
-                SizedBox(height: 16),
-                Container(
-                  padding: EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: LinearGradient(
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
-                      colors: [
-                        PosColors.primary.withValues(alpha: 0.10),
-                        PosColors.primary.withValues(alpha: 0.02),
-                      ],
-                    ),
-                    borderRadius: BorderRadius.circular(PosRadii.md),
-                    border: Border.all(
-                      color: PosColors.primary.withValues(alpha: 0.20),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      Text(
-                        'TOTAL',
-                        style: TextStyle(
-                          color: PosColors.muted,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 11.5,
-                          letterSpacing: 1.4,
-                        ),
-                      ),
-                      Spacer(),
-                      Text(
-                        currency.format(total),
-                        style: TextStyle(
-                          color: PosColors.primaryDark,
-                          fontWeight: FontWeight.w900,
-                          fontSize: 22,
-                          letterSpacing: 0,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-                SizedBox(height: 14),
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _submit,
-                    icon: Icon(Icons.receipt_long_outlined),
-                    label: Text('Create Order'),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),
