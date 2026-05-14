@@ -11,8 +11,17 @@ class CloudDefaults {
     defaultValue: productionBaseUrl,
   );
 
+  static String fallbackBaseUrl = String.fromEnvironment(
+    'POS_LOCAL_FALLBACK_API_URL',
+    defaultValue: '',
+  );
+
   static bool forceCloudSyncEnabled = bool.fromEnvironment(
     'POS_CLOUD_SYNC_ENABLED',
+  );
+
+  static bool rejectLocalCloudApiOverrides = bool.fromEnvironment(
+    'POS_REJECT_LOCAL_CLOUD_API_URL',
   );
 
   static bool get hasConfiguredBaseUrl {
@@ -29,13 +38,21 @@ class CloudDefaults {
     if (trimmed == null ||
         trimmed.isEmpty ||
         trimmed == placeholderBaseUrl ||
-        _isLocalOrPrivateUrl(trimmed)) {
+        (rejectLocalCloudApiOverrides && isLocalOrPrivateUrl(trimmed))) {
       return baseUrl;
     }
     return trimmed;
   }
 
-  static bool _isLocalOrPrivateUrl(String value) {
+  static String resolveFallbackBaseUrl(String? override) {
+    final trimmed = override?.trim();
+    if (trimmed == null || trimmed.isEmpty || trimmed == placeholderBaseUrl) {
+      return fallbackBaseUrl.trim();
+    }
+    return trimmed;
+  }
+
+  static bool isLocalOrPrivateUrl(String value) {
     final uri = Uri.tryParse(value);
     final host = uri?.host.toLowerCase() ?? '';
     if (host.isEmpty) return false;

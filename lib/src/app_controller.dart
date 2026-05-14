@@ -118,6 +118,7 @@ class PosAppController extends ChangeNotifier {
     enabled: CloudDefaults.shouldEnableSyncByDefault,
     deviceToken: '',
     autoSyncIntervalSeconds: 30,
+    fallbackBaseUrl: CloudDefaults.fallbackBaseUrl,
   );
 
   String get restaurantName => serverConfig.restaurantName;
@@ -187,6 +188,9 @@ class PosAppController extends ChangeNotifier {
             CloudDefaults.shouldEnableSyncByDefault,
         deviceToken: preferences.getString(_deviceTokenKey) ?? '',
         autoSyncIntervalSeconds: preferences.getInt(_autoSyncIntervalKey) ?? 30,
+        fallbackBaseUrl: CloudDefaults.resolveFallbackBaseUrl(
+          preferences.getString(_localFallbackApiUrlKey),
+        ),
       );
       accountEmail = preferences.getString(_accountEmailKey) ?? '';
       accountUsername = preferences.getString(_accountUsernameKey) ?? '';
@@ -362,6 +366,7 @@ class PosAppController extends ChangeNotifier {
     required String restaurantName,
     required String outletName,
     required String cloudApiUrl,
+    required String localFallbackApiUrl,
     required String restaurantId,
     required String outletId,
     required bool cloudSyncEnabled,
@@ -380,6 +385,9 @@ class PosAppController extends ChangeNotifier {
       );
       cloudConfig = cloudConfig.copyWith(
         baseUrl: CloudDefaults.resolveBaseUrl(cloudApiUrl),
+        fallbackBaseUrl: CloudDefaults.resolveFallbackBaseUrl(
+          localFallbackApiUrl,
+        ),
         enabled: cloudSyncEnabled,
         autoSyncIntervalSeconds: autoSyncIntervalSeconds.clamp(10, 3600),
       );
@@ -418,6 +426,11 @@ class PosAppController extends ChangeNotifier {
       await _provisionTenantWithFallback(
         restaurantName: restaurantName,
         outletName: outletName,
+      );
+      await _createLocalFallbackAdminAccountIfNeeded(
+        email: email,
+        username: username,
+        password: password,
       );
       accountEmail = email.trim();
       accountUsername = username.trim();
@@ -850,6 +863,10 @@ class PosAppController extends ChangeNotifier {
     await preferences.setString(_outletIdKey, serverConfig.outletId);
     await preferences.setString(_serverIdKey, serverConfig.serverId);
     await preferences.setString(_cloudApiUrlKey, cloudConfig.baseUrl);
+    await preferences.setString(
+      _localFallbackApiUrlKey,
+      cloudConfig.fallbackBaseUrl,
+    );
     await preferences.setBool(_cloudSyncEnabledKey, cloudConfig.enabled);
     await preferences.setString(_deviceTokenKey, cloudConfig.deviceToken);
     await preferences.setString(_languageKey, language.code);
@@ -960,6 +977,27 @@ class PosAppController extends ChangeNotifier {
     unawaited(syncService.syncNow());
   }
 
+  Future<void> _createLocalFallbackAdminAccountIfNeeded({
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    if (!cloudConfig.canSync ||
+        !CloudDefaults.isLocalOrPrivateUrl(cloudConfig.baseUrl)) {
+      return;
+    }
+    cloudApiService.configure(
+      cloudConfig: cloudConfig,
+      serverConfig: serverConfig,
+    );
+    await cloudApiService.createAdminAccount(
+      outletId: serverConfig.outletId,
+      email: email,
+      username: username,
+      password: password,
+    );
+  }
+
   void _restartCloudOrderRefreshTimer() {
     _cloudOrderRefreshTimer?.cancel();
     _cloudOrderRefreshTimer = null;
@@ -1030,6 +1068,8 @@ class PosAppController extends ChangeNotifier {
   static final String _restaurantIdKey = 'local_pos_restaurant_id';
   static final String _outletIdKey = 'local_pos_outlet_id';
   static final String _cloudApiUrlKey = 'local_pos_cloud_api_url';
+  static final String _localFallbackApiUrlKey =
+      'local_pos_local_fallback_api_url';
   static final String _deviceTokenKey = 'local_pos_device_token';
   static final String _cloudSyncEnabledKey = 'local_pos_cloud_sync_enabled';
   static final String _autoSyncIntervalKey = 'local_pos_auto_sync_interval';

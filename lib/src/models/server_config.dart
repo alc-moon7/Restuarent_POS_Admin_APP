@@ -36,12 +36,14 @@ class CloudConfig {
     required this.enabled,
     required this.deviceToken,
     required this.autoSyncIntervalSeconds,
+    this.fallbackBaseUrl = '',
   });
 
   final String baseUrl;
   final bool enabled;
   final String deviceToken;
   final int autoSyncIntervalSeconds;
+  final String fallbackBaseUrl;
 
   bool get hasValidBaseUrl {
     final uri = Uri.tryParse(baseUrl.trim());
@@ -54,12 +56,20 @@ class CloudConfig {
   bool get hasDeviceToken => deviceToken.trim().isNotEmpty;
   bool get canConnect => enabled && hasValidBaseUrl;
   bool get canSync => canConnect && hasDeviceToken;
+  bool get hasValidFallbackBaseUrl {
+    final uri = Uri.tryParse(fallbackBaseUrl.trim());
+    return uri != null &&
+        uri.hasScheme &&
+        (uri.scheme == 'http' || uri.scheme == 'https') &&
+        uri.host.isNotEmpty;
+  }
 
   CloudConfig copyWith({
     String? baseUrl,
     bool? enabled,
     String? deviceToken,
     int? autoSyncIntervalSeconds,
+    String? fallbackBaseUrl,
   }) {
     return CloudConfig(
       baseUrl: baseUrl ?? this.baseUrl,
@@ -67,6 +77,7 @@ class CloudConfig {
       deviceToken: deviceToken ?? this.deviceToken,
       autoSyncIntervalSeconds:
           autoSyncIntervalSeconds ?? this.autoSyncIntervalSeconds,
+      fallbackBaseUrl: fallbackBaseUrl ?? this.fallbackBaseUrl,
     );
   }
 }
