@@ -28,6 +28,8 @@ class _SettingsScreenState extends State<SettingsScreen> {
   final TextEditingController _restaurantController = TextEditingController();
   final TextEditingController _outletController = TextEditingController();
   final TextEditingController _cloudUrlController = TextEditingController();
+  final TextEditingController _localFallbackUrlController =
+      TextEditingController();
   final TextEditingController _restaurantIdController = TextEditingController();
   final TextEditingController _outletIdController = TextEditingController();
   final TextEditingController _syncIntervalController = TextEditingController();
@@ -51,6 +53,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _restaurantController.text = app.serverConfig.restaurantName;
     _outletController.text = app.serverConfig.outletName;
     _cloudUrlController.text = app.cloudConfig.baseUrl;
+    _localFallbackUrlController.text = app.cloudConfig.fallbackBaseUrl;
     _restaurantIdController.text = app.serverConfig.restaurantId;
     _outletIdController.text = app.serverConfig.outletId;
     _syncIntervalController.text = app.cloudConfig.autoSyncIntervalSeconds
@@ -60,6 +63,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _restaurantController.addListener(_scheduleAutoSave);
     _outletController.addListener(_scheduleAutoSave);
     _cloudUrlController.addListener(_scheduleAutoSave);
+    _localFallbackUrlController.addListener(_scheduleAutoSave);
     _syncIntervalController.addListener(_scheduleAutoSave);
     _hydrated = true;
   }
@@ -70,6 +74,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
     _restaurantController.dispose();
     _outletController.dispose();
     _cloudUrlController.dispose();
+    _localFallbackUrlController.dispose();
     _restaurantIdController.dispose();
     _outletIdController.dispose();
     _syncIntervalController.dispose();
@@ -342,6 +347,20 @@ class _SettingsScreenState extends State<SettingsScreen> {
                     ),
                     SizedBox(height: 10),
                     Text(
+                      'Local Fallback API URL',
+                      style: Theme.of(context).textTheme.titleSmall,
+                    ),
+                    SizedBox(height: 6),
+                    TextFormField(
+                      controller: _localFallbackUrlController,
+                      decoration: InputDecoration(
+                        hintText: 'http://192.168.0.105:8000',
+                        prefixIcon: Icon(Icons.router_outlined),
+                        floatingLabelBehavior: FloatingLabelBehavior.never,
+                      ),
+                    ),
+                    SizedBox(height: 10),
+                    Text(
                       'No Manual API Key',
                       style: Theme.of(context).textTheme.titleSmall,
                     ),
@@ -582,6 +601,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
       restaurantName: _restaurantController.text,
       outletName: _outletController.text,
       cloudApiUrl: _cloudUrlController.text,
+      localFallbackApiUrl: _localFallbackUrlController.text,
       restaurantId: _restaurantIdController.text,
       outletId: _outletIdController.text,
       cloudSyncEnabled: _cloudSyncEnabled,

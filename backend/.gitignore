@@ -1,0 +1,11 @@
+.env
+.venv/
+__pycache__/
+**/__pycache__/
+*.pyc
+*.pyo
+uploads/
+frontend_dist/
+*.db
+*.db-*
+.DS_Store

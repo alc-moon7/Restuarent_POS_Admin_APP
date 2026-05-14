@@ -83,6 +83,7 @@ class SyncService {
 
   final LocalDatabaseService _database;
   final CloudApiService _cloudApi;
+  final CloudApiService _fallbackApi = CloudApiService();
   final CloudRealtimeService _cloudRealtime;
   final ConnectivityService _connectivity;
   final void Function(Map<String, Object?> event)? _onRemoteEvent;
@@ -96,9 +97,12 @@ class SyncService {
     enabled: CloudDefaults.shouldEnableSyncByDefault,
     deviceToken: '',
     autoSyncIntervalSeconds: 30,
+    fallbackBaseUrl: CloudDefaults.fallbackBaseUrl,
   );
+  CloudConfig? _fallbackConfig;
   bool _online = false;
   DateTime? _lastCloudPullAt;
+  DateTime? _lastFallbackPullAt;
   ServerConfig _serverConfig = ServerConfig(
     serverId: '',
     restaurantId: '',
@@ -146,6 +150,19 @@ class SyncService {
     _cloudConfig = cloudConfig;
     _serverConfig = serverConfig;
     _cloudApi.configure(cloudConfig: cloudConfig, serverConfig: serverConfig);
+    _fallbackConfig = cloudConfig.hasValidFallbackBaseUrl
+        ? cloudConfig.copyWith(
+            baseUrl: cloudConfig.fallbackBaseUrl,
+            enabled: true,
+          )
+        : null;
+    final fallback = _fallbackConfig;
+    if (fallback != null) {
+      _fallbackApi.configure(
+        cloudConfig: fallback,
+        serverConfig: serverConfig,
+      );
+    }
     _autoSyncTimer?.cancel();
     if (cloudConfig.canSync) {
       final seconds = max(10, cloudConfig.autoSyncIntervalSeconds);
@@ -200,6 +217,18 @@ class SyncService {
       return;
     }
     if (!_online && !await _connectivity.hasInternetAccess()) {
+      final fallbackActive = await _syncLocalFallbackAfterCloudFailure(
+        'Internet unavailable.',
+      );
+      if (fallbackActive) {
+        _state = _state.copyWith(
+          cloudConnected: false,
+          lastError:
+              'Internet unavailable. Local fallback server is active; pending changes will upload when cloud returns.',
+        );
+        _emitState();
+        return;
+      }
       _state = _state.copyWith(
         cloudConnected: false,
         lastError: 'Internet unavailable. Sync queue is pending.',
@@ -251,12 +280,17 @@ class SyncService {
         clearError: true,
       );
     } catch (error) {
+      final fallbackActive = await _syncLocalFallbackAfterCloudFailure(error);
       _state = _state.copyWith(
         isSyncing: false,
         cloudConnected: false,
-        lastError: error.toString(),
+        lastError: fallbackActive
+            ? 'Cloud unavailable. Local fallback server is active; pending changes will upload when cloud returns.'
+            : error.toString(),
       );
-      _addLog('Sync stopped: $error', isError: true);
+      if (!fallbackActive) {
+        _addLog('Sync stopped: $error', isError: true);
+      }
     } finally {
       await refreshSummary();
       _emitState();
@@ -273,7 +307,10 @@ class SyncService {
     if (_state.isSyncing || !_cloudConfig.canSync) return;
     if (!_online) {
       _online = await _connectivity.hasInternetAccess();
-      if (!_online) return;
+      if (!_online) {
+        await _syncLocalFallbackAfterCloudFailure('Internet unavailable.');
+        return;
+      }
     }
 
     try {
@@ -291,9 +328,12 @@ class SyncService {
         _state = _state.copyWith(cloudConnected: true, clearError: true);
       }
     } catch (error) {
+      final fallbackActive = await _syncLocalFallbackAfterCloudFailure(error);
       _state = _state.copyWith(
         cloudConnected: false,
-        lastError: error.toString(),
+        lastError: fallbackActive
+            ? 'Cloud unavailable. Local fallback server is active.'
+            : error.toString(),
       );
     } finally {
       await refreshSummary();
@@ -315,6 +355,7 @@ class SyncService {
     await _connectivitySubscription?.cancel();
     _autoSyncTimer?.cancel();
     await _cloudRealtime.disconnect();
+    _fallbackApi.close();
     await _stateController.close();
   }
 
@@ -349,9 +390,22 @@ class SyncService {
   }
 
   Future<int> _pullCloudChanges() async {
-    final since = _lastCloudPullAt;
-    final menuPayloads = await _cloudApi.pullMenu(since: since);
-    final orderPayloads = await _cloudApi.pullOrders(since: since);
+    final imported = await _pullChangesFrom(
+      _cloudApi,
+      since: _lastCloudPullAt,
+      sourceFallback: OrderSource.cloud,
+    );
+    _lastCloudPullAt = DateTime.now().subtract(Duration(seconds: 2));
+    return imported;
+  }
+
+  Future<int> _pullChangesFrom(
+    CloudApiService api, {
+    required DateTime? since,
+    required OrderSource sourceFallback,
+  }) async {
+    final menuPayloads = await api.pullMenu(since: since);
+    final orderPayloads = await api.pullOrders(since: since);
     var imported = 0;
 
     for (final payload in menuPayloads) {
@@ -374,7 +428,7 @@ class SyncService {
       try {
         final order = _orderFromPayload(
           payload,
-          sourceFallback: OrderSource.cloud,
+          sourceFallback: sourceFallback,
         );
         final applied = await _database.applyRemoteOrder(order);
         if (applied != null) {
@@ -391,8 +445,60 @@ class SyncService {
       }
     }
 
-    _lastCloudPullAt = DateTime.now().subtract(Duration(seconds: 2));
     return imported;
+  }
+
+  Future<bool> _syncLocalFallbackAfterCloudFailure(Object cloudError) async {
+    final fallback = _fallbackConfig;
+    if (fallback == null || !fallback.canSync) return false;
+    try {
+      await _fallbackApi.testHealth();
+      await _fallbackApi.registerDevice();
+      await _mirrorLocalSnapshotToFallback();
+      final pulled = await _pullChangesFrom(
+        _fallbackApi,
+        since: _lastFallbackPullAt,
+        sourceFallback: OrderSource.localLan,
+      );
+      _lastFallbackPullAt = DateTime.now().subtract(Duration(seconds: 2));
+      _addLog(
+        pulled > 0
+            ? 'Cloud failed, local fallback imported $pulled update${pulled == 1 ? '' : 's'}.'
+            : 'Cloud failed, local fallback is active.',
+      );
+      return true;
+    } catch (fallbackError) {
+      _addLog('Cloud sync failed: $cloudError', isError: true);
+      _addLog('Local fallback failed: $fallbackError', isError: true);
+      return false;
+    }
+  }
+
+  Future<void> _mirrorLocalSnapshotToFallback() async {
+    final menuItems = await _database.getMenuItems(includeDeleted: true);
+    for (final item in menuItems) {
+      try {
+        if (item.deletedAt != null) {
+          await _fallbackApi.deleteMenuItem(item.id);
+        } else {
+          await _fallbackApi.updateMenuItem(item);
+        }
+      } catch (_) {
+        if (item.deletedAt == null) {
+          await _fallbackApi.pushMenuItem(item);
+        }
+      }
+    }
+
+    final orders = await _database.getOrders();
+    for (final order in orders) {
+      try {
+        await _fallbackApi.pushOrder(order);
+      } catch (_) {
+        // Existing fallback orders are still updated by status below.
+      }
+      await _fallbackApi.pushOrderStatus(order.id, order.status);
+    }
   }
 
   Future<void> _connectCloudRealtime() async {

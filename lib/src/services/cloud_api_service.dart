@@ -226,6 +226,29 @@ class CloudApiService {
     return AdminLoginResult.fromJson(response);
   }
 
+  Future<Map<String, Object?>> createAdminAccount({
+    required String outletId,
+    required String email,
+    required String username,
+    required String password,
+  }) async {
+    final uri = _uri('/admin/create');
+    if (uri == null) {
+      throw CloudApiException('Cloud API URL is empty or invalid.');
+    }
+    return _sendJson(
+      'POST',
+      uri,
+      body: {
+        'outletId': outletId,
+        'email': email.trim(),
+        'username': username.trim(),
+        'password': password,
+      },
+      idempotencyKey: 'admin-create-$outletId-${username.trim()}',
+    );
+  }
+
   Future<BkashPaymentSession> createBkashSandboxPayment({
     required String serverId,
     required double amount,
